@@ -1,13 +1,27 @@
-import { StyleSheet, Text, View } from 'react-native';
-import React from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useEffect } from 'react';
+import { SafeAreaView, Text } from 'react-native';
+import { account } from './server/appwrite';
 
 export default function App() {
+  useEffect(() => {
+    const testConnection = async () => {
+      try {
+        const session = await account.createAnonymousSession();
+        console.log('Anonymous session created:', session);
+
+        const user = await account.get();
+        console.log('Current user:', user);
+      } catch (err) {
+        console.error('Connection failed:', err.message);
+      }
+    };
+
+    testConnection();
+  }, []);
+
   return (
     <SafeAreaView>
-      <Text>Keeper_nest</Text>
+      <Text>Testing Appwrite connection...</Text>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({});
