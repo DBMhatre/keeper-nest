@@ -1,5 +1,14 @@
 {
   "extends": "@react-native/typescript-config",
+  "compilerOptions": {
+    "jsx": "react-jsx",                  // ✅ Enables modern React JSX transform
+    "allowJs": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "types": ["react", "react-native"]   // ✅ Ensure React Native types are loaded
+  },
   "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["**/node_modules", "**/Pods"]
+  "exclude": ["node_modules", "Pods"]
 }
