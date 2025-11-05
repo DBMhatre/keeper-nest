@@ -46,9 +46,11 @@ export default function Login() {
         }
       } catch { }
       const session = await account.createEmailPasswordSession(email, password);
+
       const user = await account.get();
       const role = user.prefs.role;
       console.log("User Role:", role);
+      
       console.log('Logged in successfully:', session);
 
       setAlertTitle('Login Successful');
@@ -84,7 +86,6 @@ export default function Login() {
           </Text>
           <Text style={styles.subtitle}>Access your personalized workspace</Text>
 
-          {/* Email */}
           <View style={styles.inputContainer}>
             <Icon name="email-outline" size={22} color="#555" style={styles.icon} />
             <TextInput
@@ -98,7 +99,6 @@ export default function Login() {
             />
           </View>
 
-          {/* Password */}
           <View style={styles.inputContainer}>
             <Icon name="lock-outline" size={22} color="#555" style={styles.icon} />
             <TextInput
@@ -143,7 +143,7 @@ export default function Login() {
           title={alertTitle}
           message={alertMessage}
           closeOnTouchOutside={true}
-          closeOnHardwareBackPress={false}
+          closeOnHardwareBackPress={true}
           showConfirmButton={true}
           confirmText="Okay"
           confirmButtonColor={alertType === 'success' ? '#4CAF50' : '#FF3B30'}

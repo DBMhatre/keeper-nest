@@ -32,9 +32,25 @@ const SignUp = () => {
   const [alertType, setAlertType] = useState('success');
 
   const handleSignUp = async () => {
-    if (!name || !email || !employeeId || !gender) {
+    if (!name || !email || !employeeId) {
       setAlertTitle('Missing Fields');
-      setAlertMessage('Please fill all fields before logging in.');
+      setAlertMessage('Please fill all fields before signing up.');
+      setAlertType('error');
+      setShowAlert(true);
+      return;
+    }
+
+    if (!gender || gender === 'Select Gender') {
+      setAlertTitle('Invalid Gender');
+      setAlertMessage('Please select a valid gender.');
+      setAlertType('error');
+      setShowAlert(true);
+      return;
+    }
+
+    if (!role || role === 'Select Role') {
+      setAlertTitle('Invalid Role');
+      setAlertMessage('Please select a valid role.');
       setAlertType('error');
       setShowAlert(true);
       return;
@@ -42,61 +58,51 @@ const SignUp = () => {
 
     if (password.length < 8) {
       setAlertTitle('Invalid Password');
-      setAlertMessage('Please enter valid password.');
+      setAlertMessage('Password must be at least 8 characters.');
       setAlertType('error');
       setShowAlert(true);
       return;
     }
 
-
-    if (!gender || gender === '' || gender === 'Select Gender') {
-    setAlertTitle('Invalid Gender');
-    setAlertMessage('Please select a valid gender option.');
-    setAlertType('error');
-    setShowAlert(true);
-    return;
-  }
-
-  if (!role || role === '' || role === 'Select Role') {
-    setAlertTitle('Invalid Role');
-    setAlertMessage('Please select a valid role option.');
-    setAlertType('error');
-    setShowAlert(true);
-    return;
-  }
-
     try {
-      // Just for debugging purpose 
-      // try {
-      //   const currentUser = await account.get();
-      //   if (currentUser) {
-      //     await account.deleteSession('current');
-      //   }
-      // } catch { }
+      try {
+        const currentUser = await account.get();
+        if (currentUser) {
+          await account.deleteSession('current');
+        }
+      } catch { }
 
       await account.create(ID.unique(), email, password, name);
+      await account.createEmailPasswordSession(email, password);
       await account.updatePrefs({ role });
 
-      // Account login and session creation 
-      // await account.createEmailPasswordSession(email, password);
-      
+      try {
+        const currentUser = await account.get();
+        if (currentUser) {
+          await account.deleteSession('current');
+        }
+      } catch { }
+
       setAlertTitle('Signup Successful');
-      setAlertMessage('Next: Login page');
+      setAlertMessage('You can now login.');
       setAlertType('success');
       setShowAlert(true);
 
-      navigation.navigate('Login'as never);
-    } catch (error) {
+    } catch (error: any) {
       if (error?.code === 409) {
-        setAlertTitle('Account already exists');
+        setAlertTitle('Account Already Exists');
         setAlertMessage('Please log in using your email and password.');
-        setAlertType('success');
+        setAlertType('error');
         setShowAlert(true);
-      } else if(error?.code !== 200) {
-        Alert.alert('Signup failed', 'Please try again later.');
+      } else {
+        setAlertTitle('Signup Failed');
+        setAlertMessage(error?.message || 'Please try again later.');
+        setAlertType('error');
+        setShowAlert(true);
       }
     }
   };
+
 
 
   return (
@@ -194,7 +200,7 @@ const SignUp = () => {
         title={alertTitle}
         message={alertMessage}
         closeOnTouchOutside={true}
-        closeOnHardwareBackPress={false}
+        closeOnHardwareBackPress={true}
         showConfirmButton={true}
         confirmText="Okay"
         confirmButtonColor={alertType === 'success' ? '#4CAF50' : '#FF3B30'}
