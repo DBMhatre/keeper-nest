@@ -17,6 +17,7 @@
     "appwrite": "^21.4.0",
     "react": "19.1.1",
     "react-native": "0.82.1",
+    "react-native-awesome-alerts": "^2.0.0",
     "react-native-dotenv": "^3.4.11",
     "react-native-paper": "^5.14.5",
     "react-native-reanimated": "^4.2.0-nightly-20250919-50efe3d0c",
