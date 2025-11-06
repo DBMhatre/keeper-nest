@@ -27,6 +27,20 @@ KeeperNest helps track company assets like laptops, monitors, and keycards, mana
 - yarn or npm
 - Android Studio with SDK and emulator/device setup
 
-### Installation Steps
+## Project Overview
 
-1. Clone the repo:
+Uptill now, KeeperNest allows users to:
+- Signup account for users.
+- Log in securely with persistent sessions.
+- Skip login if “Remember Me” is selected.
+- Access role-based dashboards (Admin / Employee).
+- Log out and destroy sessions safely.
+
+---
+
+## Setup Instructions
+
+### 1️⃣ Clone Repository
+```bash
+git clone https://github.com/<your-username>/keeper-nest.git
+cd keeper-nest
