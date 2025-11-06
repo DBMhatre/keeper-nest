@@ -19,14 +19,6 @@ KeeperNest helps track company assets like laptops, monitors, and keycards, mana
 - Appwrite Backend for authentication, database, and functions
 - React Navigation for app navigation
 
-## Setup & Installation
-
-### Prerequisites
-
-- Node.js (LTS)
-- yarn or npm
-- Android Studio with SDK and emulator/device setup
-
 ## Project Overview
 
 Uptill now, KeeperNest allows users to:
@@ -36,7 +28,13 @@ Uptill now, KeeperNest allows users to:
 - Access role-based dashboards (Admin / Employee).
 - Log out and destroy sessions safely.
 
----
+## Setup & Installation
+
+### Prerequisites
+
+- Node.js (LTS)
+- yarn or npm
+- Android Studio with SDK and emulator/device setup
 
 ## Setup Instructions
 
