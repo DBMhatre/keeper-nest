@@ -83,11 +83,6 @@ const SignUp = () => {
         }
       } catch { }
 
-      setAlertTitle('Signup Successful');
-      setAlertMessage('You can now login.');
-      setAlertType('success');
-      setShowAlert(true);
-
     } catch (error: any) {
       if (error?.code === 409) {
         setAlertTitle('Account Already Exists');

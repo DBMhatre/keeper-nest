@@ -9,18 +9,21 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Switch,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
 import AwesomeAlert from 'react-native-awesome-alerts';
 import { account } from '../server/appwrite';
 import { styles } from '../styles/loginStyles';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function Login() {
   const navigation = useNavigation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
 
   // for awesome alerts only
   const [showAlert, setShowAlert] = useState(false);
@@ -41,28 +44,33 @@ export default function Login() {
     try {
       try {
         const currentUser = await account.get();
-        if (currentUser) {
-          await account.deleteSession('current');
-        }
-      } catch { }
+        console.log("User is logged in:", currentUser);
+        await account.deleteSession('current');
+      } catch (error) {
+        console.log("No active session found");
+      }
+
       const session = await account.createEmailPasswordSession(email, password);
 
       const user = await account.get();
       const role = user.prefs.role;
       console.log("User Role:", role);
-      
-      console.log('Logged in successfully:', session);
 
-      setAlertTitle('Login Successful');
-      setAlertMessage('Welcome back to KeeperNest!');
-      setAlertType('success');
-      setShowAlert(true);
+      if (rememberMe) {
+        await AsyncStorage.setItem('rememberMe', 'true');
+        console.log("Remember is checked!");
+      } else {
+        await AsyncStorage.removeItem('rememberMe');
+      }
+
+      console.log('Logged in successfully:', session);
 
       if (role === 'admin') {
         navigation.navigate('AdminDashboard' as never);
       } else {
         navigation.navigate('EmployeeDashboard' as never);
       }
+
     } catch (err: any) {
       console.log('Error occurred:', err);
       setAlertTitle('Login Failed');
@@ -109,6 +117,17 @@ export default function Login() {
               value={password}
               onChangeText={setPassword}
             />
+          </View>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 2 }}>
+            <TouchableOpacity onPress={() => setRememberMe(!rememberMe)}>
+              <Icon
+                name={rememberMe ? 'checkbox-marked' : 'checkbox-blank-outline'}
+                size={24}
+                color={rememberMe ? '#007bff' : '#777'}
+              />
+            </TouchableOpacity>
+            <Text style={{ marginLeft: 8, color: '#444' }}>Remember Me</Text>
           </View>
 
           <TouchableOpacity
