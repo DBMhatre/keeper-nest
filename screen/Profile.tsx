@@ -61,8 +61,7 @@ export default function Profile() {
 
   interface updatedProps {
     name: string,
-    gender: string,
-    email: string
+    gender: string
   }
 
   async function handleSaveProfile({ name, gender }: updatedProps) {
@@ -145,7 +144,7 @@ export default function Profile() {
         visible={editVisible}
         onClose={() => setEditVisible(false)}
         onSave={handleSaveProfile}
-        currentData={{ name: name, gender: gender, email: email }}
+        currentData={{ name: name, gender: gender }}
       />
 
       <AwesomeAlert
