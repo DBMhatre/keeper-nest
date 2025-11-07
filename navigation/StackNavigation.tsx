@@ -8,6 +8,7 @@ import Login from '../screen/Login';
 import AdminDashboard from '../screen/AdminDashboard';
 import EmployeeDashboard from '../screen/EmployeeDashboard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Profile from '../screen/Profile';
 
 const Stack = createNativeStackNavigator();
 
@@ -56,6 +57,7 @@ export default function StackNavigation() {
         <Stack.Screen name="Login" component={Login} options={{ headerShown: false }} />
         <Stack.Screen name="AdminDashboard" component={AdminDashboard} options={{ headerShown: false }} />
         <Stack.Screen name="EmployeeDashboard" component={EmployeeDashboard} options={{ headerShown: false }} />
+        <Stack.Screen name='Profile' component={Profile} options={{headerShown: false}} />
       </Stack.Navigator>
   );
 }

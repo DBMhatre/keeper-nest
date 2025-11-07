@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { account } from '../server/appwrite';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Header from '../components/Header';
 
 export default function EmployeeDashboard() {
   const [email, setEmail] = useState('');
@@ -46,10 +47,13 @@ export default function EmployeeDashboard() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.emailText}>Employee: {email}</Text>
-      <View style={styles.buttonContainer}>
-        <Button title='Logout' onPress={handleLogout} />
+    <View style={{ flex: 1, backgroundColor: '#f9f9f9' }}>
+      <Header />
+      <View style={styles.container}>
+        <Text style={styles.emailText}>Employee: {email}</Text>
+        <View style={styles.buttonContainer}>
+          <Button title="Logout" color="#007bff" onPress={handleLogout} />
+        </View>
       </View>
     </View>
   );

@@ -8,6 +8,7 @@ import {
   ScrollView,
   SafeAreaView,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Picker } from '@react-native-picker/picker';
@@ -25,6 +26,7 @@ const SignUp = () => {
   const [gender, setGender] = useState('Select Gender');
   const [role, setRole] = useState('Select Role');
   const navigation = useNavigation();
+  const [loading, setLoading] = useState(false);
 
   const [showAlert, setShowAlert] = useState(false);
   const [alertTitle, setAlertTitle] = useState('');
@@ -64,6 +66,7 @@ const SignUp = () => {
       return;
     }
 
+    setLoading(true);
     try {
       try {
         const currentUser = await account.get();
@@ -74,7 +77,12 @@ const SignUp = () => {
 
       await account.create(ID.unique(), email, password, name);
       await account.createEmailPasswordSession(email, password);
-      await account.updatePrefs({ role });
+      await account.updatePrefs({
+        role: role,
+        gender: gender,
+        employeeId: employeeId,
+        password: password
+      });
 
       try {
         const currentUser = await account.get();
@@ -82,6 +90,8 @@ const SignUp = () => {
           await account.deleteSession('current');
         }
       } catch { }
+
+      navigation.navigate('Login' as never);
 
     } catch (error: any) {
       if (error?.code === 409) {
@@ -95,6 +105,8 @@ const SignUp = () => {
         setAlertType('error');
         setShowAlert(true);
       }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -181,13 +193,21 @@ const SignUp = () => {
           </Picker>
         </View>
 
-        <TouchableOpacity style={styles.button} onPress={handleSignUp}>
-          <Text style={styles.buttonText}>Sign Up</Text>
+        <TouchableOpacity style={[styles.button, loading && { opacity: 0.7 }]} disabled={loading} onPress={handleSignUp}>
+          {loading ? (
+            <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
+              <ActivityIndicator size="small" color="#fff" />
+              <Text style={[styles.buttonText, { marginLeft: 10 }]}>Signing...</Text>
+            </View>
+          ) : (
+            <Text style={styles.buttonText}>Sign up</Text>
+          )}
         </TouchableOpacity>
 
         <Text style={styles.loginText}>
           Already have an account? <Text style={styles.link} onPress={() => navigation.navigate('Login' as never)}>Login</Text>
         </Text>
+
       </ScrollView>
       <AwesomeAlert
         show={showAlert}

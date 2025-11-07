@@ -3,6 +3,7 @@ import { View, Text, ActivityIndicator, Button } from 'react-native';
 import { account } from '../server/appwrite';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Header from '../components/Header';
 
 export default function AdminDashboard() {
   const [email, setEmail] = useState('');
@@ -46,11 +47,8 @@ export default function AdminDashboard() {
     }
 
   return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Text>Admin: {email}</Text>
-      <View style={{ margin: 10 }}>
-        <Button title='logout' onPress={handleLogout}/>
-      </View>
+    <View>
+      <Header />
     </View>
   )
 }
