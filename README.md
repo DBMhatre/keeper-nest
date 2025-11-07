@@ -36,6 +36,17 @@ Uptill now, KeeperNest allows users to:
 - yarn or npm
 - Android Studio with SDK and emulator/device setup
 
+## Project Overview
+
+Uptill now, KeeperNest allows users to:
+- Signup account for users.
+- Log in securely with persistent sessions.
+- Skip login if “Remember Me” is selected.
+- Access role-based dashboards (Admin / Employee).
+- Log out and destroy sessions safely.
+
+---
+
 ## Setup Instructions
 
 ### 1️⃣ Clone Repository
