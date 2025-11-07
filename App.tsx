@@ -5,6 +5,8 @@ import StackNavigation from './navigation/StackNavigation';
 import { NavigationContainer } from '@react-navigation/native';
 
 export default function App() {
+
+  // test connection 
   // useEffect(() => {
   //   const testConnection = async () => {
   //     try {

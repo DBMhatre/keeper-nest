@@ -15,23 +15,52 @@ import { styles } from '../styles/signupStyles';
 import { useNavigation } from '@react-navigation/native';
 import { account } from '../server/appwrite';
 import { ID } from 'appwrite';
+import AwesomeAlert from 'react-native-awesome-alerts';
 
 const SignUp = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [employeeId, setEmployeeId] = useState('');
   const [password, setPassword] = useState('');
-  const [gender, setGender] = useState('Male');
+  const [gender, setGender] = useState('Select Gender');
+  const [role, setRole] = useState('Select Role');
   const navigation = useNavigation();
 
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertTitle, setAlertTitle] = useState('');
+  const [alertMessage, setAlertMessage] = useState('');
+  const [alertType, setAlertType] = useState('success');
+
   const handleSignUp = async () => {
-    if (!name || !email || !employeeId || !gender) {
-      Alert.alert('Please fill all details properly');
+    if (!name || !email || !employeeId) {
+      setAlertTitle('Missing Fields');
+      setAlertMessage('Please fill all fields before signing up.');
+      setAlertType('error');
+      setShowAlert(true);
+      return;
+    }
+
+    if (!gender || gender === 'Select Gender') {
+      setAlertTitle('Invalid Gender');
+      setAlertMessage('Please select a valid gender.');
+      setAlertType('error');
+      setShowAlert(true);
+      return;
+    }
+
+    if (!role || role === 'Select Role') {
+      setAlertTitle('Invalid Role');
+      setAlertMessage('Please select a valid role.');
+      setAlertType('error');
+      setShowAlert(true);
       return;
     }
 
     if (password.length < 8) {
-      Alert.alert('Password must be at least 8 characters long');
+      setAlertTitle('Invalid Password');
+      setAlertMessage('Password must be at least 8 characters.');
+      setAlertType('error');
+      setShowAlert(true);
       return;
     }
 
@@ -45,24 +74,30 @@ const SignUp = () => {
 
       await account.create(ID.unique(), email, password, name);
       await account.createEmailPasswordSession(email, password);
-      navigation.navigate('Login');
-    } catch (error) {
+      await account.updatePrefs({ role });
+
+      try {
+        const currentUser = await account.get();
+        if (currentUser) {
+          await account.deleteSession('current');
+        }
+      } catch { }
+
+    } catch (error: any) {
       if (error?.code === 409) {
-        Alert.alert(
-        'Account already exists',
-        'Please log in using your email and password.',
-        [
-          {
-            text: 'Go to Login',
-            onPress: () => navigation.navigate('Login'),
-          },
-        ]
-      );
+        setAlertTitle('Account Already Exists');
+        setAlertMessage('Please log in using your email and password.');
+        setAlertType('error');
+        setShowAlert(true);
       } else {
-        Alert.alert('Signup failed', 'Please try again later.');
+        setAlertTitle('Signup Failed');
+        setAlertMessage(error?.message || 'Please try again later.');
+        setAlertType('error');
+        setShowAlert(true);
       }
     }
   };
+
 
 
   return (
@@ -127,9 +162,22 @@ const SignUp = () => {
             selectedValue={gender}
             onValueChange={(value) => setGender(value)}
             style={styles.picker}>
+            <Picker.Item label="Select Gender" value="Select Gender" color="#aaa" />
             <Picker.Item label="Male" value="Male" />
             <Picker.Item label="Female" value="Female" />
             <Picker.Item label="Other" value="Other" />
+          </Picker>
+        </View>
+
+        <View style={styles.pickerContainer}>
+          <Icon name="account-cog" size={22} color="#666" style={styles.icon} />
+          <Picker
+            selectedValue={role}
+            onValueChange={(value) => setRole(value)}
+            style={styles.picker}>
+            <Picker.Item label="Select Role" value="" color="#aaa" />
+            <Picker.Item label="Admin" value="admin" />
+            <Picker.Item label="Employee" value="employee" />
           </Picker>
         </View>
 
@@ -138,9 +186,21 @@ const SignUp = () => {
         </TouchableOpacity>
 
         <Text style={styles.loginText}>
-          Already have an account? <Text style={styles.link} onPress={() => navigation.navigate('Login')}>Login</Text>
+          Already have an account? <Text style={styles.link} onPress={() => navigation.navigate('Login' as never)}>Login</Text>
         </Text>
       </ScrollView>
+      <AwesomeAlert
+        show={showAlert}
+        showProgress={false}
+        title={alertTitle}
+        message={alertMessage}
+        closeOnTouchOutside={true}
+        closeOnHardwareBackPress={true}
+        showConfirmButton={true}
+        confirmText="Okay"
+        confirmButtonColor={alertType === 'success' ? '#4CAF50' : '#FF3B30'}
+        onConfirmPressed={() => setShowAlert(false)}
+      />
     </SafeAreaView>
   );
 };
