@@ -9,14 +9,14 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Switch,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
 import AwesomeAlert from 'react-native-awesome-alerts';
-import { account } from '../server/appwrite';
+import { account, databases } from '../server/appwrite';
 import { styles } from '../styles/loginStyles';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Query } from 'appwrite';
 
 export default function Login() {
   const navigation = useNavigation();
@@ -25,7 +25,6 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
 
-  // for awesome alerts only
   const [showAlert, setShowAlert] = useState(false);
   const [alertTitle, setAlertTitle] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
@@ -53,8 +52,28 @@ export default function Login() {
       const session = await account.createEmailPasswordSession(email, password);
 
       const user = await account.get();
-      const role = user.prefs.role;
+      const dbId = "user_info";
+      const collectionId = "user_info";
+
+      const response = await databases.listDocuments(
+        dbId,
+        collectionId,
+        [Query.equal("employeeId", user.$id)]
+      );
+      const employeeData = response.documents[0];
+      const role = employeeData.role;
+      const status = employeeData.status;
       console.log("User Role:", role);
+
+      if (status !== 'active') {
+        setAlertTitle('Account Inactive');
+        setAlertMessage('Your account is not active. Please contact the administrator.');
+        setAlertType('error');
+        setShowAlert(true);
+        await account.deleteSession('current');
+        setLoading(false);
+        return;
+      }
 
       if (rememberMe) {
         await AsyncStorage.setItem('rememberMe', 'true');
@@ -65,10 +84,13 @@ export default function Login() {
 
       console.log('Logged in successfully:', session);
 
+      setEmail('');
+      setPassword('');
+
       if (role === 'admin') {
-        navigation.navigate('AdminDashboard' as never);
+        navigation.navigate('AdminTabs' as never);
       } else {
-        navigation.navigate('EmployeeDashboard' as never);
+        navigation.navigate('EmployeeTabs' as never);
       }
 
     } catch (err: any) {
@@ -88,71 +110,105 @@ export default function Login() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardContainer}
       >
-        <View style={styles.card}>
-          <Text style={styles.title}>
-            Login for <Text style={styles.brand}>KeeperNest</Text>
-          </Text>
-          <Text style={styles.subtitle}>Access your personalized workspace</Text>
+        {/* Enhanced Header */}
+        <View style={styles.header}>
+          <View style={styles.logoContainer}>
+            <View style={styles.logo}>
+              <Icon name="shield-account" size={32} color="#fff" />
+            </View>
+          </View>
+          <Text style={styles.title}>Welcome Back</Text>
+          <Text style={styles.subtitle}>Sign in to your KeeperNest account</Text>
+        </View>
 
-          <View style={styles.inputContainer}>
-            <Icon name="email-outline" size={22} color="#555" style={styles.icon} />
-            <TextInput
-              placeholder="Email"
-              placeholderTextColor="#888"
-              style={styles.input}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-            />
+        {/* Enhanced Form Card */}
+        <View style={styles.formCard}>
+          {/* Email Input */}
+          <View style={styles.inputWrapper}>
+            <Text style={styles.inputLabel}>Email Address</Text>
+            <View style={styles.inputContainer}>
+              <Icon name="email-outline" size={22} color="#3b82f6" style={styles.icon} />
+              <TextInput
+                placeholder="Enter your email"
+                placeholderTextColor="#999"
+                style={styles.input}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                selectionColor="#3b82f6"
+                cursorColor="#3b82f6"
+              />
+            </View>
           </View>
 
-          <View style={styles.inputContainer}>
-            <Icon name="lock-outline" size={22} color="#555" style={styles.icon} />
-            <TextInput
-              placeholder="Password"
-              placeholderTextColor="#888"
-              style={styles.input}
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-            />
+          {/* Password Input */}
+          <View style={styles.inputWrapper}>
+            <Text style={styles.inputLabel}>Password</Text>
+            <View style={styles.inputContainer}>
+              <Icon name="lock-outline" size={22} color="#3b82f6" style={styles.icon} />
+              <TextInput
+                placeholder="Enter your password"
+                placeholderTextColor="#999"
+                style={styles.input}
+                secureTextEntry
+                value={password}
+                onChangeText={setPassword}
+                selectionColor="#3b82f6"
+                cursorColor="#3b82f6"
+              />
+            </View>
           </View>
 
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 2 }}>
-            <TouchableOpacity onPress={() => setRememberMe(!rememberMe)}>
+          {/* Remember Me */}
+          <View style={styles.rememberContainer}>
+            <TouchableOpacity 
+              style={styles.rememberCheckbox}
+              onPress={() => setRememberMe(!rememberMe)}
+            >
               <Icon
                 name={rememberMe ? 'checkbox-marked' : 'checkbox-blank-outline'}
                 size={24}
-                color={rememberMe ? '#007bff' : '#777'}
+                color={rememberMe ? '#3b82f6' : '#94a3b8'}
               />
+              <Text style={styles.rememberText}>Remember Me</Text>
             </TouchableOpacity>
-            <Text style={{ marginLeft: 8, color: '#444' }}>Remember Me</Text>
           </View>
 
+          {/* Login Button */}
           <TouchableOpacity
-            style={[styles.button, loading && { opacity: 0.7 }]}
+            style={[styles.button, loading && styles.buttonDisabled]}
             disabled={loading}
             onPress={handleLogin}
           >
             {loading ? (
-              <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
+              <View style={styles.buttonContent}>
                 <ActivityIndicator size="small" color="#fff" />
-                <Text style={[styles.buttonText, { marginLeft: 10 }]}>Logging in...</Text>
+                <Text style={[styles.buttonText, { marginLeft: 10 }]}>Signing In...</Text>
               </View>
             ) : (
-              <Text style={styles.buttonText}>Login</Text>
+              <Text style={styles.buttonText}>Sign In</Text>
             )}
           </TouchableOpacity>
 
-          <Text style={styles.footerText}>
-            Don’t have an account?{' '}
-            <Text
-              style={styles.linkText}
-              onPress={() => navigation.navigate('Signup' as never)}
-            >
-              Sign Up
+          {/* Sign Up Link */}
+          <View style={styles.signupContainer}>
+            <Text style={styles.signupText}>
+              Don't have an account?{' '}
+              <Text
+                style={styles.linkText}
+                onPress={() => navigation.navigate('Signup' as never)}
+              >
+                Create Account
+              </Text>
             </Text>
+          </View>
+        </View>
+
+        {/* Footer */}
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>
+            © 2025 KeeperNest • Secure Access
           </Text>
         </View>
 
@@ -162,7 +218,7 @@ export default function Login() {
           title={alertTitle}
           message={alertMessage}
           closeOnTouchOutside={true}
-          closeOnHardwareBackPress={true}
+          closeOnHardwareBackPress={false}
           showConfirmButton={true}
           confirmText="Okay"
           confirmButtonColor={alertType === 'success' ? '#4CAF50' : '#FF3B30'}
@@ -172,4 +228,3 @@ export default function Login() {
     </SafeAreaView>
   );
 }
-

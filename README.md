@@ -19,15 +19,6 @@ KeeperNest helps track company assets like laptops, monitors, and keycards, mana
 - Appwrite Backend for authentication, database, and functions
 - React Navigation for app navigation
 
-## Project Overview
-
-Uptill now, KeeperNest allows users to:
-- Signup account for users.
-- Log in securely with persistent sessions.
-- Skip login if “Remember Me” is selected.
-- Access role-based dashboards (Admin / Employee).
-- Log out and destroy sessions safely.
-
 ## Setup & Installation
 
 ### Prerequisites
@@ -53,3 +44,4 @@ Uptill now, KeeperNest allows users to:
 ```bash
 git clone https://github.com/<your-username>/keeper-nest.git
 cd keeper-nest
+```

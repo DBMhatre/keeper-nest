@@ -15,9 +15,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-               BuildableName = "keeper_nest.app"
-               BlueprintName = "keeper_nest"
-               ReferencedContainer = "container:keeper_nest.xcodeproj">
+               BuildableName = "KeeperNest.app"
+               BlueprintName = "KeeperNest"
+               ReferencedContainer = "container:KeeperNest.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -33,9 +33,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "00E356ED1AD99517003FC87E"
-               BuildableName = "keeper_nestTests.xctest"
-               BlueprintName = "keeper_nestTests"
-               ReferencedContainer = "container:keeper_nest.xcodeproj">
+               BuildableName = "KeeperNestTests.xctest"
+               BlueprintName = "KeeperNestTests"
+               ReferencedContainer = "container:KeeperNest.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -55,9 +55,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "keeper_nest.app"
-            BlueprintName = "keeper_nest"
-            ReferencedContainer = "container:keeper_nest.xcodeproj">
+            BuildableName = "KeeperNest.app"
+            BlueprintName = "KeeperNest"
+            ReferencedContainer = "container:KeeperNest.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -72,9 +72,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "keeper_nest.app"
-            BlueprintName = "keeper_nest"
-            ReferencedContainer = "container:keeper_nest.xcodeproj">
+            BuildableName = "KeeperNest.app"
+            BlueprintName = "KeeperNest"
+            ReferencedContainer = "container:KeeperNest.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

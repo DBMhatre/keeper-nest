@@ -1,63 +1,180 @@
-import { ActivityIndicator, StyleSheet, Text, View, Button } from 'react-native';
 import React, { useEffect, useState } from 'react';
-import { account } from '../server/appwrite';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  SafeAreaView,
+  ActivityIndicator,
+  RefreshControl,
+  Image,
+} from 'react-native';
+import { account, databases } from '../server/appwrite';
 import { useNavigation } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { styles } from '../styles/employeeDashboardStyles';
+import { Query } from 'appwrite';
 
 export default function EmployeeDashboard() {
-  const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(true); 
+  const [employeeDetails, setEmployeeDetails] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [assignedAssets, setAssignedAssets] = useState([]);
   const navigation = useNavigation();
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const user = await account.get();  
-        setEmail(user.email);
-      } catch (error) {
-        console.log('No active session found');
-        navigation.navigate('Login' as never); 
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchUserAndAssets = async () => {
+    try {
+      const user = await account.get();
 
-    fetchUser();
+      const employeeDetails = await databases.getDocument(
+        'user_info',
+        'user_info',
+        user.$id
+      );
+      setEmployeeDetails(employeeDetails);
+
+      // Fetch assigned assets for this employee
+      const assignedResponse = await databases.listDocuments(
+        'assetManagement',
+        'assets',
+        [Query.equal('assignedTo', user.$id)]
+      );
+
+      const availableResponse = await databases.listDocuments(
+        'assetManagement',
+        'assets',
+        [Query.equal('status', 'Available')]
+      );
+
+      // Fetch total assets count
+      const totalResponse = await databases.listDocuments(
+        'assetManagement',
+        'assets'
+      );
+
+      setAssignedAssets(assignedResponse.documents);
+
+    } catch (error) {
+      console.log('No active session found');
+      navigation.navigate('Login');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUserAndAssets();
   }, []);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await fetchUserAndAssets();
+    } catch (error) {
+      console.error('Error refreshing dashboard:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+
 
   if (loading) {
     return (
       <View style={styles.loaderContainer}>
-        <ActivityIndicator size="large" color="#007bff" />
+        <ActivityIndicator size="large" color="#3b82f6" />
+        <Text style={styles.loadingText}>Loading Dashboard...</Text>
       </View>
     );
   }
 
-  const handleLogout = async () => {
-    try {
-      const user = await account.get();
-      await account.deleteSession('current');
-      await AsyncStorage.removeItem('rememberMe');
-      console.log("Logout session: ", user); 
-      navigation.navigate('Login' as never);
-    } catch (err) {
-      console.log("Logout error occurred:", err);
-    }
-  };
-
   return (
-    <View style={styles.container}>
-      <Text style={styles.emailText}>Employee: {email}</Text>
-      <View style={styles.buttonContainer}>
-        <Button title='Logout' onPress={handleLogout} />
-      </View>
-    </View>
+    <SafeAreaView style={styles.container}>
+      {/* Header */}
+      <View style={styles.topHeader}>
+              <View style={styles.headerLeft}>
+                <Image 
+                  source={{uri: "https://drive.google.com/uc?export=view&id=1o1W4NVpNeMEGNnFmxg20799q6e0NI3pG"}}
+                  style={{width: 50, height: 50, borderRadius: 8}}
+                />
+                <Text style={styles.appTitle}>KeeperNest</Text>
+              </View>
+            </View>
+
+      <ScrollView 
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#3b82f6']}
+            tintColor="#3b82f6"
+          />
+        }
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Welcome Section */}
+        <View style={styles.welcomeSection}>
+          <View style={styles.welcomeContent}>
+            <Text style={styles.welcomeText}>Welcome back,</Text>
+            <Text style={styles.userName}>{employeeDetails?.name}</Text>
+            <Text style={styles.userEmail}>{employeeDetails?.email}</Text>
+            <Text style={styles.employeeId}>Employee ID: {employeeDetails?.employeeId}</Text>
+          </View>
+          <TouchableOpacity style={styles.welcomeIllustration} onPress={() => navigation.navigate('Profile' as never)}>
+            <Icon name={employeeDetails?.gender == 'Male' ? 'face-man' : 'face-woman'} size={80} color="#3b82f6" />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>My Assigned Assets</Text>
+            <Text style={styles.assetsCount}>({assignedAssets.length})</Text>
+          </View>
+          
+          <View style={styles.assetsTable}>
+            <View style={styles.tableHeader}>
+              <Text style={[styles.tableHeaderText, styles.columnAsset]}>Asset Name</Text>
+              <Text style={[styles.tableHeaderText, styles.columnType]}>Type</Text>
+              <Text style={[styles.tableHeaderText, styles.columnStatus]}>Status</Text>
+            </View>
+
+            {/* Table Body - NON SCROLLABLE */}
+            <ScrollView style={styles.tableBody}>
+              {assignedAssets.length === 0 ? (
+                <View style={styles.emptyAssets}>
+                  <Icon name="package-variant-off" size={40} color="#d1d5db" />
+                  <Text style={styles.emptyAssetsText}>No assets assigned to you</Text>
+                  <Text style={styles.emptyAssetsSubtext}>Assets assigned to you will appear here</Text>
+                </View>
+              ) : (
+                assignedAssets.map((asset) => (
+                  <TouchableOpacity 
+                    key={asset.$id}
+                    style={styles.tableRow}
+                    onPress={() => navigation.navigate('AssetEmployeeDetails' as never, { assetId: asset.assetId } as never)}
+                  >
+                    <View style={[styles.tableCell, styles.columnAsset]}>
+                      <Text style={styles.assetName} numberOfLines={1}>{asset.assetName}</Text>
+                      <Text style={styles.assetId}>#{asset.assetId}</Text>
+                    </View>
+                    <View style={[styles.tableCell, styles.columnType]}>
+                      <Text style={styles.assetType}>{asset.assetType}</Text>
+                    </View>
+                    <View style={[styles.tableCell, styles.columnStatus]}>
+                      <View style={[styles.statusBadge, { backgroundColor: '#10b98115' }]}>
+                        <View style={[styles.statusDot, { backgroundColor: '#10b981' }]} />
+                        <Text style={[styles.statusText, { color: '#10b981' }]}>
+                          Assigned
+                        </Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                ))
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  emailText: { fontSize: 18, marginBottom: 10 },
-  buttonContainer: { margin: 10 },
-});
