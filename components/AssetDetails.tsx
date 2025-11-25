@@ -12,7 +12,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Picker } from '@react-native-picker/picker';
 import { styles } from '../styles/assetDetailsStyles';
-import { databases } from '../server/appwrite';
+import { account, databases } from '../server/appwrite';
 import { ID, Query } from 'appwrite';
 import { setSelectedLog } from 'react-native/types_generated/Libraries/LogBox/Data/LogBoxData';
 import AwesomeAlert from 'react-native-awesome-alerts';
@@ -65,6 +65,12 @@ export default function AssetDetails() {
     const fetchAssetData = async () => {
         setLoading(true);
         try {
+            const user = await account.get();
+        } catch (error) {
+            console.log("Error: ", error);
+            navigation.navigate('Login' as never);
+        }
+        try {
             const assetResponse = await databases.listDocuments(
                 'assetManagement',
                 'assets',
@@ -100,8 +106,8 @@ export default function AssetDetails() {
             await fetchAssignmentHistory();
 
         } catch (error) {
-            console.error('Error fetching asset data:', error);
-            Alert.alert('Error', 'Failed to load asset details');
+            console.log("Error: ", error);
+            navigation.navigate('Login' as never);
         } finally {
             setLoading(false);
         }
@@ -279,12 +285,13 @@ export default function AssetDetails() {
                                 style={styles.picker}
                                 dropdownIconColor="#3b82f6"
                             >
-                                <Picker.Item label="Select Employee" value="" color="#9ca3af" />
+                                <Picker.Item label="Select Employee" value="" color="#9ca3af" style={{fontSize: 14}} />
                                 {employees.map((employee) => (
                                     <Picker.Item
                                         key={employee.employeeId}
                                         label={`${employee.name} (${employee.employeeId})`}
                                         value={employee.employeeId}
+                                        style={{fontSize: 14}}
                                         color="#1f2937"
                                     />
                                 ))}

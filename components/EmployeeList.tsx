@@ -9,7 +9,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import React, { useEffect, useState } from 'react';
-import { databases } from '../server/appwrite';
+import { account, databases } from '../server/appwrite';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Query } from 'appwrite';
 import EmptyComponent from './EmptyComponent';
@@ -25,15 +25,22 @@ export default function EmployeeList() {
 
   const fetchEmployees = async () => {
     try {
+      try {
+        const user = await account.get();
+      } catch (error) {
+        console.log("Error: ", error);
+        navigation.navigate('Login' as never);
+      }
       const res = await databases.listDocuments(
         'user_info',
         'user_info',
         [Query.equal('role', 'employee'), Query.equal('status', 'active')]
       );
       setEmployees(res.documents as never);
-      setFilteredEmployees(res.documents as never); 
-    } catch (err) {
-      console.error('Error in fetching employees: ', err);
+      setFilteredEmployees(res.documents as never);
+    } catch (error) {
+      console.log("Error: ", error);
+      navigation.navigate('Login' as never);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -43,7 +50,7 @@ export default function EmployeeList() {
   useEffect(() => {
     fetchEmployees();
   }, []);
-  
+
   useEffect(() => {
     const text = name.toLowerCase();
 
@@ -72,74 +79,78 @@ export default function EmployeeList() {
     }
   };
 
+  const getGenderIcon = (gender: string) => {
+    switch (gender) {
+      case "Male": return "face-man";
+      case "Female": return "face-woman";
+      case "Other": return "face";
+      default: return "account";
+    }
+  };
+
   const renderItem = ({ item }) => (
-    <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('EmployeeDetails' as never, { employeeId: item.employeeId } as never)}>
+    <TouchableOpacity 
+      style={styles.card} 
+      onPress={() => navigation.navigate('EmployeeDetails' as never, { employeeId: item.employeeId } as never)}
+      activeOpacity={0.9}
+    >
+      {/* ID Card Header with Big Face Icon */}
       <View style={styles.cardHeader}>
-        <View style={styles.employeeInfo}>
-          <View style={[
-            styles.iconContainer,
-            { backgroundColor: getGenderColor(item.gender) + "15" }
-          ]}>
-            <Icon
-              name={item.gender.toLowerCase() == 'male' ? "face-man" : "face-woman"}
-              size={34}
-              color={getGenderColor(item.gender)}
-            />
-          </View>
-          <View style={styles.employeeDetails}>
-            <Text style={styles.employeeName}>{item.name}</Text>
-            <Text style={styles.employeeId}>{item.email}</Text>
-          </View>
+        <View style={[
+          styles.bigIconContainer,
+          { 
+            backgroundColor: '#ffffff',
+            borderColor: "#3b82f6" + "40"
+          }
+        ]}>
+          <Icon
+            name={getGenderIcon(item.gender)}
+            size={36}
+            color="#3b82f6"
+          />
         </View>
-        
+        <View style={styles.headerText}>
+          <View style={styles.nameRow}>
+            <Text style={styles.employeeName}>{item.name}</Text>
+            <View style={styles.idBadge}>
+              <Text style={styles.idText}>{item.employeeId}</Text>
+            </View>
+          </View>
+          <Text style={styles.employeeRole}>{item.email}</Text>
+        </View>
       </View>
 
-      <View style={styles.divider} />
-
-      <View style={styles.detailsContainer}>
+      {/* ID Card Body */}
+      <View style={styles.cardBody}>
         <View style={styles.detailsGrid}>
-          {/* Employee ID */}
-          <View style={styles.detailItem}>
-            <View style={styles.detailIcon}>
-              <Icon name="identifier" size={16} color="#6b7280" />
-            </View>
-            <View style={styles.detailContent}>
-              <Text style={styles.detailLabel}>EMPLOYEE ID</Text>
-              <Text style={styles.detailValue}>{item.employeeId}</Text>
-            </View>
-          </View>
 
-          <View style={styles.detailItem}>
-            <View style={styles.detailIcon}>
-              <Icon name="gender-male-female" size={16} color="#6b7280" />
+          {/* Join Date */}
+          <View style={styles.detailRow}>
+            <View style={styles.detailLabelContainer}>
+              <Icon name="calendar-month-outline" size={14} color="#6b7280" />
+              <Text style={styles.detailLabel}>Joined</Text>
             </View>
-            <View style={styles.detailContent}>
-              <Text style={styles.detailLabel}>GENDER</Text>
-              <Text style={styles.detailValue}>{item.gender}</Text>
-            </View>
-          </View>
-
-          {/* Joined Date */}
-          <View style={styles.detailItem}>
-            <View style={styles.detailIcon}>
-              <Icon name="calendar-outline" size={16} color="#6b7280" />
-            </View>
-            <View style={styles.detailContent}>
-              <Text style={styles.detailLabel}>JOINED DATE</Text>
+            <View style={styles.detailValueContainer}>
               <Text style={styles.detailValue}>
-                {new Date(item.$createdAt).toLocaleDateString()}
+                {new Date(item.$createdAt).toLocaleDateString('en-US', { 
+                  month: 'short', 
+                  day: 'numeric', 
+                  year: 'numeric' 
+                })}
               </Text>
             </View>
           </View>
 
           {/* Created By */}
-          <View style={styles.detailItem}>
-            <View style={styles.detailIcon}>
-              <Icon name="account-check-outline" size={16} color="#6b7280" />
+          <View style={styles.detailRow}>
+            <View style={styles.detailLabelContainer}>
+              <Icon name="account-plus-outline" size={14} color="#6b7280" />
+              <Text style={styles.detailLabel}>Created By</Text>
             </View>
-            <View style={styles.detailContent}>
-              <Text style={styles.detailLabel}>CREATED BY</Text>
-              <Text style={styles.detailValue}>{item.creatorMail}</Text>
+            <View style={styles.detailValueContainer}>
+              <Text style={styles.detailValue} numberOfLines={1}>
+                {item.creatorMail || 'BBL-1234'}
+              </Text>
             </View>
           </View>
         </View>
@@ -149,7 +160,6 @@ export default function EmployeeList() {
 
   return (
     <View style={styles.container}>
-      {/* Header Section */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <View style={styles.titleContainer}>
@@ -170,6 +180,7 @@ export default function EmployeeList() {
             placeholder="Search employees..."
             placeholderTextColor="#9ca3af"
             style={styles.searchInput}
+            cursorColor="#3b82f6"
           />
         </View>
       </View>
@@ -243,7 +254,7 @@ const styles = StyleSheet.create({
   },
   searchContainer: {
     flexDirection: 'row',
-    paddingTop: 4.5,
+    paddingTop: 1,
     alignItems: 'center',
     backgroundColor: '#f8fafc',
     borderRadius: 12,
@@ -257,7 +268,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    fontSize: 16,
+    fontSize: 14,
     color: '#1f2937',
     fontWeight: '500',
   },
@@ -268,119 +279,114 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingBottom: 20,
+    paddingTop: 8,
   },
   card: {
     backgroundColor: '#ffffff',
     borderRadius: 16,
-    padding: 20,
-    marginBottom: 12,
+    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
     elevation: 3,
     borderWidth: 1,
     borderColor: '#f1f5f9',
+    overflow: 'hidden',
   },
   cardHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  employeeInfo: {
-    flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
+    padding: 20,
+    paddingBottom: 16,
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
   },
-  iconContainer: {
+  bigIconContainer: {
     width: 60,
     height: 60,
-    borderRadius: 12,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: 16,
+    borderWidth: 2,
+    backgroundColor: '#ffffff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
-  employeeDetails: {
+  headerText: {
     flex: 1,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
   },
   employeeName: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#1f2937',
-    marginBottom: 2,
-  },
-  employeeId: {
-    fontSize: 12,
-    color: '#6b7280',
-    fontWeight: '500',
-  },
-  roleBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  roleDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginRight: 6,
-  },
-  roleText: {
-    fontSize: 12,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#f3f4f6',
-    marginBottom: 16,
-  },
-  detailsContainer: {
-    gap: 16,
-  },
-  detailsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  detailItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    width: '48%',
-    gap: 8,
-  },
-  detailIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: '#f8fafc',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 2,
-  },
-  detailContent: {
+    letterSpacing: -0.3,
     flex: 1,
   },
-  detailLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#6b7280',
-    textTransform: 'uppercase',
+  idBadge: {
+    backgroundColor: '#3b82f6',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginLeft: 8,
+  },
+  idText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#ffffff',
     letterSpacing: 0.5,
-    marginBottom: 2,
+  },
+  employeeRole: {
+    fontSize: 13,
+    color: '#6b7280',
+    fontWeight: '600',
+    letterSpacing: 0.5,
+  },
+  cardBody: {
+    padding: 20,
+    paddingTop: 16,
+    paddingBottom: 16,
+    backgroundColor: '#f8fafc',
+  },
+  detailsGrid: {
+    gap: 12,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  detailLabelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: 90, // Fixed width for labels
+  },
+  detailLabel: {
+    fontSize: 13,
+    color: '#6b7280',
+    fontWeight: '500',
+    marginLeft: 8,
+  },
+  detailValueContainer: {
+    flex: 1,
+    marginLeft: 16, // Consistent spacing between label and value
   },
   detailValue: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
     color: '#1f2937',
-    lineHeight: 18,
+    textAlign: 'left',
   },
   loaderContainer: {
     flex: 1,

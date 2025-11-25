@@ -8,9 +8,11 @@ import {
   ActivityIndicator,
   RefreshControl,
   Image,
+  BackHandler,
+  Alert,
 } from 'react-native';
 import { account, databases } from '../server/appwrite';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { styles } from '../styles/employeeDashboardStyles';
 import { Query } from 'appwrite';
@@ -21,6 +23,7 @@ export default function EmployeeDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [assignedAssets, setAssignedAssets] = useState([]);
   const navigation = useNavigation();
+  const route = useRoute();
 
   const fetchUserAndAssets = async () => {
     try {
@@ -55,7 +58,7 @@ export default function EmployeeDashboard() {
       setAssignedAssets(assignedResponse.documents);
 
     } catch (error) {
-      console.log('No active session found');
+      console.log('EmployeeDashboardError: ', error);
       navigation.navigate('Login');
     } finally {
       setLoading(false);
@@ -138,11 +141,10 @@ export default function EmployeeDashboard() {
               <Text style={[styles.tableHeaderText, styles.columnStatus]}>Status</Text>
             </View>
 
-            {/* Table Body - NON SCROLLABLE */}
             <ScrollView style={styles.tableBody}>
               {assignedAssets.length === 0 ? (
                 <View style={styles.emptyAssets}>
-                  <Icon name="package-variant-off" size={40} color="#d1d5db" />
+                  <Icon name="package-variant" size={40} color="#d1d5db" />
                   <Text style={styles.emptyAssetsText}>No assets assigned to you</Text>
                   <Text style={styles.emptyAssetsSubtext}>Assets assigned to you will appear here</Text>
                 </View>
@@ -152,6 +154,7 @@ export default function EmployeeDashboard() {
                     key={asset.$id}
                     style={styles.tableRow}
                     onPress={() => navigation.navigate('AssetEmployeeDetails' as never, { assetId: asset.assetId } as never)}
+                    activeOpacity={0.9}
                   >
                     <View style={[styles.tableCell, styles.columnAsset]}>
                       <Text style={styles.assetName} numberOfLines={1}>{asset.assetName}</Text>

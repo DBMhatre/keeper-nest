@@ -12,7 +12,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Picker } from '@react-native-picker/picker';
 import { styles } from '../styles/assetDetailsStyles';
-import { databases } from '../server/appwrite';
+import { account, databases } from '../server/appwrite';
 import { ID, Query } from 'appwrite';
 import { setSelectedLog } from 'react-native/types_generated/Libraries/LogBox/Data/LogBoxData';
 import AwesomeAlert from 'react-native-awesome-alerts';
@@ -65,6 +65,12 @@ export default function AssetEmployeeDetails() {
     const fetchAssetData = async () => {
         setLoading(true);
         try {
+            try {
+                const user = await account.get();
+            } catch (error) {
+                console.log("Error: ", error);
+                navigation.navigate('Login' as never);
+            }
             const assetResponse = await databases.listDocuments(
                 'assetManagement',
                 'assets',
@@ -80,8 +86,8 @@ export default function AssetEmployeeDetails() {
                 return;
             }
         } catch (error) {
-            console.error('Error fetching asset data:', error);
-            Alert.alert('Error', 'Failed to load asset details');
+            console.log("Error: ", error);
+            navigation.navigate('Login' as never);
         } finally {
             setLoading(false);
         }
@@ -127,19 +133,16 @@ export default function AssetEmployeeDetails() {
                         </Text>
                     </View>
                 </View>
-
-                <View style={styles.employeeContainer}>
-                    <View style={styles.employeeItem}>
-                        <Text style={styles.employeeLabel}>Assigned Date</Text>
-                        <Text style={styles.employeeValue}>{new Date(asset.$updatedAt).toLocaleDateString()}</Text>
+                <View>
+                    <View>
+                        <Text>Issue Date</Text>
                     </View>
-
-                    <View style={styles.employeeItem}>
-                        <Text style={styles.employeeLabel}>Expiry Date</Text>
-                        <Text style={styles.employeeValue}>{new Date(asset.expiredAt).toLocaleDateString()}</Text>
+                    <View>
+                        <Text>{asset.$modifiedAt}</Text>
                     </View>
                 </View>
             </ScrollView>
+
 
 
 

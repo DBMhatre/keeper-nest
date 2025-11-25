@@ -90,7 +90,7 @@ const SignUp = () => {
             email,
             gender,
             role,
-            creatorMail: email
+            creatorMail: employeeId
           }
         );
   

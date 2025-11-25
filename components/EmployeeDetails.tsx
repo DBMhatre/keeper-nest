@@ -12,10 +12,11 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Picker } from '@react-native-picker/picker';
 import { styles } from '../styles/employeeDetailsStyles';
-import { APPWRITE_CONFIG, databases } from '../server/appwrite';
+import { account, APPWRITE_CONFIG, databases, functions } from '../server/appwrite';
 import { ID, Query } from 'appwrite';
 import AwesomeAlert from 'react-native-awesome-alerts';
 import CustomModal from './CustomModal';
+import { Client, Functions } from "appwrite";
 
 export default function EmployeeDetails() {
   const route = useRoute();
@@ -69,13 +70,19 @@ export default function EmployeeDetails() {
   const fetchEmployeeData = async () => {
     setLoading(true);
     try {
+      const user = await account.get();
+    } catch (error) {
+      console.log("Error: ", error);
+      navigation.navigate('Login' as never);
+    }
+    try {
       const employeeResponse = await databases.listDocuments(
-    'user_info',
-    'user_info',
-    [
-        Query.equal('employeeId', employeeId),
-    ]
-);
+        'user_info',
+        'user_info',
+        [
+          Query.equal('employeeId', employeeId),
+        ]
+      );
 
       if (employeeResponse.documents.length > 0) {
         setEmployee(employeeResponse.documents[0]);
@@ -96,7 +103,8 @@ export default function EmployeeDetails() {
       setAssignedAssets(assignedResponse.documents);
     }
     catch (error) {
-      console.error('Error fetching employee data:', error);
+      console.log("Error: ", error);
+      navigation.navigate('Login' as never);
     }
     finally {
       setLoading(false);
@@ -180,34 +188,47 @@ export default function EmployeeDetails() {
   };
 
   const handleRemoveEmployee = async () => {
-    if (assignedAssets.length > 0) {
-      showModal(
-        'Cannot Remove Employee',
-        `This employee has ${assignedAssets.length} assigned asset(s). Please reassign or unassign these assets before removing the employee.`,
-        'warning'
-      );
-      return;
-    }
-
-    showModal(
-      "Remove Employee",
-      `Remove ${employee.name} from system?`,
-      'error',
-      async () => {
-        try {
-
-          await databases.updateDocument('user_info', 'user_info', employee.$id, { status: 'not active' });
-          showAlertBox('Success', `${employee.name} removed`, 'success');
-          navigation.goBack();
-        } catch (error) {
-          showModal('Error', 'Failed to remove employee', 'error');
-        }
-      },
-      'Remove',
-      true
+  if (assignedAssets.length > 0) {
+    return showModal(
+      'Cannot Remove Employee',
+      `This employee has ${assignedAssets.length} assigned assets. Reassign first.`,
+      'warning'
     );
+  }
 
-  };
+  showModal(
+    "Remove Employee",
+    `Are you sure you want to delete ${employee.name}?`,
+    'error',
+    async () => {
+      try {
+
+        const execution = await functions.createExecution(
+          "delete-user",
+          JSON.stringify({
+            userId: employee.$id,
+            documentId: employee.$id
+          })
+        );
+
+        await databases.deleteDocument('user_info', 'user_info', employee.$id);
+
+        console.log("Execution →", execution);
+
+        showAlertBox("Success", `${employee.name} removed`, "success");
+        navigation.goBack();
+
+      } catch (error) {
+        console.log("Delete error:", error);
+        showModal("Error", "Failed to delete employee.", "error");
+      }
+    },
+    "Delete",
+    true
+  );
+};
+
+
 
   if (loading) {
     return (

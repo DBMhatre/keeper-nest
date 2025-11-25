@@ -16,6 +16,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import EditModal from '../components/EditModal';
 import AwesomeAlert from 'react-native-awesome-alerts';
+import EditPasswordModal from '../components/EditPasswordModal';
+import * as Keychain from 'react-native-keychain';
 
 export default function Profile() {
   const [email, setEmail] = useState('');
@@ -25,6 +27,7 @@ export default function Profile() {
   const [id, setId] = useState('');
   const navigation = useNavigation();
   const [editVisible, setEditVisible] = useState(false);
+  const [passwordVisible, setPasswordVisible] = useState(false);
 
   const [showAlert, setShowAlert] = useState(false);
   const [alertTitle, setAlertTitle] = useState('');
@@ -35,6 +38,7 @@ export default function Profile() {
     const fetchData = async () => {
       try {
         const user = await account.get();
+        
         const dbId = "user_info";
         const collectionId = "user_info";
         const response = await databases.listDocuments(
@@ -50,6 +54,7 @@ export default function Profile() {
         setId(employeeData.employeeId);
       } catch (err) {
         console.log("Profile error: ", err);
+        navigation.navigate('Login' as never);
       }
     }
     fetchData();
@@ -59,7 +64,11 @@ export default function Profile() {
     try {
       const user = await account.get();
       await account.deleteSession('current');
-      await AsyncStorage.removeItem('rememberMe');
+      // await AsyncStorage.setItem('rememberMe', 'false');
+      // await AsyncStorage.removeItem('userEmail');
+      // await Keychain.resetGenericPassword({ service: 'KeeperNestApp' });
+
+
       console.log("Logout session: ", user);
       navigation.navigate('Login' as never);
     } catch (err) {
@@ -91,7 +100,7 @@ export default function Profile() {
         dbId,
         collectionId,
         userDoc.$id,
-        { gender: gender } 
+        { gender: gender }
       );
 
       setName(name);
@@ -107,9 +116,9 @@ export default function Profile() {
   }
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#3b82f6" />
-      
+
       {/* Professional Header */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
@@ -135,21 +144,27 @@ export default function Profile() {
             <Text style={styles.roleText}>{role}</Text>
           </View>
         </View>
-        
+
         <Text style={styles.name}>{name}</Text>
         <Text style={styles.email}>{email}</Text>
         <Text style={styles.employeeId}>ID: {id}</Text>
 
-        <TouchableOpacity style={styles.editProfileBtn} onPress={() => setEditVisible(true)}>
-          <Icon name="account-edit" size={18} color="#3b82f6" />
-          <Text style={styles.editProfileText}>Edit Profile</Text>
-        </TouchableOpacity>
+        <View style={styles.actionButtonsContainer}>
+          <TouchableOpacity style={[styles.actionButton, styles.editButton]} onPress={() => setEditVisible(true)}>
+            <Icon name="account-edit" size={16} color="#3b82f6" />
+            <Text style={[styles.actionButtonText, styles.editText]}>Edit Profile</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.actionButton, styles.passwordButton]} onPress={() => setPasswordVisible(true)}>
+            <Icon name="lock-reset" size={16} color="#3b82f6" />
+            <Text style={[styles.actionButtonText, styles.passwordText]}>Change Password</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
-      {/* Account Information */}
       <View style={styles.cardContainer}>
         <Text style={styles.sectionTitle}>Account Information</Text>
-        
+
         <View style={styles.infoCard}>
           <View style={styles.infoItem}>
             <View style={styles.infoIcon}>
@@ -212,6 +227,17 @@ export default function Profile() {
         currentData={{ name: name, gender: gender }}
       />
 
+      <EditPasswordModal
+        visible={passwordVisible}
+        onClose={() => setPasswordVisible(false)}
+        onAlert={(title, message) => {
+          setAlertTitle(title);
+          setAlertMessage(message);
+          setAlertType('success');
+          setShowAlert(true);
+        }}
+      />
+
       <AwesomeAlert
         show={showAlert}
         showProgress={false}
@@ -228,6 +254,6 @@ export default function Profile() {
           setEditVisible(false);
         }}
       />
-    </ScrollView>
+    </View>
   );
 }
