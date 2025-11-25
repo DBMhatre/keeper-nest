@@ -3,7 +3,7 @@ import { SafeAreaView, Text } from 'react-native';
 import { account } from './server/appwrite';
 import StackNavigation from './navigation/StackNavigation';
 import { NavigationContainer } from '@react-navigation/native';
-
+import SplashScreen from 'react-native-splash-screen';
 export default function App() {
 
   // test connection 
@@ -22,6 +22,10 @@ export default function App() {
 
   //   testConnection();
   // }, []);
+
+  useEffect(() => {
+    SplashScreen.hide();
+  }, []);
 
   return (
     <NavigationContainer>
