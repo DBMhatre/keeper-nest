@@ -7,6 +7,7 @@ import {
   SafeAreaView,
   ActivityIndicator,
   Alert,
+  Modal,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -42,6 +43,8 @@ export default function EmployeeDetails() {
     showCancel: false,
   });
   const navigation = useNavigation();
+  // Add this state variable with your other states
+  const [removingEmployee, setRemovingEmployee] = useState(false);
 
   const showModal = (title, message, type = 'info', onConfirm = null, confirmText = 'OK', showCancel = false) => {
     setModalConfig({
@@ -124,34 +127,30 @@ export default function EmployeeDetails() {
     try {
       setAssigning(true);
 
-      // Find the asset document using assetId from selectedAsset
       const assetDoc = assets.find(asset => asset.assetId === selectedAsset);
-
       if (!assetDoc) {
         Alert.alert('Error', 'Selected asset not found');
         return;
       }
 
-      // Update asset using document ID ($id) but selectedAsset has assetId
+      const newHistoryEntry = JSON.stringify({
+        historyId: ID.unique(),
+        employeeId: employeeId,
+        assignDate: new Date().toISOString(),
+      });
+      const currentHistory = assetDoc.historyQueue || [];
+      const updatedHistory = [newHistoryEntry, ...currentHistory];
+      if (updatedHistory.length > 5) {
+        updatedHistory.pop();
+      }
       await databases.updateDocument(
         'assetManagement',
         'assets',
-        assetDoc.$id, // Use document ID here
+        assetDoc.$id,
         {
           status: 'Assigned',
-          assignedTo: employeeId
-        }
-      );
-
-      // Create history with assetId from selectedAsset
-      await databases.createDocument(
-        'assetManagement',
-        'history',
-        ID.unique(),
-        {
-          assetId: selectedAsset, // Store the assetId directly
-          employeeId: employeeId,
-          assignDate: new Date().toISOString()
+          assignedTo: employeeId,
+          historyQueue: updatedHistory
         }
       );
 
@@ -188,45 +187,47 @@ export default function EmployeeDetails() {
   };
 
   const handleRemoveEmployee = async () => {
-  if (assignedAssets.length > 0) {
-    return showModal(
-      'Cannot Remove Employee',
-      `This employee has ${assignedAssets.length} assigned assets. Reassign first.`,
-      'warning'
+    if (assignedAssets.length > 0) {
+      return showModal(
+        'Cannot Remove Employee',
+        `This employee has ${assignedAssets.length} assigned assets. Reassign first.`,
+        'warning'
+      );
+    }
+
+    showModal(
+      "Remove Employee",
+      `Are you sure you want to delete ${employee.name}?`,
+      'error',
+      async () => {
+        try {
+          setRemovingEmployee(true); // Start loading
+
+          const execution = await functions.createExecution(
+            "delete-user",
+            JSON.stringify({
+              userId: employee.$id,
+              documentId: employee.$id
+            })
+          );
+
+          await databases.deleteDocument('user_info', 'user_info', employee.$id);
+
+          console.log("Execution →", execution);
+          showAlertBox("Success", `${employee.name} removed successfully`, "success");
+          navigation.goBack();
+
+        } catch (error) {
+          console.log("Delete error:", error);
+          showModal("Error", "Failed to delete employee.", "error");
+        } finally {
+          setRemovingEmployee(false);
+        }
+      },
+      "Delete",
+      true
     );
-  }
-
-  showModal(
-    "Remove Employee",
-    `Are you sure you want to delete ${employee.name}?`,
-    'error',
-    async () => {
-      try {
-
-        const execution = await functions.createExecution(
-          "delete-user",
-          JSON.stringify({
-            userId: employee.$id,
-            documentId: employee.$id
-          })
-        );
-
-        await databases.deleteDocument('user_info', 'user_info', employee.$id);
-
-        console.log("Execution →", execution);
-
-        showAlertBox("Success", `${employee.name} removed`, "success");
-        navigation.goBack();
-
-      } catch (error) {
-        console.log("Delete error:", error);
-        showModal("Error", "Failed to delete employee.", "error");
-      }
-    },
-    "Delete",
-    true
-  );
-};
+  };
 
 
 
@@ -335,7 +336,7 @@ export default function EmployeeDetails() {
                       <Text style={styles.assetName} numberOfLines={2}>{asset.assetName}</Text>
                     </View>
                     <View style={[styles.tableCell, styles.columnId]}>
-                      <Text style={styles.assetId}>{asset.assetId}</Text>
+                      <Text style={styles.assetId} numberOfLines={1}>{asset.assetId}</Text>
                     </View>
                     <View style={[styles.tableCell, styles.columnAction]}>
                       <TouchableOpacity
@@ -352,9 +353,26 @@ export default function EmployeeDetails() {
             </View>
           )}
         </View>
-        <TouchableOpacity style={styles.logoutButton} onPress={handleRemoveEmployee}>
-          <Icon name="link-off" size={20} color="#fff" />
-          <Text style={styles.logoutText}>Remove Employee</Text>
+        {/* Remove Employee Button */}
+        <TouchableOpacity
+          style={[
+            styles.logoutButton,
+            removingEmployee && styles.buttonDisabled
+          ]}
+          onPress={handleRemoveEmployee}
+          disabled={removingEmployee}
+        >
+          {removingEmployee ? (
+            <>
+              <ActivityIndicator size="small" color="#ffffff" />
+              <Text style={styles.logoutText}>Removing Employee...</Text>
+            </>
+          ) : (
+            <>
+              <Icon name="account-remove" size={20} color="#fff" />
+              <Text style={styles.logoutText}>Remove Employee</Text>
+            </>
+          )}
         </TouchableOpacity>
       </ScrollView>
 
@@ -382,6 +400,20 @@ export default function EmployeeDetails() {
         confirmText={modalConfig.confirmText}
         showCancel={modalConfig.showCancel}
       />
+
+      <Modal
+        visible={removingEmployee}
+        transparent={true}
+        animationType="fade"
+      >
+        <View style={styles.loadingOverlay}>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#3b82f6" />
+            <Text style={styles.loadingMessage}>Removing Employee...</Text>
+            <Text style={styles.loadingSubMessage}>Please wait while we remove {employee?.name}</Text>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

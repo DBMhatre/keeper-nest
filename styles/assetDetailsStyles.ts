@@ -32,8 +32,8 @@ export const styles = StyleSheet.create({
   header: {
     backgroundColor: "#ffffff",
     paddingHorizontal: 20,
-    paddingTop: height * 0.05,
-    paddingBottom: 25,
+    paddingTop: 20,
+    paddingBottom: 20,
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
     shadowColor: "#000",
@@ -48,18 +48,19 @@ export const styles = StyleSheet.create({
   titleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: '700',
     color: '#1f2937',
-    marginLeft: 8,
+    marginLeft: 10,
   },
   headerSubtitle: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#6b7280',
     lineHeight: 22,
+    marginLeft: 35
   },
   formCard: {
     backgroundColor: '#ffffff',
@@ -197,15 +198,6 @@ export const styles = StyleSheet.create({
   tableCell: {
     justifyContent: 'center',
   },
-  assetName: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#1f2937',
-  },
-  assetId: {
-    fontSize: 13,
-    color: '#6b7280',
-  },
   unassignButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -324,6 +316,7 @@ export const styles = StyleSheet.create({
   flexDirection: 'row',
   gap: 8,
   marginTop: 12,
+  marginBottom: 18,
   marginHorizontal: 20,
 },
 actionButton: {
@@ -373,4 +366,172 @@ employeeContainer: {
     fontWeight: 'bold',
     color: '#333',
   },
+
+  // Add these styles to your existing assetDetailsStyles
+
+assetCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+    overflow: 'hidden',
+},
+
+cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    padding: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+    backgroundColor: '#fafbfc',
+},
+
+assetIdentity: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+},
+
+assetIconWrapper: {
+    width: 50,
+    height: 50,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+    borderWidth: 2,
+    borderColor: '#f1f5f9',
+},
+
+assetInfo: {
+    flex: 1,
+},
+
+assetName: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#1f2937',
+    marginBottom: 4,
+},
+
+assetId: {
+    fontSize: 13,
+    color: '#6b7280',
+    fontWeight: '500',
+},
+
+statusIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+},
+
+statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 3,
+},
+
+statusLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+},
+
+cardBody: {
+    padding: 5,
+    paddingHorizontal: 10,
+    paddingTop: 10,
+},
+
+detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+    gap: 12,
+},
+
+detailColumn: {
+    flex: 1,
+},
+
+detailItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#f8fafc',
+    padding: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+    gap: 6,
+},
+
+detailContent: {
+    flex: 1,
+},
+
+detailLabel: {
+    fontSize: 11,
+    color: '#6b7280',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+},
+
+detailValue: {
+    fontSize: 12,
+    color: '#1f2937',
+    fontWeight: '600',
+    lineHeight: 20,
+},
+
+descriptionSection: {
+    marginBottom: 6
+},
+
+descriptionText: {
+    fontSize: 13,
+    color: '#1f2937',
+    fontWeight: '500',
+    lineHeight: 20,
+},
+
+unassignedText: {
+    color: '#9ca3af',
+    fontStyle: 'italic',
+},
+
+assetMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+},
+
+assetType: {
+    fontSize: 12.5,
+    color: '#3b82f6',
+    fontWeight: '600',
+    backgroundColor: '#eff6ff',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginLeft: 7
+},
 });

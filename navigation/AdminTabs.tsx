@@ -1,5 +1,5 @@
 // src/navigation/AdminTabs.tsx
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Alert, BackHandler } from 'react-native';
@@ -8,16 +8,12 @@ import { account } from '../server/appwrite';
 
 import AdminDashboard from '../screen/AdminDashboard';
 import Profile from '../screen/Profile';
-import EmployeeCreate from '../components/EmployeeCreate';
-import AssetForm from '../components/AssetForm';
-import EmployeeList from '../components/EmployeeList';
-import AssetList from '../components/AssetList';
-
+import ExitAppModal from '../components/ExitAppModal';
 const Tab = createBottomTabNavigator();
 
 export default function AdminTabs() {
   const navigation = useNavigation();
-
+  const [showExitModal, setShowExitModal] = useState(false);
   useEffect(() => {
     const checkUserSession = async () => {
       try {
@@ -39,24 +35,8 @@ export default function AdminTabs() {
   useFocusEffect(
     React.useCallback(() => {
       const onBackPress = () => {
-        Alert.alert(
-          'Exit KeeperNest',
-          'Are you sure you want to exit the app?',
-          [
-            {
-              text: 'Cancel',
-              onPress: () => null,
-              style: 'cancel',
-            },
-            {
-              text: 'Exit',
-              onPress: () => BackHandler.exitApp(),
-              style: 'destructive',
-            },
-          ],
-          { cancelable: true }
-        );
-        return true;
+        setShowExitModal(true);
+        return true; // Prevent default back behavior
       };
 
       const backHandler = BackHandler.addEventListener(
@@ -64,11 +44,24 @@ export default function AdminTabs() {
         onBackPress
       );
 
-      return () => backHandler.remove();
+      return () => {
+        backHandler.remove();
+        setShowExitModal(false); // Clean up modal state when screen loses focus
+      };
     }, [])
   );
 
+  const handleExitConfirm = () => {
+    BackHandler.exitApp();
+  };
+
+  const handleExitCancel = () => {
+    setShowExitModal(false);
+  };
+
+
   return (
+    <>
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
@@ -125,5 +118,15 @@ export default function AdminTabs() {
         }}
       />
     </Tab.Navigator>
+    <ExitAppModal
+        visible={showExitModal}
+        onConfirm={handleExitConfirm}
+        onCancel={handleExitCancel}
+        title="Exit KeeperNest"
+        message="Are you sure you want to exit the app?"
+        confirmText="Exit"
+        cancelText="Cancel"
+      />
+      </>
   );
 }

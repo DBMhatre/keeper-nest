@@ -9,15 +9,14 @@ export const styles = StyleSheet.create({
   },
   scrollContainer: {
     flexGrow: 1,
-    paddingBottom: 30,
+    paddingBottom: 20,
   },
 
-  // Header Styles
   header: {
     backgroundColor: "#ffffff",
     paddingHorizontal: 20,
-    paddingTop: height * 0.04,
-    paddingBottom: 16,
+    paddingTop: 20,
+    paddingBottom: 20,
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
     shadowColor: "#000",
@@ -27,7 +26,7 @@ export const styles = StyleSheet.create({
     elevation: 4,
   },
   headerContent: {
-    marginBottom: 16,
+    alignItems: 'flex-start',
   },
   titleContainer: {
     flexDirection: 'row',
@@ -43,8 +42,23 @@ export const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: 14,
     color: '#6b7280',
-    marginLeft: 34,
+    marginLeft: 35,
   },
+
+  modalOverlay: {
+  flex: 1,
+  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  justifyContent: 'center',
+  alignItems: 'center',
+  padding: 20,
+},
+selectedDateText: {
+  fontSize: 12,
+  color: '#3b82f6',
+  marginTop: 4,
+  marginLeft: 8,
+  fontStyle: 'italic',
+},
 
   // Form Card
   formCard: {
@@ -132,6 +146,7 @@ export const styles = StyleSheet.create({
     height: 50,
     textAlignVertical: 'top',
     paddingTop: 12,
+    paddingBottom: 12,
   },
 
   // Button

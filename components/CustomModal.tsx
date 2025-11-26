@@ -28,9 +28,6 @@ const CustomModal = ({
         <View style={styles.container}>
           {/* Icon & Title Row */}
           <View style={styles.header}>
-            <View style={[styles.icon, { backgroundColor: color + '20' }]}>
-              <Icon name={icon} size={24} color={color} />
-            </View>
             <Text style={styles.title}>{title}</Text>
           </View>
 

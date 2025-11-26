@@ -1,5 +1,5 @@
 // src/navigation/EmployeeTabs.tsx
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Alert, BackHandler } from 'react-native';
@@ -8,46 +8,40 @@ import { account } from '../server/appwrite';
 
 import EmployeeDashboard from '../screen/EmployeeDashboard';
 import Profile from '../screen/Profile';
-
+import ExitAppModal from '../components/ExitAppModal';
 const Tab = createBottomTabNavigator();
 
 export default function EmployeeTabs() {
+  const [showExitModal, setShowExitModal] = useState(false);
   useFocusEffect(
-    React.useCallback(() => {
-      const onBackPress = () => {
-        Alert.alert(
-          'Exit KeeperNest',
-          'Are you sure you want to exit the app?',
-          [
-            {
-              text: 'Cancel',
-              onPress: () => null,
-              style: 'cancel',
-            },
-            {
-              text: 'Exit',
-              onPress: () => BackHandler.exitApp(),
-              style: 'destructive',
-            },
-          ],
-          {
-            cancelable: true,
-            userInterfaceStyle: 'light'
-          }
+      React.useCallback(() => {
+        const onBackPress = () => {
+          setShowExitModal(true);
+          return true; // Prevent default back behavior
+        };
+  
+        const backHandler = BackHandler.addEventListener(
+          'hardwareBackPress',
+          onBackPress
         );
-        return true;
+  
+        return () => {
+          backHandler.remove();
+          setShowExitModal(false); // Clean up modal state when screen loses focus
+        };
+      }, [])
+    );
+
+    const handleExitConfirm = () => {
+        BackHandler.exitApp();
+      };
+    
+      const handleExitCancel = () => {
+        setShowExitModal(false);
       };
 
-      const backHandler = BackHandler.addEventListener(
-        'hardwareBackPress',
-        onBackPress
-      );
-
-      return () => backHandler.remove();
-    }, [])
-  );
-
   return (
+    <>
     <Tab.Navigator
   screenOptions={{
     headerShown: false,
@@ -105,5 +99,15 @@ export default function EmployeeTabs() {
     }}
   />
 </Tab.Navigator>
+<ExitAppModal
+        visible={showExitModal}
+        onConfirm={handleExitConfirm}
+        onCancel={handleExitCancel}
+        title="Exit KeeperNest"
+        message="Are you sure you want to exit the app?"
+        confirmText="Exit"
+        cancelText="Cancel"
+      />
+      </>
   );
 }

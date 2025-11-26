@@ -226,7 +226,7 @@ export default function AssetList() {
             <View style={styles.header}>
                 <View style={styles.headerContent}>
                     <View style={styles.titleContainer}>
-                        <Icon name="package-variant" size={28} color="#3b82f6" />
+                        <Icon name="package-variant" size={26} color="#3b82f6" />
                         <Text style={styles.headerTitle}>Asset Inventory</Text>
                     </View>
                     <Text style={styles.headerSubtitle}>
@@ -450,17 +450,18 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         marginBottom: 4,
+        marginLeft: 2,
     },
     headerTitle: {
         fontSize: 24,
         fontWeight: '700',
         color: '#1f2937',
-        marginLeft: 10,
+        marginLeft: 13,
     },
     headerSubtitle: {
         fontSize: 14,
         color: '#6b7280',
-        marginLeft: 34,
+        marginLeft: 41,
     },
     searchContainer: {
         flexDirection: 'row',

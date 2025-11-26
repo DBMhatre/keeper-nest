@@ -177,7 +177,7 @@ const EmployeeCreate = () => {
           <View style={styles.header}>
             <View style={styles.headerContent}>
               <View style={styles.titleContainer}>
-                <Icon name="account-plus" size={28} color="#3b82f6" />
+                <Icon name="account-plus" size={26} color="#3b82f6" />
                 <Text style={styles.headerTitle}>Create Employee</Text>
               </View>
               <Text style={styles.headerSubtitle}>
@@ -263,7 +263,7 @@ const EmployeeCreate = () => {
                   <Picker.Item label="Select Gender" value="No" color="#9ca3af" />
                   <Picker.Item label="Male" value="Male" color="#1f2937" />
                   <Picker.Item label="Female" value="Female" color="#1f2937" />
-                  <Picker.Item label="Other" value="Other" color="#1f2937" />
+                  {/* <Picker.Item label="Other" value="Other" color="#1f2937" /> */}
                 </Picker>
               </View>
             </View>

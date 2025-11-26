@@ -100,7 +100,7 @@ export default function Profile() {
         dbId,
         collectionId,
         userDoc.$id,
-        { gender: gender }
+        { gender: gender, name: name }
       );
 
       setName(name);

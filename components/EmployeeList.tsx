@@ -89,41 +89,44 @@ export default function EmployeeList() {
   };
 
   const renderItem = ({ item }) => (
-    <TouchableOpacity 
-      style={styles.card} 
+    <TouchableOpacity
+      style={styles.card}
       onPress={() => navigation.navigate('EmployeeDetails' as never, { employeeId: item.employeeId } as never)}
       activeOpacity={0.9}
     >
-      {/* ID Card Header with Big Face Icon */}
+      {/* ID Card Header with Big Face Icon and ID Badge */}
       <View style={styles.cardHeader}>
-        <View style={[
-          styles.bigIconContainer,
-          { 
-            backgroundColor: '#ffffff',
-            borderColor: "#3b82f6" + "40"
-          }
-        ]}>
-          <Icon
-            name={getGenderIcon(item.gender)}
-            size={36}
-            color="#3b82f6"
-          />
-        </View>
-        <View style={styles.headerText}>
-          <View style={styles.nameRow}>
-            <Text style={styles.employeeName}>{item.name}</Text>
-            <View style={styles.idBadge}>
-              <Text style={styles.idText}>{item.employeeId}</Text>
-            </View>
+        <View style={styles.iconWithBadgeContainer}>
+          <View style={[
+            styles.bigIconContainer,
+            {
+              backgroundColor: '#ffffff',
+              borderColor: "#3b82f6" + "40"
+            }
+          ]}>
+            <Icon
+              name={getGenderIcon(item.gender)}
+              size={36}
+              color="#3b82f6"
+            />
           </View>
-          <Text style={styles.employeeRole}>{item.email}</Text>
+          {/* ID Badge positioned at bottom of icon */}
+          <View style={styles.idBadge}>
+            <Text style={styles.idText}>
+              BBL-123456
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.headerText}>
+          <Text style={styles.employeeName}>{item.name}</Text>
+          <Text style={styles.employeeEmail}>{item.email}</Text>
         </View>
       </View>
 
       {/* ID Card Body */}
       <View style={styles.cardBody}>
         <View style={styles.detailsGrid}>
-
           {/* Join Date */}
           <View style={styles.detailRow}>
             <View style={styles.detailLabelContainer}>
@@ -132,10 +135,10 @@ export default function EmployeeList() {
             </View>
             <View style={styles.detailValueContainer}>
               <Text style={styles.detailValue}>
-                {new Date(item.$createdAt).toLocaleDateString('en-US', { 
-                  month: 'short', 
-                  day: 'numeric', 
-                  year: 'numeric' 
+                {new Date(item.$createdAt).toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric'
                 })}
               </Text>
             </View>
@@ -163,7 +166,7 @@ export default function EmployeeList() {
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <View style={styles.titleContainer}>
-            <Icon name="account-group" size={28} color="#3b82f6" />
+            <Icon name="account-group" size={30} color="#3b82f6" />
             <Text style={styles.headerTitle}>Employee Directory</Text>
           </View>
           <Text style={styles.headerSubtitle}>
@@ -240,6 +243,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 4,
+    marginLeft: 2,
   },
   headerTitle: {
     fontSize: 24,
@@ -250,7 +254,7 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: 14,
     color: '#6b7280',
-    marginLeft: 34,
+    marginLeft: 43,
   },
   searchContainer: {
     flexDirection: 'row',
@@ -296,20 +300,23 @@ const styles = StyleSheet.create({
   },
   cardHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
-    padding: 20,
+    alignItems: 'flex-start',
+    padding: 18,
     paddingBottom: 16,
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
     borderBottomColor: '#f1f5f9',
   },
+  iconWithBadgeContainer: {
+    position: 'relative',
+    marginRight: 16,
+  },
   bigIconContainer: {
-    width: 60,
+    width: 75,
     height: 60,
     borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
     borderWidth: 2,
     backgroundColor: '#ffffff',
     shadowColor: '#000',
@@ -318,40 +325,45 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 2,
   },
+  idBadge: {
+    position: 'absolute',
+    bottom: -7,
+    left: '40%',
+    transform: [{ translateX: -30 }],
+    backgroundColor: '#3b82f6',
+    paddingHorizontal: 2,
+    paddingVertical: 3,
+    borderRadius: 6,
+    minWidth: 75,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  idText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#ffffff',
+    letterSpacing: 0.3,
+  },
   headerText: {
     flex: 1,
-  },
-  nameRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
+    justifyContent: 'center',
   },
   employeeName: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
     color: '#1f2937',
     letterSpacing: -0.3,
-    flex: 1,
+    marginBottom: 4,
   },
-  idBadge: {
-    backgroundColor: '#3b82f6',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    marginLeft: 8,
-  },
-  idText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#ffffff',
-    letterSpacing: 0.5,
-  },
-  employeeRole: {
+  employeeEmail: {
     fontSize: 13,
     color: '#6b7280',
-    fontWeight: '600',
-    letterSpacing: 0.5,
+    fontWeight: '500',
   },
   cardBody: {
     padding: 20,
@@ -370,7 +382,7 @@ const styles = StyleSheet.create({
   detailLabelContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: 90, // Fixed width for labels
+    width: 90,
   },
   detailLabel: {
     fontSize: 13,
@@ -380,7 +392,7 @@ const styles = StyleSheet.create({
   },
   detailValueContainer: {
     flex: 1,
-    marginLeft: 16, // Consistent spacing between label and value
+    marginLeft: 16,
   },
   detailValue: {
     fontSize: 14,

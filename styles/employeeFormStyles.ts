@@ -16,8 +16,8 @@ export const styles = StyleSheet.create({
   header: {
     backgroundColor: "#ffffff",
     paddingHorizontal: 20,
-    paddingTop: height * 0.05,
-    paddingBottom: 25,
+    paddingTop: 20,
+    paddingBottom: 20,
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
     shadowColor: "#000",
@@ -27,7 +27,7 @@ export const styles = StyleSheet.create({
     elevation: 4,
   },
   headerContent: {
-    marginBottom: 16,
+    alignItems: 'flex-start',
   },
   titleContainer: {
     flexDirection: 'row',
@@ -43,7 +43,7 @@ export const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: 14,
     color: '#6b7280',
-    marginLeft: 34,
+    marginLeft: 38,
   },
 
   // Form Card

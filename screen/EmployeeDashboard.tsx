@@ -154,7 +154,6 @@ export default function EmployeeDashboard() {
                     key={asset.$id}
                     style={styles.tableRow}
                     onPress={() => navigation.navigate('AssetEmployeeDetails' as never, { assetId: asset.assetId } as never)}
-                    activeOpacity={0.9}
                   >
                     <View style={[styles.tableCell, styles.columnAsset]}>
                       <Text style={styles.assetName} numberOfLines={1}>{asset.assetName}</Text>

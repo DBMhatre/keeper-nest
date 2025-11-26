@@ -14,11 +14,11 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Picker } from '@react-native-picker/picker';
 import AwesomeAlert from 'react-native-awesome-alerts';
 import { ID } from 'appwrite';
-import { databases } from '../server/appwrite';
+import { account, databases } from '../server/appwrite';
 import { styles } from '../styles/assetFormStyles';
 import { Asset } from './asset';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { useNavigation } from '@react-navigation/native';
+import DatePicker from 'react-native-neat-date-picker';
 
 const DATABASE_ID = 'assetManagement';
 const COLLECTION_ID = 'assets';
@@ -29,8 +29,8 @@ const AssetForm = () => {
   const [assetId, setAssetId] = useState('');
   const status = 'Available';
   const [description, setDescription] = useState('');
-  const [purchaseDate, setPurchaseDate] = useState(new Date());
-  const [showPicker, setShowPicker] = useState(false);
+  const [purchaseDate, setPurchaseDate] = useState('');
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
   const [alertTitle, setAlertTitle] = useState('');
@@ -38,12 +38,6 @@ const AssetForm = () => {
   const [alertType, setAlertType] = useState<'success' | 'error'>('success');
   const [focusedInput, setFocusedInput] = useState('');
   const navigation = useNavigation();
-  const onChange = (event: any, selectedDate?: Date) => {
-    setShowPicker(false);
-    if (selectedDate) {
-      setPurchaseDate(selectedDate);
-    }
-  };
 
   const showAlertBox = (title: string, message: string, type: 'success' | 'error') => {
     setAlertTitle(title);
@@ -52,8 +46,26 @@ const AssetForm = () => {
     setShowAlert(true);
   };
 
+  const openDatePicker = () => setShowDatePicker(true);
+
+  const onCancel = () => {
+    setShowDatePicker(false);
+  };
+
+  const onConfirm = (output: any) => {
+    setShowDatePicker(false);
+    console.log(output);
+    setPurchaseDate(output.dateString ?? '');
+  };
+
   const handleCreateAsset = async () => {
-    if (!assetName || !assetType || !assetId || !status) {
+    try {
+      const user = await account.get();
+    } catch (error) {
+      console.log("Error: ", error);
+      navigation.navigate('Login' as never);
+    }
+    if (!assetName || !assetType || !assetId || !status || !purchaseDate) {
       return showAlertBox('Missing Fields', 'Please fill all required fields.', 'error');
     }
 
@@ -69,7 +81,7 @@ const AssetForm = () => {
         assetId,
         status,
         description,
-        purchaseDate: purchaseDate.toISOString(),
+        purchaseDate: new Date(purchaseDate).toISOString(),
         expiredAt: expiredAt.toISOString()
       };
 
@@ -87,7 +99,7 @@ const AssetForm = () => {
       setAssetType('');
       setAssetId('');
       setDescription('');
-      setPurchaseDate(new Date());
+      setPurchaseDate('');
     } catch (error: any) {
       console.error('Create Asset Error:', error);
       showAlertBox('Error', error?.message || 'Failed to add asset.', 'error');
@@ -99,6 +111,16 @@ const AssetForm = () => {
 
   const getInputStyle = (fieldName: string) => {
     return focusedInput === fieldName ? styles.inputContainerFocused : null;
+  };
+
+  const formatDisplayDate = (dateString: string) => {
+    if (!dateString) return 'Select purchase date';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
   };
 
   return (
@@ -119,7 +141,7 @@ const AssetForm = () => {
           <View style={styles.header}>
             <View style={styles.headerContent}>
               <View style={styles.titleContainer}>
-                <Icon name="plus-circle" size={28} color="#3b82f6" />
+                <Icon name="plus-circle" size={26} color="#3b82f6" />
                 <Text style={styles.headerTitle}>Add New Asset</Text>
               </View>
               <Text style={styles.headerSubtitle}>
@@ -189,30 +211,19 @@ const AssetForm = () => {
               </View>
             </View>
 
-            {/* Purchase Date */}
             <View style={styles.inputWrapper}>
               <Text style={styles.inputLabel}>
                 Purchase Date <Text style={styles.required}>*</Text>
               </Text>
               <TouchableOpacity
                 style={[styles.inputContainer, getInputStyle('purchaseDate')]}
-                onPress={() => setShowPicker(true)}
+                onPress={openDatePicker}
               >
                 <Icon name="calendar-today" size={20} color="#3b82f6" style={styles.icon} />
                 <Text style={[styles.input, { color: purchaseDate ? '#1f2937' : '#9ca3af' }]}>
-                  {purchaseDate ? purchaseDate.toDateString() : 'Select purchase date'}
+                  {formatDisplayDate(purchaseDate)}
                 </Text>
               </TouchableOpacity>
-
-              {showPicker && (
-                <DateTimePicker
-                  value={purchaseDate}
-                  mode="date"
-                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                  onChange={onChange}
-                  maximumDate={new Date()}
-                />
-              )}
             </View>
 
             {/* Description */}
@@ -230,6 +241,8 @@ const AssetForm = () => {
                   textAlignVertical="top"
                   selectionColor="#3b82f6"
                   cursorColor="#3b82f6"
+                  onFocus={() => setFocusedInput('description')}
+                  onBlur={() => setFocusedInput('')}
                 />
               </View>
             </View>
@@ -255,6 +268,22 @@ const AssetForm = () => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Date Picker - Exactly like the example */}
+      <DatePicker
+        isVisible={showDatePicker}
+        mode={'single'}
+        onCancel={onCancel}
+        onConfirm={onConfirm}
+        colorOptions={{
+          headerColor: '#3b82f6',
+          headerTextColor: '#ffffff',
+          changeYearModalColor: '#3b82f6',
+          changeYearModalTextColor: '#ffffff',
+          selectedDateBackgroundColor: '#3b82f6',
+          confirmButtonColor: '#3b82f6',
+        }}
+      />
 
       <AwesomeAlert
         show={showAlert}
