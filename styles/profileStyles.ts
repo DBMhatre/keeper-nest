@@ -99,7 +99,7 @@ export const styles = StyleSheet.create({
     textTransform: 'capitalize',
   },
   name: {
-    fontSize: 20,
+    fontSize: 17,
     fontWeight: '700',
     color: '#1f2937',
     marginBottom: 2,

@@ -295,6 +295,7 @@ export const styles = StyleSheet.create({
   },
   columnEmployee: {
     flex: 1.5,
+    paddingRight: 10,
   },
   columnDate: {
     flex: 1.2,
@@ -422,6 +423,7 @@ assetName: {
     fontWeight: '700',
     color: '#1f2937',
     marginBottom: 4,
+    paddingRight: 10,
 },
 
 assetId: {
@@ -532,6 +534,7 @@ assetType: {
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 6,
-    marginLeft: 7
+    marginLeft: 7,
+    width: 70,
 },
 });

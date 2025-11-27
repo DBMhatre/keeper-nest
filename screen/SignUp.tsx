@@ -215,7 +215,7 @@ const SignUp = () => {
                 <Picker.Item label="Select Gender" value="Select Gender" color="#999" />
                 <Picker.Item label="Male" value="Male" />
                 <Picker.Item label="Female" value="Female" />
-                <Picker.Item label="Other" value="Other" />
+                {/* <Picker.Item label="Other" value="Other" /> */}
               </Picker>
             </View>
           </View>

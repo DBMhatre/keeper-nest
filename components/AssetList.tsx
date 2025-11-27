@@ -8,7 +8,7 @@ import {
     ScrollView,
     RefreshControl
 } from 'react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react'; // ✅ Add useCallback
 import { account, databases } from '../server/appwrite';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Query } from 'appwrite';
@@ -17,12 +17,11 @@ import { useNavigation } from '@react-navigation/native';
 import AwesomeAlert from 'react-native-awesome-alerts';
 import { Dropdown, TwoDropdowns } from './Dropdown';
 import CustomModal from './CustomModal';
+import { useQuery } from '@tanstack/react-query';
 
 export default function AssetList() {
     const pageSize = 5;
     const [page, setPage] = useState(1);
-    const [assets, setAssets] = useState([]);
-    const [loading, setLoading] = useState(true);
     const [totalPages, setTotalPages] = useState(1);
     const [name, setName] = useState('');
     const [filteredAsset, setFilteredAsset] = useState([]);
@@ -31,7 +30,6 @@ export default function AssetList() {
     const [alertTitle, setAlertTitle] = useState('');
     const [alertMessage, setAlertMessage] = useState('');
     const [alertType, setAlertType] = useState<'success' | 'error'>('success')
-    const [refreshing, setRefreshing] = useState(false);
     const [selectedStatus, setSelectedStatus] = useState(null);
     const [selectedType, setSelectedType] = useState(null);
     const [modalVisible, setModalVisible] = useState(false);
@@ -42,6 +40,36 @@ export default function AssetList() {
         onConfirm: null,
         confirmText: 'OK',
         showCancel: false,
+    });
+
+    const fetchAssets = useCallback(async () => {
+        try {
+            try {
+                const user = await account.get();
+            } catch (error) {
+                console.log("Error: ", error);
+                navigation.navigate('Login' as never);
+            }
+            const res = await databases.listDocuments(
+                "assetManagement",
+                "assets",
+            );
+            return res.documents;
+        } catch (error) {
+            console.log("Error: ", error);
+            navigation.navigate('Login' as never);
+            throw error;
+        }
+    }, [navigation]); 
+
+    const {
+        data: assets = [],
+        isLoading,
+        refetch,
+        isRefetching
+    } = useQuery({
+        queryKey: ['assets'],
+        queryFn: fetchAssets,
     });
 
     const showModal = (title, message, type = 'info', onConfirm = null, confirmText = 'OK', showCancel = false) => {
@@ -55,7 +83,6 @@ export default function AssetList() {
         });
         setModalVisible(true);
     };
-
 
     const statusOptions = [
         { label: 'All Status', value: 'all', icon: 'filter-variant', color: '#6b7280' },
@@ -72,40 +99,12 @@ export default function AssetList() {
         { label: 'Other', value: 'other', icon: 'package-variant', color: '#6b7280' }
     ];
 
-    const fetchAssets = async () => {
-        try {
-            setLoading(true);
-            try {
-                const user = await account.get();
-            } catch (error) {
-                console.log("Error: ", error);
-                navigation.navigate('Login' as never);
-            }
-            const res = await databases.listDocuments(
-                "assetManagement",
-                "assets",
-            );
-
-            setAssets(res.documents as never);
-            setFilteredAsset(res.documents as never);
-        } catch (error) {
-            console.log("Error: ", error);
-            navigation.navigate('Login' as never);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchAssets();
-    }, []);
-
     useEffect(() => {
         const text = name.toLowerCase();
 
         const result = assets.filter((item: any) => {
             return (
-                item.assetName.toLowerCase().includes(text)
+                item.assetName?.toLowerCase().includes(text) 
             );
         });
 
@@ -117,18 +116,17 @@ export default function AssetList() {
 
         if (selectedStatus && selectedStatus.value !== 'all') {
             result = result.filter((item: any) =>
-                item.status.toLowerCase() === selectedStatus.value.toLowerCase()
+                item.status?.toLowerCase() === selectedStatus.value.toLowerCase() 
             );
         }
         if (selectedType && selectedType.value !== 'all') {
             result = result.filter((item: any) =>
-                item.assetType.toLowerCase() === selectedType.value.toLowerCase()
+                item.assetType?.toLowerCase() === selectedType.value.toLowerCase() 
             );
         }
 
         setFilteredAsset(result);
     }, [selectedStatus, selectedType, assets]);
-
 
     const handleStatusChange = (selectedOption) => {
         setSelectedStatus(selectedOption);
@@ -169,15 +167,7 @@ export default function AssetList() {
     };
 
     const onRefresh = async () => {
-        setRefreshing(true);
-
-        try {
-            await fetchAssets(); // Your existing fetch function
-        } catch (error) {
-            console.error('Error refreshing assets:', error);
-        } finally {
-            setRefreshing(false);
-        }
+        refetch();
     };
 
     const handleRemoveAsset = async (assetId, assetName, currentStatus) => {
@@ -201,9 +191,9 @@ export default function AssetList() {
                         assetId
                     );
                     showModal('Success', `${assetName} removed successfully`, 'success');
-                    fetchAssets();
+                    refetch();
                 } catch (error) {
-                    console.error('Error removing asset:', error);
+                    console.log('Error removing asset:', error);
                     showModal('Error', 'Failed to remove asset', 'error');
                 }
             },
@@ -215,14 +205,13 @@ export default function AssetList() {
     return (
         <ScrollView style={styles.container} refreshControl={
             <RefreshControl
-                refreshing={refreshing}
+                refreshing={isRefetching}
                 onRefresh={onRefresh}
                 colors={['#3b82f6']}
                 tintColor="#3b82f6"
                 progressBackgroundColor="#ffffff"
             />
         }>
-            {/* Header Section - UNCHANGED */}
             <View style={styles.header}>
                 <View style={styles.headerContent}>
                     <View style={styles.titleContainer}>
@@ -234,7 +223,6 @@ export default function AssetList() {
                     </Text>
                 </View>
 
-                {/* Search Bar - UNCHANGED */}
                 <View style={styles.searchContainer}>
                     <Icon name="magnify" size={20} color="#6b7280" style={styles.searchIcon} />
                     <TextInput
@@ -250,7 +238,6 @@ export default function AssetList() {
             </View>
 
             <View style={styles.dropcontainer}>
-
                 <View style={styles.dropdownsRow}>
                     <Dropdown
                         label="Status"
@@ -271,13 +258,11 @@ export default function AssetList() {
             </View>
 
             <View style={styles.content}>
-                {loading ? (
+                {isLoading ? (
                     <View style={styles.loaderContainer}>
                         <ActivityIndicator size="large" color="#3b82f6" />
                         <Text style={styles.loadingText}>Loading assets...</Text>
                     </View>
-                ) : filteredAsset.length === 0 ? (
-                    <EmptyComponent name="Asset" />
                 ) : (
                     <View style={styles.tableContainer}>
                         <ScrollView
@@ -285,7 +270,6 @@ export default function AssetList() {
                             showsHorizontalScrollIndicator={false}
                         >
                             <View style={styles.tableWrapper}>
-                                {/* Fixed Header */}
                                 <View style={styles.tableHeader}>
                                     <View style={[styles.headerCell, styles.assetCell]}>
                                         <Text style={styles.headerText}>Asset</Text>
@@ -310,7 +294,6 @@ export default function AssetList() {
                                     </View>
                                 </View>
 
-                                {/* Table Body */}
                                 <ScrollView style={styles.tableBody}>
                                     {filteredAsset.map((item) => (
                                         <TouchableOpacity
@@ -419,8 +402,6 @@ export default function AssetList() {
                 confirmText={modalConfig.confirmText}
                 showCancel={modalConfig.showCancel}
             />
-
-
         </ScrollView>
     );
 }

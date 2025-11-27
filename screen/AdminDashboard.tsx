@@ -10,6 +10,7 @@ import {
   Image,
   BackHandler,
   Alert,
+  StatusBar,
 } from 'react-native';
 import { account, databases } from '../server/appwrite';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -108,6 +109,8 @@ export default function AdminDashboard() {
 
   return (
     <SafeAreaView style={styles.container}>
+    <StatusBar barStyle="light-content" backgroundColor="#3b82f6" />
+    
       <View style={styles.topHeader}>
         <View style={styles.headerLeft}>
           <Image
@@ -137,14 +140,14 @@ export default function AdminDashboard() {
         <View style={styles.welcomeSection}>
           <View style={styles.welcomeContent}>
             <Text style={styles.welcomeText}>Welcome back,</Text>
-            <Text style={styles.userName}>{name}</Text>
-            <Text style={styles.userEmail}>{email}</Text>
+            <Text style={styles.userName} numberOfLines={2}>{name}</Text>
+            <Text style={styles.userEmail} numberOfLines={1}>{email}</Text>
           </View>
           <TouchableOpacity
             style={styles.welcomeIllustration}
             onPress={() => navigation.navigate('Profile' as never)}
           >
-            <Icon name="account-circle" size={70} color="#3b82f6" />
+            <Icon name="account-circle" size={65} color="#3b82f6" />
           </TouchableOpacity>
         </View>
         <View style={styles.overviewContainer}>

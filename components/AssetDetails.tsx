@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
     View,
     Text,
@@ -16,23 +16,19 @@ import { account, databases } from '../server/appwrite';
 import { ID, Query } from 'appwrite';
 import AwesomeAlert from 'react-native-awesome-alerts';
 import CustomModal from './CustomModal';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 export default function AssetDetails() {
     const route = useRoute();
     const { assetId } = route.params;
     const navigation = useNavigation();
+    const queryClient = useQueryClient();
 
-    let currentEmployee = null;
-    const [asset, setAsset] = useState(null);
-    const [employees, setEmployees] = useState([]);
     const [assignedEmployee, setAssignedEmployee] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [assignmentHistory, setAssignmentHistory] = useState([]);
     const [showAlert, setShowAlert] = useState(false);
     const [alertTitle, setAlertTitle] = useState('');
     const [alertMessage, setAlertMessage] = useState('');
     const [alertType, setAlertType] = useState<'success' | 'error'>('success');
-
     const [modalVisible, setModalVisible] = useState(false);
     const [modalConfig, setModalConfig] = useState({
         title: '',
@@ -56,18 +52,15 @@ export default function AssetDetails() {
         setModalVisible(true);
     };
 
-    useEffect(() => {
-        fetchAssetData();
-    }, [assetId]);
-
-    const fetchAssetData = async () => {
-        setLoading(true);
+    const fetchAssetData = useCallback(async () => {
         try {
-            const user = await account.get();
+            await account.get();
         } catch (error) {
             console.log("Error: ", error);
             navigation.navigate('Login' as never);
+            throw error;
         }
+
         try {
             const assetResponse = await databases.listDocuments(
                 'assetManagement',
@@ -75,54 +68,74 @@ export default function AssetDetails() {
                 [Query.equal('assetId', assetId)]
             );
 
-            let assetData = null;
-            if (assetResponse.documents.length > 0) {
-                assetData = assetResponse.documents[0];
-                setAsset(assetData);
-
-                if (assetData.historyQueue && assetData.historyQueue.length > 0) {
-                    const parsedHistory = assetData.historyQueue.map(historyString => {
-                        try {
-                            return JSON.parse(historyString);
-                        } catch (error) {
-                            console.error('Error parsing history:', error);
-                            return null;
-                        }
-                    }).filter(Boolean); 
-
-                    setAssignmentHistory(parsedHistory);
-                } else {
-                    setAssignmentHistory([]);
-                }
-            } else {
-                Alert.alert('Error', 'Asset not found');
-                return;
+            if (assetResponse.documents.length === 0) {
+                throw new Error('Asset not found');
             }
 
-            const employeesResponse = await databases.listDocuments(
-                'user_info',
-                'user_info',
-                [Query.equal('role', 'employee')]
-            );
-
-            currentEmployee = employeesResponse.documents.filter(emp => emp.employeeId === assetData.assignedTo)[0];
-            console.log('Current Employee:', currentEmployee);
-            const availableEmployees = employeesResponse.documents
-                .filter(emp => emp.employeeId !== assetData.assignedTo)
-                .map(emp => ({
-                    employeeId: emp.employeeId,
-                    name: emp.name,
-                    email: emp.email
-                }));
-
-            setEmployees(availableEmployees);
-
+            return assetResponse.documents[0];
         } catch (error) {
             console.log("Error: ", error);
-        } finally {
-            setLoading(false);
+            throw error;
         }
-    };
+    }, [assetId, navigation]);
+
+    const {
+        data: asset,
+        isLoading: isLoadingAsset,
+        error: assetError,
+        refetch: refetchAsset
+    } = useQuery({
+        queryKey: ['asset', assetId],
+        queryFn: fetchAssetData,
+    });
+
+    const fetchEmployees = useCallback(async () => {
+        try {
+            await account.get();
+        } catch (error) {
+            console.log("Error: ", error);
+            navigation.navigate('Login' as never);
+            throw error;
+        }
+
+        const employeesResponse = await databases.listDocuments(
+            'user_info',
+            'user_info',
+            [Query.equal('role', 'employee')]
+        );
+
+        const availableEmployees = employeesResponse.documents
+            .filter(emp => emp.employeeId !== asset?.assignedTo)
+            .map(emp => ({
+                employeeId: emp.employeeId,
+                name: emp.name,
+                email: emp.email
+            }));
+
+        return availableEmployees;
+    }, [asset?.assignedTo, navigation]);
+
+    const {
+        data: employees = [],
+        isLoading: isLoadingEmployees,
+    } = useQuery({
+        queryKey: ['employees', asset?.assignedTo],
+        queryFn: fetchEmployees,
+        enabled: !!asset, 
+    });
+
+    const assignmentHistory = React.useMemo(() => {
+        if (!asset?.historyQueue) return [];
+        
+        return asset.historyQueue.map(historyString => {
+            try {
+                return JSON.parse(historyString);
+            } catch (error) {
+                console.error('Error parsing history:', error);
+                return null;
+            }
+        }).filter(Boolean);
+    }, [asset?.historyQueue]);
 
     const showAlertBox = (title: string, message: string, type: 'success' | 'error') => {
         setAlertTitle(title);
@@ -132,6 +145,8 @@ export default function AssetDetails() {
     };
 
     const handleAssignEmployee = async () => {
+        if (!asset || !assignedEmployee) return;
+
         try {
             const newHistoryEntry = JSON.stringify({
                 historyId: ID.unique(),
@@ -157,34 +172,22 @@ export default function AssetDetails() {
                 }
             );
 
+            queryClient.invalidateQueries({ queryKey: ['asset', assetId] });
+            queryClient.invalidateQueries({ queryKey: ['employees'] });
+            queryClient.invalidateQueries({ queryKey: ['assigned-assets'] });
+            queryClient.invalidateQueries({ queryKey: ['available-assets'] });
+
             showAlertBox('Success', 'Asset assigned successfully', 'success');
             setAssignedEmployee('');
-            fetchAssetData();
         } catch (error) {
             console.error('Error assigning asset:', error);
             Alert.alert('Error', 'Failed to assign asset');
         }
     };
 
-    if (loading) {
-        return (
-            <View style={styles.loaderContainer}>
-                <ActivityIndicator size="large" color="#3b82f6" />
-                <Text style={styles.loadingText}>Loading asset details...</Text>
-            </View>
-        );
-    }
-
-    if (!asset) {
-        return (
-            <View style={styles.errorContainer}>
-                <Icon name="alert-circle" size={48} color="#ef4444" />
-                <Text style={styles.errorText}>Asset not found</Text>
-            </View>
-        );
-    }
-
     const handleMaintenance = async () => {
+        if (!asset) return;
+
         try {
             if (asset.status === 'Assigned') {
                 showAlertBox(
@@ -195,32 +198,22 @@ export default function AssetDetails() {
                 return;
             }
 
-            if (asset.status === 'Maintainance') {
-                await databases.updateDocument(
-                    'assetManagement',
-                    'assets',
-                    asset.$id,
-                    {
-                        status: 'Available',
-                    }
-                );
-
-                showAlertBox('Success', 'Asset removed from Maintenance', 'success');
-                fetchAssetData();
-                return;
-            }
+            const newStatus = asset.status === 'Maintainance' ? 'Available' : 'Maintainance';
+            const successMessage = asset.status === 'Maintainance' 
+                ? 'Asset removed from Maintenance' 
+                : 'Asset marked for maintenance';
 
             await databases.updateDocument(
                 'assetManagement',
                 'assets',
                 asset.$id,
-                {
-                    status: 'Maintainance',
-                }
+                { status: newStatus }
             );
 
-            showAlertBox('Success', 'Asset marked for maintenance', 'success');
-            fetchAssetData();
+            queryClient.invalidateQueries({ queryKey: ['asset', assetId] });
+            queryClient.invalidateQueries({ queryKey: ['available-assets'] });
+
+            showAlertBox('Success', successMessage, 'success');
         } catch (error) {
             console.error('Error marking asset for maintenance:', error);
             showAlertBox('Error', 'Failed to update asset status', 'error');
@@ -228,6 +221,8 @@ export default function AssetDetails() {
     };
 
     const handleRemoveAsset = async () => {
+        if (!asset) return;
+
         try {
             if (asset.status === 'Assigned') {
                 showAlertBox(
@@ -249,6 +244,10 @@ export default function AssetDetails() {
                             'assets',
                             asset.$id
                         );
+
+                        queryClient.invalidateQueries({ queryKey: ['assets'] });
+                        queryClient.invalidateQueries({ queryKey: ['available-assets'] });
+                        
                         navigation.goBack();
                     } catch (error) {
                         console.error('Error removing asset:', error);
@@ -293,11 +292,34 @@ export default function AssetDetails() {
             default: return "#6b7280";
         }
     };
+    const isLoading = isLoadingAsset || isLoadingEmployees;
 
-    // Asset Details Card Component
+    if (isLoading) {
+        return (
+            <View style={styles.loaderContainer}>
+                <ActivityIndicator size="large" color="#3b82f6" />
+                <Text style={styles.loadingText}>Loading asset details...</Text>
+            </View>
+        );
+    }
+
+    if (assetError || !asset) {
+        return (
+            <View style={styles.errorContainer}>
+                <Icon name="alert-circle" size={48} color="#ef4444" />
+                <Text style={styles.errorText}>Asset not found</Text>
+                <TouchableOpacity 
+                    style={styles.retryButton}
+                    onPress={() => refetchAsset()}
+                >
+                    <Text style={styles.retryButtonText}>Try Again</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    }
+
     const AssetDetailsCard = () => (
         <View style={styles.assetCard}>
-            {/* Card Header */}
             <View style={styles.cardHeader}>
                 <View style={styles.assetIdentity}>
                     <View style={[
@@ -311,10 +333,10 @@ export default function AssetDetails() {
                         />
                     </View>
                     <View style={styles.assetInfo}>
-                        <Text style={styles.assetName}>{asset.assetName}</Text>
+                        <Text style={styles.assetName} numberOfLines={2}>{asset.assetName}</Text>
                         <View style={styles.assetMeta}>
-                            <Text style={styles.assetId}>#{asset.assetId}</Text>
-                            <Text style={styles.assetType}>{asset.assetType}</Text>
+                            <Text style={styles.assetId} numberOfLines={1}>#{asset.assetId}</Text>
+                            <Text style={styles.assetType} numberOfLines={1}>{asset.assetType}</Text>
                         </View>
                     </View>
                 </View>
@@ -339,7 +361,6 @@ export default function AssetDetails() {
             <View style={styles.cardBody}>
                 {/* First Row */}
                 <View style={styles.detailRow}>
-
                     <View style={styles.detailColumn}>
                         <View style={styles.detailItem}>
                             <Icon name="calendar" size={16} color="#6b7280" />
@@ -351,7 +372,6 @@ export default function AssetDetails() {
                             </View>
                         </View>
                     </View>
-
 
                     <View style={styles.detailColumn}>
                         <View style={styles.detailItem}>
@@ -498,6 +518,7 @@ export default function AssetDetails() {
                         </View>
                     )}
                 </View>
+
                 {/* Action Buttons */}
                 <View style={styles.actionButtons}>
                     <TouchableOpacity

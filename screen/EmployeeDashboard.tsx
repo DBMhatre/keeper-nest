@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   Image,
+  StatusBar,
   BackHandler,
   Alert,
 } from 'react-native';
@@ -93,6 +94,7 @@ export default function EmployeeDashboard() {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#3b82f6" />
       {/* Header */}
       <View style={styles.topHeader}>
               <View style={styles.headerLeft}>

@@ -8,66 +8,62 @@ import {
   TextInput,
   RefreshControl,
 } from 'react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { account, databases } from '../server/appwrite';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Query } from 'appwrite';
 import EmptyComponent from './EmptyComponent';
 import { useNavigation } from '@react-navigation/native';
+import { useQuery } from '@tanstack/react-query';
 
 export default function EmployeeList() {
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [employees, setEmployees] = useState([]);
-  const [filteredEmployees, setFilteredEmployees] = useState([]);
-  const [name, setName] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const navigation = useNavigation();
 
-  const fetchEmployees = async () => {
+  const fetchEmployees = useCallback(async () => {
     try {
-      try {
-        const user = await account.get();
-      } catch (error) {
-        console.log("Error: ", error);
-        navigation.navigate('Login' as never);
-      }
+      await account.get(); 
       const res = await databases.listDocuments(
         'user_info',
         'user_info',
         [Query.equal('role', 'employee'), Query.equal('status', 'active')]
       );
-      setEmployees(res.documents as never);
-      setFilteredEmployees(res.documents as never);
+      return res.documents;
     } catch (error) {
       console.log("Error: ", error);
       navigation.navigate('Login' as never);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+      throw error;
     }
-  };
+  }, [navigation]); 
 
-  useEffect(() => {
-    fetchEmployees();
-  }, []);
+  const {
+    data: employees = [],
+    isLoading,
+    refetch,
+    isRefetching
+  } = useQuery({
+    queryKey: ['employees'],
+    queryFn: fetchEmployees,
+  });
 
-  useEffect(() => {
-    const text = name.toLowerCase();
-
-    const result = employees.filter((item) => {
+  // Filter employees based on search query using useMemo
+  const filteredEmployees = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return employees;
+    }
+    
+    const query = searchQuery.toLowerCase();
+    return employees.filter((item) => {
       return (
-        item.name.toLowerCase().includes(text) ||
-        item.email.toLowerCase().includes(text) ||
-        item.employeeId.toLowerCase().includes(text)
+        item.name?.toLowerCase().includes(query) ||
+        item.email?.toLowerCase().includes(query) ||
+        item.employeeId?.toLowerCase().includes(query)
       );
     });
-
-    setFilteredEmployees(result);
-  }, [name, employees]);
+  }, [employees, searchQuery]);
 
   const onRefresh = () => {
-    setRefreshing(true);
-    fetchEmployees();
+    refetch();
   };
 
   const getGenderColor = (gender: string) => {
@@ -94,7 +90,6 @@ export default function EmployeeList() {
       onPress={() => navigation.navigate('EmployeeDetails' as never, { employeeId: item.employeeId } as never)}
       activeOpacity={0.9}
     >
-      {/* ID Card Header with Big Face Icon and ID Badge */}
       <View style={styles.cardHeader}>
         <View style={styles.iconWithBadgeContainer}>
           <View style={[
@@ -110,7 +105,7 @@ export default function EmployeeList() {
               color="#3b82f6"
             />
           </View>
-          {/* ID Badge positioned at bottom of icon */}
+          
           <View style={styles.idBadge}>
             <Text style={styles.idText}>
               BBL-123456
@@ -119,15 +114,13 @@ export default function EmployeeList() {
         </View>
 
         <View style={styles.headerText}>
-          <Text style={styles.employeeName}>{item.name}</Text>
-          <Text style={styles.employeeEmail}>{item.email}</Text>
+          <Text style={styles.employeeName} numberOfLines={2}>{item.name}</Text>
+          <Text style={styles.employeeEmail} numberOfLines={2}>{item.email}</Text>
         </View>
       </View>
 
-      {/* ID Card Body */}
       <View style={styles.cardBody}>
         <View style={styles.detailsGrid}>
-          {/* Join Date */}
           <View style={styles.detailRow}>
             <View style={styles.detailLabelContainer}>
               <Icon name="calendar-month-outline" size={14} color="#6b7280" />
@@ -144,7 +137,6 @@ export default function EmployeeList() {
             </View>
           </View>
 
-          {/* Created By */}
           <View style={styles.detailRow}>
             <View style={styles.detailLabelContainer}>
               <Icon name="account-plus-outline" size={14} color="#6b7280" />
@@ -178,8 +170,8 @@ export default function EmployeeList() {
         <View style={styles.searchContainer}>
           <Icon name="magnify" size={20} color="#6b7280" style={styles.searchIcon} />
           <TextInput
-            value={name}
-            onChangeText={setName}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
             placeholder="Search employees..."
             placeholderTextColor="#9ca3af"
             style={styles.searchInput}
@@ -188,9 +180,8 @@ export default function EmployeeList() {
         </View>
       </View>
 
-      {/* Content Section */}
       <View style={styles.content}>
-        {loading ? (
+        {isLoading ? (
           <View style={styles.loaderContainer}>
             <ActivityIndicator size="large" color="#3b82f6" />
             <Text style={styles.loadingText}>Loading employees...</Text>
@@ -204,7 +195,7 @@ export default function EmployeeList() {
             contentContainerStyle={styles.listContent}
             refreshControl={
               <RefreshControl
-                refreshing={refreshing}
+                refreshing={isRefetching}
                 onRefresh={onRefresh}
                 colors={['#3b82f6']}
                 tintColor="#3b82f6"
@@ -218,6 +209,7 @@ export default function EmployeeList() {
   );
 }
 
+// Styles remain exactly the same...
 const styles = StyleSheet.create({
   container: {
     flex: 1,

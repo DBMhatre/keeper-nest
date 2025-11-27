@@ -89,7 +89,7 @@ export const styles = StyleSheet.create({
     marginBottom: 4,
   },
   userName: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '700',
     color: '#1f2937',
     marginBottom: 2,

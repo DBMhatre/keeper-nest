@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,32 +8,32 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
+  RefreshControl,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Picker } from '@react-native-picker/picker';
 import { styles } from '../styles/employeeDetailsStyles';
-import { account, APPWRITE_CONFIG, databases, functions } from '../server/appwrite';
+import { account, databases, functions } from '../server/appwrite';
 import { ID, Query } from 'appwrite';
 import AwesomeAlert from 'react-native-awesome-alerts';
 import CustomModal from './CustomModal';
-import { Client, Functions } from "appwrite";
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 export default function EmployeeDetails() {
   const route = useRoute();
   const { employeeId } = route.params;
+  const navigation = useNavigation();
+  const queryClient = useQueryClient();
 
-  const [employee, setEmployee] = useState(null);
-  const [assets, setAssets] = useState([]);
-  const [assignedAssets, setAssignedAssets] = useState([]);
   const [selectedAsset, setSelectedAsset] = useState('');
-  const [loading, setLoading] = useState(false);
   const [assigning, setAssigning] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
   const [alertTitle, setAlertTitle] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
   const [alertType, setAlertType] = useState<'success' | 'error'>('success');
   const [modalVisible, setModalVisible] = useState(false);
+  const [removingEmployee, setRemovingEmployee] = useState(false);
   const [modalConfig, setModalConfig] = useState({
     title: '',
     message: '',
@@ -42,9 +42,6 @@ export default function EmployeeDetails() {
     confirmText: 'OK',
     showCancel: false,
   });
-  const navigation = useNavigation();
-  // Add this state variable with your other states
-  const [removingEmployee, setRemovingEmployee] = useState(false);
 
   const showModal = (title, message, type = 'info', onConfirm = null, confirmText = 'OK', showCancel = false) => {
     setModalConfig({
@@ -65,63 +62,74 @@ export default function EmployeeDetails() {
     setShowAlert(true);
   };
 
-  // Mock data for UI development
-  useEffect(() => {
-    fetchEmployeeData()
-  }, [employeeId]);
-
-  const fetchEmployeeData = async () => {
-    setLoading(true);
-    try {
-      const user = await account.get();
-    } catch (error) {
-      console.log("Error: ", error);
-      navigation.navigate('Login' as never);
-    }
-    try {
-      const employeeResponse = await databases.listDocuments(
-        'user_info',
-        'user_info',
-        [
-          Query.equal('employeeId', employeeId),
-        ]
-      );
-
-      if (employeeResponse.documents.length > 0) {
-        setEmployee(employeeResponse.documents[0]);
+  const { data: employee, isLoading: isLoadingEmployee } = useQuery({
+    queryKey: ['employee', employeeId],
+    queryFn: async () => {
+      try {
+        await account.get();
+      } catch (error) {
+        navigation.navigate('Login' as never);
+        throw error;
       }
 
-      const assetsResponse = await databases.listDocuments(
+      const response = await databases.listDocuments(
+        'user_info',
+        'user_info',
+        [Query.equal('employeeId', employeeId)]
+      );
+      
+      if (response.documents.length === 0) {
+        throw new Error('Employee not found');
+      }
+      
+      return response.documents[0];
+    },
+  });
+
+  const { data: assets = [], isLoading: isLoadingAssets } = useQuery({
+    queryKey: ['available-assets'],
+    queryFn: async () => {
+      try {
+        await account.get();
+      } catch (error) {
+        navigation.navigate('Login' as never);
+        throw error;
+      }
+
+      const response = await databases.listDocuments(
         'assetManagement',
         'assets',
         [Query.equal('status', 'Available')]
       );
-      setAssets(assetsResponse.documents);
+      return response.documents;
+    },
+  });
 
-      const assignedResponse = await databases.listDocuments(
+  const { 
+    data: assignedAssets = [], 
+    isLoading: isLoadingAssignedAssets, 
+    refetch: refetchAssignedAssets,
+    isRefetching: isRefetchingAssignedAssets 
+  } = useQuery({
+    queryKey: ['assigned-assets', employeeId],
+    queryFn: async () => {
+      try {
+        await account.get();
+      } catch (error) {
+        navigation.navigate('Login' as never);
+        throw error;
+      }
+
+      const response = await databases.listDocuments(
         'assetManagement',
         'assets',
         [Query.equal('assignedTo', employeeId)]
       );
-      setAssignedAssets(assignedResponse.documents);
-    }
-    catch (error) {
-      console.log("Error: ", error);
-      navigation.navigate('Login' as never);
-    }
-    finally {
-      setLoading(false);
-    }
-  };
+      return response.documents;
+    },
+  });
 
-  const getGenderColor = (gender) => {
-    switch (gender) {
-      case "Male": return "#3b82f6";
-      case "Female": return "#ec4899";
-      case "Other": return "#8b5cf6";
-      default: return "#6b7280";
-    }
-  };
+  const isLoading = isLoadingEmployee || isLoadingAssets || isLoadingAssignedAssets;
 
   const handleAssignAsset = async () => {
     try {
@@ -138,11 +146,13 @@ export default function EmployeeDetails() {
         employeeId: employeeId,
         assignDate: new Date().toISOString(),
       });
+      
       const currentHistory = assetDoc.historyQueue || [];
       const updatedHistory = [newHistoryEntry, ...currentHistory];
       if (updatedHistory.length > 5) {
         updatedHistory.pop();
       }
+      
       await databases.updateDocument(
         'assetManagement',
         'assets',
@@ -154,9 +164,11 @@ export default function EmployeeDetails() {
         }
       );
 
+      queryClient.invalidateQueries({ queryKey: ['available-assets'] });
+      queryClient.invalidateQueries({ queryKey: ['assigned-assets', employeeId] });
+      
       showAlertBox('Success', 'Asset assigned successfully', 'success');
       setSelectedAsset('');
-      fetchEmployeeData();
 
     } catch (error) {
       console.error('Error assigning asset:', error);
@@ -178,8 +190,10 @@ export default function EmployeeDetails() {
         }
       );
 
+      queryClient.invalidateQueries({ queryKey: ['available-assets'] });
+      queryClient.invalidateQueries({ queryKey: ['assigned-assets', employeeId] });
+      
       showAlertBox('Success', 'Asset unassigned successfully', 'success');
-      fetchEmployeeData();
     } catch (error) {
       console.error('Error unassigning asset:', error);
       showAlertBox('Error', 'Failed to unassign asset', 'error');
@@ -201,7 +215,7 @@ export default function EmployeeDetails() {
       'error',
       async () => {
         try {
-          setRemovingEmployee(true); // Start loading
+          setRemovingEmployee(true);
 
           const execution = await functions.createExecution(
             "delete-user",
@@ -213,6 +227,8 @@ export default function EmployeeDetails() {
 
           await databases.deleteDocument('user_info', 'user_info', employee.$id);
 
+          queryClient.invalidateQueries({ queryKey: ['employees'] });
+          
           console.log("Execution →", execution);
           showAlertBox("Success", `${employee.name} removed successfully`, "success");
           navigation.goBack();
@@ -229,9 +245,7 @@ export default function EmployeeDetails() {
     );
   };
 
-
-
-  if (loading) {
+  if (isLoading) {
     return (
       <View style={styles.loaderContainer}>
         <ActivityIndicator size="large" color="#3b82f6" />
@@ -245,13 +259,29 @@ export default function EmployeeDetails() {
       <View style={styles.errorContainer}>
         <Icon name="alert-circle" size={48} color="#ef4444" />
         <Text style={styles.errorText}>Employee not found</Text>
+        <TouchableOpacity 
+          style={styles.retryButton}
+          onPress={() => queryClient.invalidateQueries({ queryKey: ['employee', employeeId] })}
+        >
+          <Text style={styles.retryButtonText}>Try Again</Text>
+        </TouchableOpacity>
       </View>
     );
   }
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefetchingAssignedAssets}
+            onRefresh={refetchAssignedAssets}
+            colors={['#3b82f6']}
+            tintColor="#3b82f6"
+          />
+        }
+      >
         {/* Header Section */}
         <View style={styles.header}>
           <View style={styles.headerContent}>
@@ -283,7 +313,7 @@ export default function EmployeeDetails() {
                   <Picker.Item
                     key={asset.$id}
                     label={`${asset.assetName} (${asset.assetId})`}
-                    value={asset.assetId} // Store assetId instead of $id
+                    value={asset.assetId}
                     color="#1f2937"
                   />
                 ))}
@@ -291,13 +321,19 @@ export default function EmployeeDetails() {
             </View>
 
             <TouchableOpacity
-              style={[styles.assignButton, !selectedAsset && styles.buttonDisabled]}
-              disabled={!selectedAsset}
+              style={[styles.assignButton, (!selectedAsset || assigning) && styles.buttonDisabled]}
+              disabled={!selectedAsset || assigning}
               onPress={handleAssignAsset}
             >
               <View style={styles.buttonContent}>
-                <Text style={styles.assignButtonText}>Assign Asset</Text>
-                <Icon name="link" size={20} color="#fff" style={styles.buttonIcon} />
+                {assigning ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <>
+                    <Text style={styles.assignButtonText}>Assign Asset</Text>
+                    <Icon name="link" size={20} color="#fff" style={styles.buttonIcon} />
+                  </>
+                )}
               </View>
             </TouchableOpacity>
           </View>
@@ -317,14 +353,12 @@ export default function EmployeeDetails() {
             </View>
           ) : (
             <View style={styles.tableContainer}>
-              {/* Table Header */}
               <View style={styles.tableHeader}>
                 <Text style={[styles.tableHeaderText, styles.columnAsset]}>Asset Name</Text>
                 <Text style={[styles.tableHeaderText, styles.columnId]}>ID</Text>
                 <Text style={[styles.tableHeaderText, styles.columnAction]}>Action</Text>
               </View>
 
-              {/* Scrollable Table Body */}
               <ScrollView
                 style={styles.tableBody}
                 showsVerticalScrollIndicator={true}
@@ -353,7 +387,7 @@ export default function EmployeeDetails() {
             </View>
           )}
         </View>
-        {/* Remove Employee Button */}
+
         <TouchableOpacity
           style={[
             styles.logoutButton,

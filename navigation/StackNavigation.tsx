@@ -17,59 +17,60 @@ import EmployeeList from '../components/EmployeeList';
 import EmployeeDetails from '../components/EmployeeDetails';
 import AssetDetails from '../components/AssetDetails';
 import AssetEmployeeDetails from '../components/AssetEmployeeDetails';
-import { BackHandler } from "react-native";
-import { useNavigation } from '@react-navigation/native';
-import eventEmitter, { EVENTS } from '../server/EventService';
-import { handleGlobal401Error, setupGlobalErrorHandler } from '../server/handle401Error';
+
 const Stack = createNativeStackNavigator();
 
 export default function StackNavigation() {
   const [initialRoute, setInitialRoute] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const navigation = useNavigation();
 
   useEffect(() => {
     const checkSession = async () => {
       try {
+        // Check and extend asset expiration dates
         try {
           const allDocuments = await databases.listDocuments(
             'AssetManagement',
             'assets'
           );
-          const currentDate = new Date();
-          const expiredDate = new Date(allDocuments.documents[0].expiredAt);
-          if (currentDate >= expiredDate) {
-            for (const doc of allDocuments.documents) {
-              const newExpiredAt = new Date(expiredDate.getFullYear() + 1, 11, 31);
+          
+          if (allDocuments.documents && allDocuments.documents.length > 0) {
+            const currentDate = new Date();
+            const expiredDate = new Date(allDocuments.documents[0].expiredAt);
+            
+            if (currentDate >= expiredDate) {
+              for (const doc of allDocuments.documents) {
+                if (doc.expiredAt) {
+                  const newExpiredAt = new Date(expiredDate.getFullYear() + 1, 11, 31);
 
-              await databases.updateDocument(
-                'AssetManagement',
-                'assets',
-                doc.$id,
-                {
-                  expiredAt: newExpiredAt.toISOString(),
-                  assignedTo: 'unassigned',
-                  status: 'Available'
+                  await databases.updateDocument(
+                    'AssetManagement',
+                    'assets',
+                    doc.$id,
+                    {
+                      expiredAt: newExpiredAt.toISOString(),
+                      assignedTo: 'unassigned',
+                      status: 'Available'
+                    }
+                  );
+                  console.log(`Extended ${doc.$id} from ${expiredDate.getFullYear()} to ${newExpiredAt.getFullYear()}`);
                 }
-              );
-              console.log(`Extended ${doc.$id} from ${expiredDate.getFullYear()} to ${newExpiredAt.getFullYear()}`);
+              }
             }
           }
         } catch (error) {
-          console.log('No active session found');
+          console.log('Asset extension error:', error);
         }
 
         try {
-          // Get the currently logged-in user from Appwrite Auth
           const user = await account.get();
-
           const response = await databases.listDocuments(
             'user_info',
             'user_info',
             [Query.equal("employeeId", user.$id)]
           );
 
-          if (response.documents.length > 0) {
+          if (response.documents && response.documents.length > 0) {
             const employeeData = response.documents[0];
             const role = employeeData.role;
             const status = employeeData.status;
@@ -81,20 +82,22 @@ export default function StackNavigation() {
             }
           }
         } catch (err) {
-          console.log("Session Expiry / User not found:", err.message);
+          console.log("Session check failed:", err.message);
         }
+        
         setInitialRoute('Login');
       } catch (error) {
         console.log('Session check failed:', error);
+        setInitialRoute('Login');
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
-    checkSession().finally(() => setLoading(false));
+    checkSession();
   }, []);
 
-
-  if (loading || !initialRoute) {
+  if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <Image
@@ -103,6 +106,15 @@ export default function StackNavigation() {
         />
         <Text style={styles.loadingText}>KeeperNest</Text>
         <ActivityIndicator size="large" color="#007bff" style={styles.spinner} />
+      </View>
+    );
+  }
+
+  if (!initialRoute) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>Loading...</Text>
+        <ActivityIndicator size="large" color="#007bff" />
       </View>
     );
   }
@@ -121,7 +133,6 @@ export default function StackNavigation() {
       <Stack.Screen name="EmployeeDetails" component={EmployeeDetails} options={{ headerShown: false }} />
       <Stack.Screen name="AssetDetails" component={AssetDetails} options={{ headerShown: false }} />
       <Stack.Screen name="AssetEmployeeDetails" component={AssetEmployeeDetails} options={{ headerShown: false }} />
-
     </Stack.Navigator>
   );
 }
@@ -147,10 +158,5 @@ const styles = StyleSheet.create({
   },
   spinner: {
     marginVertical: 20,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
-    marginTop: 10,
   },
 });

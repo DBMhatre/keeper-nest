@@ -145,9 +145,9 @@ export default function Profile() {
           </View>
         </View>
 
-        <Text style={styles.name}>{name}</Text>
-        <Text style={styles.email}>{email}</Text>
-        <Text style={styles.employeeId}>ID: {id}</Text>
+        <Text style={styles.name} numberOfLines={1}>{name}</Text>
+        <Text style={styles.email} numberOfLines={1}>{email}</Text>
+        <Text style={styles.employeeId} numberOfLines={1}>ID: {id}</Text>
 
         <View style={styles.actionButtonsContainer}>
           <TouchableOpacity style={[styles.actionButton, styles.editButton]} onPress={() => setEditVisible(true)}>
@@ -184,7 +184,7 @@ export default function Profile() {
             </View>
             <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>Employee ID</Text>
-              <Text style={styles.infoValue}>{id}</Text>
+              <Text style={styles.infoValue} numberOfLines={1}>{id}</Text>
             </View>
           </View>
 

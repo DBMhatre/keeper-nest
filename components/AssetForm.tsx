@@ -241,8 +241,6 @@ const AssetForm = () => {
                   textAlignVertical="top"
                   selectionColor="#3b82f6"
                   cursorColor="#3b82f6"
-                  onFocus={() => setFocusedInput('description')}
-                  onBlur={() => setFocusedInput('')}
                 />
               </View>
             </View>
