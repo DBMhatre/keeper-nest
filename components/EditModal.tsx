@@ -52,6 +52,7 @@ export default function EditModal({
             placeholder="Enter your name"
             value={name}
             onChangeText={setName}
+            cursorColor="#007bff"
           />
           <View style={styles.pickerContainer}>
             <View style={styles.pickerWrapper}>

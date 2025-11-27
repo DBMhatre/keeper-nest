@@ -89,7 +89,7 @@ export const styles = StyleSheet.create({
     marginBottom: 4,
   },
   userName: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '700',
     color: '#1f2937',
     marginBottom: 2,
@@ -131,53 +131,126 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  // Stats Grid
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginTop: 10
-  },
-  statCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 16,
-    width: '48%',
-    marginBottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: '#f1f5f9',
-  },
-  statIconContainer: {
-    width: 31,
-    height: 31,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  statContent: {
-    flex: 1,
-  },
-  statValue: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1f2937',
-    marginBottom: 2,
-  },
-  statTitle: {
-    fontSize: 12,
-    color: '#6b7280',
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
+  // Overview Section
+overviewContainer: {
+  backgroundColor: 'transparent',
+  paddingHorizontal: 15,
+  marginTop: 25,
+},
+overviewTitle: {
+  fontSize: 20,
+  fontWeight: '700',
+  color: '#1f2937',
+  marginBottom: 20,
+  textAlign: 'left',
+},
+
+// Stats Grid
+statsGrid: {
+  backgroundColor: '#ffffff',
+  borderRadius: 20,
+  padding: 6,
+  paddingTop: 20,
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.08,
+  shadowRadius: 12,
+  elevation: 5,
+  borderWidth: 1,
+  borderColor: '#f1f5f9',
+},
+
+// Main Row Layout
+mainRow: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  alignItems: 'stretch',
+  gap: 8,
+},
+
+// Left Side - 2x2 Grid
+leftStats: {
+  flex: 3,
+},
+statsRow: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  marginBottom: 20,
+},
+statItem: {
+  flex: 1,
+  flexDirection: 'row',
+  alignItems: 'center',
+  paddingHorizontal: 11,
+},
+statIconWrapper: {
+  width: 32,
+  height: 32,
+  borderRadius: 12,
+  justifyContent: 'center',
+  alignItems: 'center',
+  marginRight: 12,
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.2,
+  shadowRadius: 3,
+  elevation: 3,
+},
+statContent: {
+  flex: 1,
+},
+statNumber: {
+  fontSize: 18,
+  fontWeight: '800',
+  color: '#1f2937',
+  marginBottom: 2,
+},
+statLabel: {
+  fontSize: 10,
+  color: '#6b7280',
+  fontWeight: '500',
+},
+
+// Right Side - Employees (Spanning 2 rows)
+employeeSection: {
+  flex: 1,
+  justifyContent: 'center',
+  alignItems: 'center',
+  borderLeftWidth: 1,
+  borderLeftColor: '#f3f4f6',
+  paddingLeft: 4,
+},
+employeeItem: {
+  alignItems: 'center',
+},
+employeeIconWrapper: {
+  width: 42,
+  height: 42,
+  borderRadius: 16,
+  justifyContent: 'center',
+  alignItems: 'center',
+  marginBottom: 6,
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 3 },
+  shadowOpacity: 0.2,
+  shadowRadius: 4,
+  elevation: 4,
+},
+employeeContent: {
+  alignItems: 'center',
+},
+employeeNumber: {
+  fontSize: 21,
+  fontWeight: '800',
+  color: '#1f2937',
+  marginBottom: 4,
+},
+employeeLabel: {
+  fontSize: 11,
+  color: '#6b7280',
+  fontWeight: '600',
+  textAlign: 'center',
+},
 
   quickActionsGrid: {
     flexDirection: 'row',
@@ -285,24 +358,24 @@ export const styles = StyleSheet.create({
     marginLeft: 8,
   },
   refreshIndicator: {
-  flexDirection: 'row',
-  justifyContent: 'center',
-  alignItems: 'center',
-  paddingVertical: 16,
-  backgroundColor: '#f8fafc',
-  marginHorizontal: 16,
-  marginBottom: 16,
-  borderRadius: 8,
-  borderWidth: 1,
-  borderColor: '#e5e7eb',
-},
-refreshText: {
-  marginLeft: 8,
-  fontSize: 14,
-  color: '#6b7280',
-  fontWeight: '500',
-},
-mainStatCard: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 16,
+    backgroundColor: '#f8fafc',
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  refreshText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: '#6b7280',
+    fontWeight: '500',
+  },
+  mainStatCard: {
     flex: 1,
     backgroundColor: '#ffffff',
     padding: 20,

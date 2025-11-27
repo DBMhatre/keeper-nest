@@ -56,7 +56,7 @@ export const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     paddingVertical: 20,
-    paddingHorizontal: 20,
+    paddingHorizontal: 10,
     marginHorizontal: 20,
     marginTop: -40,
     shadowColor: '#000',
@@ -99,7 +99,7 @@ export const styles = StyleSheet.create({
     textTransform: 'capitalize',
   },
   name: {
-    fontSize: 20,
+    fontSize: 17,
     fontWeight: '700',
     color: '#1f2937',
     marginBottom: 2,
@@ -114,25 +114,51 @@ export const styles = StyleSheet.create({
   employeeId: {
     fontSize: 12,
     color: '#9ca3af',
-    marginBottom: 12,
+    marginBottom: 6,
     textAlign: 'center',
   },
-  editProfileBtn: {
-    flexDirection: 'row',
-    backgroundColor: '#eff6ff',
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#dbeafe',
-  },
-  editProfileText: {
-    color: '#3b82f6',
-    fontWeight: '600',
-    fontSize: 13,
-    marginLeft: 6,
-  },
+  actionButtonsContainer: {
+  flexDirection: 'row',
+  justifyContent: 'space-between',
+  marginTop: 16,
+  paddingHorizontal: 10,
+  gap: 12,
+},
+
+actionButton: {
+  flex: 1,
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'center',
+  paddingVertical: 10,
+  paddingHorizontal: 12,
+  borderRadius: 20,
+  borderWidth: 1.5,
+},
+
+editButton: {
+  borderColor: '#3b82f6',
+},
+
+passwordButton: {
+  borderColor: '#3b82f6',
+},
+
+actionButtonText: {
+  marginLeft: 6,
+  fontSize: 12,
+  fontWeight: '600',
+},
+
+editText: {
+  color: '#3b82f6',
+},
+
+passwordText: {
+  color: '#3b82f6',
+},
+
+
 
   // Information Section - Compact Design
   cardContainer: { 
@@ -208,7 +234,6 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 12,
     paddingVertical: 14,
-    marginTop: 5,
     marginBottom: 10,
     shadowColor: '#ef4444',
     shadowOffset: {
@@ -231,5 +256,12 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 30,
     paddingVertical: 10,
     borderRadius: 8,
+  },
+  buttonRow: {
+    flex: 2,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 10,
   },
 });
