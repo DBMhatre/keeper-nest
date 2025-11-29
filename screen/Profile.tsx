@@ -15,9 +15,9 @@ import { Query, Role } from 'appwrite';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import EditModal from '../components/EditModal';
-import AwesomeAlert from 'react-native-awesome-alerts';
 import EditPasswordModal from '../components/EditPasswordModal';
 import * as Keychain from 'react-native-keychain';
+import CustomModal from '../components/CustomModal'; // Import CustomModal
 
 export default function Profile() {
   const [email, setEmail] = useState('');
@@ -32,7 +32,7 @@ export default function Profile() {
   const [showAlert, setShowAlert] = useState(false);
   const [alertTitle, setAlertTitle] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
-  const [alertType, setAlertType] = useState('success');
+  const [alertType, setAlertType] = useState<'success' | 'warning' | 'error' | 'info'>('success');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -54,7 +54,7 @@ export default function Profile() {
         setId(employeeData.employeeId);
       } catch (err) {
         console.log("Profile error: ", err);
-        navigation.navigate('Login' as never);
+        navigation.navigate('Login' as any);
       }
     }
     fetchData();
@@ -68,9 +68,8 @@ export default function Profile() {
       // await AsyncStorage.removeItem('userEmail');
       // await Keychain.resetGenericPassword({ service: 'KeeperNestApp' });
 
-
       console.log("Logout session: ", user);
-      navigation.navigate('Login' as never);
+      navigation.navigate('Login' as any);
     } catch (err) {
       console.log("Logout error occurred:", err);
     }
@@ -112,6 +111,10 @@ export default function Profile() {
       setShowAlert(true);
     } catch (err) {
       console.log('Error updating profile:', err);
+      setAlertTitle('Update Failed');
+      setAlertMessage('Failed to update profile. Please try again.');
+      setAlertType('error');
+      setShowAlert(true);
     }
   }
 
@@ -238,21 +241,21 @@ export default function Profile() {
         }}
       />
 
-      <AwesomeAlert
+      <CustomModal
         show={showAlert}
-        showProgress={false}
         title={alertTitle}
         message={alertMessage}
-        closeOnTouchOutside={true}
-        closeOnHardwareBackPress={true}
-        showConfirmButton={true}
+        alertType={alertType}
         confirmText="Got It"
-        confirmButtonColor={alertType === 'success' ? '#10b981' : '#ef4444'}
-        confirmButtonStyle={styles.alertButton}
+        showCancelButton={false}
         onConfirmPressed={() => {
           setShowAlert(false);
           setEditVisible(false);
         }}
+        onCancelPressed={() => setShowAlert(false)}
+        confirmButtonColor={alertType === 'success' ? '#10b981' : 
+                           alertType === 'error' ? '#ef4444' : 
+                           alertType === 'warning' ? '#f59e0b' : '#3b82f6'}
       />
     </View>
   );

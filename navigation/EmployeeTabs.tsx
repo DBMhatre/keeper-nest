@@ -17,7 +17,7 @@ export default function EmployeeTabs() {
       React.useCallback(() => {
         const onBackPress = () => {
           setShowExitModal(true);
-          return true; // Prevent default back behavior
+          return true; 
         };
   
         const backHandler = BackHandler.addEventListener(
@@ -27,7 +27,7 @@ export default function EmployeeTabs() {
   
         return () => {
           backHandler.remove();
-          setShowExitModal(false); // Clean up modal state when screen loses focus
+          setShowExitModal(false); 
         };
       }, [])
     );

@@ -13,11 +13,11 @@ import {
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Picker } from '@react-native-picker/picker';
 import { useNavigation } from '@react-navigation/native';
-import AwesomeAlert from 'react-native-awesome-alerts';
 import { account, databases } from '../server/appwrite';
 import { styles } from '../styles/employeeFormStyles';
 import { ID } from 'appwrite';
 import { sendMail } from '../server/emailSender';
+import CustomModal from './CustomModal'; // Import CustomModal
 
 const EmployeeCreate = () => {
   const [name, setName] = useState('');
@@ -28,11 +28,11 @@ const EmployeeCreate = () => {
   const [showAlert, setShowAlert] = useState(false);
   const [alertTitle, setAlertTitle] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
-  const [alertType, setAlertType] = useState<'success' | 'error'>('success');
+  const [alertType, setAlertType] = useState<'success' | 'error' | 'warning' | 'info'>('success');
 
   const navigation = useNavigation();
 
-  const showAlertBox = (title: string, message: string, type: 'success' | 'error') => {
+  const showAlertBox = (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info') => {
     setAlertTitle(title);
     setAlertMessage(message);
     setAlertType(type);
@@ -57,7 +57,7 @@ const EmployeeCreate = () => {
         user = await account.get();
       } catch (error) {
         console.log("Error: ", error);
-        navigation.navigate('Login' as never);
+        navigation.navigate('Login' as any);
       }
       const adminId = user.$id;
       const newUser = await account.create(employeeId, email, password, name);
@@ -152,7 +152,7 @@ const EmployeeCreate = () => {
       setGender('No');
     } catch (error: any) {
       console.log("Error: ", error);
-      navigation.navigate('Login' as never);
+      navigation.navigate('Login' as any);
       showAlertBox(
         'Error',
         error?.message || 'Failed to create employee. Please try again.',
@@ -289,18 +289,20 @@ const EmployeeCreate = () => {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-      <AwesomeAlert
+
+      {/* Replace AwesomeAlert with CustomModal */}
+      <CustomModal
         show={showAlert}
-        showProgress={false}
         title={alertTitle}
         message={alertMessage}
-        closeOnTouchOutside={true}
-        closeOnHardwareBackPress={true}
-        showConfirmButton={true}
+        alertType={alertType}
         confirmText="Got It"
-        confirmButtonColor={alertType === 'success' ? '#10b981' : '#ef4444'}
-        confirmButtonStyle={styles.alertButton}
+        showCancelButton={false}
         onConfirmPressed={() => setShowAlert(false)}
+        onCancelPressed={() => setShowAlert(false)}
+        confirmButtonColor={alertType === 'success' ? '#10b981' : 
+                           alertType === 'error' ? '#ef4444' : 
+                           alertType === 'warning' ? '#f59e0b' : '#3b82f6'}
       />
     </SafeAreaView>
   );

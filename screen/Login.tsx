@@ -13,12 +13,12 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
-import AwesomeAlert from 'react-native-awesome-alerts';
 import { account, databases } from '../server/appwrite';
 import { styles } from '../styles/loginStyles';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Query } from 'appwrite';
 import * as Keychain from 'react-native-keychain';
+import CustomModal from '../components/CustomModal';
 
 export default function Login() {
   const navigation = useNavigation();
@@ -26,16 +26,16 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-  const [autoLoginLoading, setAutoLoginLoading] = useState(true);
 
   const [showAlert, setShowAlert] = useState(false);
   const [alertTitle, setAlertTitle] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
-  const [alertType, setAlertType] = useState('success');
+  const [alertType, setAlertType] = useState<'success' | 'warning' | 'error' | 'info'>('info');
 
   useEffect(() => {
     checkStoredCredentials();
   }, []);
+
   const storeCredentials = async (email: string, password: string) => {
     try {
       await Keychain.setGenericPassword(email, password, {
@@ -87,15 +87,10 @@ export default function Login() {
         if (credentials) {
           setEmail(credentials.email);
           setPassword(credentials.password);
-        } else {
-          setAutoLoginLoading(false);
         }
-      } else {
-        setAutoLoginLoading(false);
       }
     } catch (error) {
       console.log('Error checking stored credentials:', error);
-      setAutoLoginLoading(false);
     }
   };
 
@@ -149,9 +144,9 @@ export default function Login() {
       console.log('Logged in successfully:', session);
 
       if (role === 'admin') {
-        navigation.navigate('AdminTabs' as never);
+        navigation.navigate('AdminTabs' as any);
       } else {
-        navigation.navigate('EmployeeTabs' as never);
+        navigation.navigate('EmployeeTabs' as any);
       }
 
     } catch (err: any) {
@@ -163,7 +158,6 @@ export default function Login() {
       await clearStoredCredentials();
     } finally {
       setLoading(false);
-      setAutoLoginLoading(false);
     }
   };
 
@@ -262,7 +256,7 @@ export default function Login() {
                 Don't have an account?{' '}
                 <Text
                   style={styles.linkText}
-                  onPress={() => navigation.navigate('Signup' as never)}
+                  onPress={() => navigation.navigate('Signup' as any)}
                 >
                   Create Account
                 </Text>
@@ -278,17 +272,18 @@ export default function Login() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      <AwesomeAlert
+      <CustomModal
         show={showAlert}
-        showProgress={false}
         title={alertTitle}
         message={alertMessage}
-        closeOnTouchOutside={true}
-        closeOnHardwareBackPress={false}
-        showConfirmButton={true}
+        alertType={alertType}
         confirmText="Okay"
-        confirmButtonColor={alertType === 'success' ? '#4CAF50' : '#FF3B30'}
+        showCancelButton={false}
         onConfirmPressed={() => setShowAlert(false)}
+        onCancelPressed={() => setShowAlert(false)}
+        confirmButtonColor={alertType === 'success' ? '#10b981' : 
+                           alertType === 'error' ? '#ef4444' : 
+                           alertType === 'warning' ? '#f59e0b' : '#3b82f6'}
       />
     </SafeAreaView>
   );

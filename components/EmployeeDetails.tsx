@@ -16,7 +16,6 @@ import { Picker } from '@react-native-picker/picker';
 import { styles } from '../styles/employeeDetailsStyles';
 import { account, databases, functions } from '../server/appwrite';
 import { ID, Query } from 'appwrite';
-import AwesomeAlert from 'react-native-awesome-alerts';
 import CustomModal from './CustomModal';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -31,19 +30,19 @@ export default function EmployeeDetails() {
   const [showAlert, setShowAlert] = useState(false);
   const [alertTitle, setAlertTitle] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
-  const [alertType, setAlertType] = useState<'success' | 'error'>('success');
+  const [alertType, setAlertType] = useState<'success' | 'error' | 'warning' | 'info'>('success');
   const [modalVisible, setModalVisible] = useState(false);
   const [removingEmployee, setRemovingEmployee] = useState(false);
   const [modalConfig, setModalConfig] = useState({
     title: '',
     message: '',
-    type: 'info',
-    onConfirm: null,
+    type: 'info' as 'success' | 'error' | 'warning' | 'info',
+    onConfirm: null as (() => void) | null,
     confirmText: 'OK',
     showCancel: false,
   });
 
-  const showModal = (title, message, type = 'info', onConfirm = null, confirmText = 'OK', showCancel = false) => {
+  const showModal = (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info', onConfirm: (() => void) | null = null, confirmText: string = 'OK', showCancel: boolean = false) => {
     setModalConfig({
       title,
       message,
@@ -55,7 +54,7 @@ export default function EmployeeDetails() {
     setModalVisible(true);
   };
 
-  const showAlertBox = (title: string, message: string, type: 'success' | 'error') => {
+  const showAlertBox = (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info') => {
     setAlertTitle(title);
     setAlertMessage(message);
     setAlertType(type);
@@ -68,7 +67,7 @@ export default function EmployeeDetails() {
       try {
         await account.get();
       } catch (error) {
-        navigation.navigate('Login' as never);
+        navigation.navigate('Login' as any);
         throw error;
       }
 
@@ -92,7 +91,7 @@ export default function EmployeeDetails() {
       try {
         await account.get();
       } catch (error) {
-        navigation.navigate('Login' as never);
+        navigation.navigate('Login' as any);
         throw error;
       }
 
@@ -116,7 +115,7 @@ export default function EmployeeDetails() {
       try {
         await account.get();
       } catch (error) {
-        navigation.navigate('Login' as never);
+        navigation.navigate('Login' as any);
         throw error;
       }
 
@@ -178,7 +177,7 @@ export default function EmployeeDetails() {
     }
   };
 
-  const handleUnassignAsset = async (assetId) => {
+  const handleUnassignAsset = async (assetId: string) => {
     try {
       await databases.updateDocument(
         'assetManagement',
@@ -410,29 +409,36 @@ export default function EmployeeDetails() {
         </TouchableOpacity>
       </ScrollView>
 
-      <AwesomeAlert
+      {/* Replace AwesomeAlert with CustomModal */}
+      <CustomModal
         show={showAlert}
-        showProgress={false}
         title={alertTitle}
         message={alertMessage}
-        closeOnTouchOutside={true}
-        closeOnHardwareBackPress={true}
-        showConfirmButton={true}
+        alertType={alertType}
         confirmText="Got It"
-        confirmButtonColor={alertType === 'success' ? '#10b981' : '#ef4444'}
-        confirmButtonStyle={{ paddingHorizontal: 30, paddingVertical: 10, borderRadius: 8, }}
+        showCancelButton={false}
         onConfirmPressed={() => setShowAlert(false)}
+        onCancelPressed={() => setShowAlert(false)}
+        confirmButtonColor={alertType === 'success' ? '#10b981' : 
+                           alertType === 'error' ? '#ef4444' : 
+                           alertType === 'warning' ? '#f59e0b' : '#3b82f6'}
       />
 
       <CustomModal
-        visible={modalVisible}
-        onClose={() => setModalVisible(false)}
+        show={modalVisible}
         title={modalConfig.title}
         message={modalConfig.message}
-        type={modalConfig.type}
-        onConfirm={modalConfig.onConfirm}
+        alertType={modalConfig.type}
         confirmText={modalConfig.confirmText}
-        showCancel={modalConfig.showCancel}
+        showCancelButton={modalConfig.showCancel}
+        onConfirmPressed={() => {
+          modalConfig.onConfirm?.();
+          setModalVisible(false);
+        }}
+        onCancelPressed={() => setModalVisible(false)}
+        confirmButtonColor={modalConfig.type === 'success' ? '#10b981' : 
+                           modalConfig.type === 'error' ? '#ef4444' : 
+                           modalConfig.type === 'warning' ? '#f59e0b' : '#3b82f6'}
       />
 
       <Modal
