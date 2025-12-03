@@ -15,7 +15,7 @@ import { styles } from '../styles/signupStyles';
 import { useNavigation } from '@react-navigation/native';
 import { account, databases } from '../server/appwrite';
 import { ID } from 'appwrite';
-import AwesomeAlert from 'react-native-awesome-alerts';
+import CustomModal from '../components/CustomModal'; // Import CustomModal
 
 const SignUp = () => {
   const [name, setName] = useState('');
@@ -30,7 +30,7 @@ const SignUp = () => {
   const [showAlert, setShowAlert] = useState(false);
   const [alertTitle, setAlertTitle] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
-  const [alertType, setAlertType] = useState('success');
+  const [alertType, setAlertType] = useState<'success' | 'warning' | 'error' | 'info'>('info');
 
   // EXACT SAME FUNCTIONALITY - NO CHANGES
   const handleSignUp = async () => {
@@ -90,11 +90,11 @@ const SignUp = () => {
             email,
             gender,
             role,
-            creatorMail: email
+            creatorMail: employeeId
           }
         );
   
-        navigation.navigate('Login' as never);
+        navigation.navigate('Login' as any);
   
       } catch (error: any) {
         if (error?.code === 409) {
@@ -215,7 +215,7 @@ const SignUp = () => {
                 <Picker.Item label="Select Gender" value="Select Gender" color="#999" />
                 <Picker.Item label="Male" value="Male" />
                 <Picker.Item label="Female" value="Female" />
-                <Picker.Item label="Other" value="Other" />
+                {/* <Picker.Item label="Other" value="Other" /> */}
               </Picker>
             </View>
           </View>
@@ -259,24 +259,26 @@ const SignUp = () => {
         <View style={styles.loginContainer}>
           <Text style={styles.loginText}>
             Already have an account?{' '}
-            <Text style={styles.link} onPress={() => navigation.navigate('Login' as never)}>
+            <Text style={styles.link} onPress={() => navigation.navigate('Login' as any)}>
               Login
             </Text>
           </Text>
         </View>
 
       </ScrollView>
-      <AwesomeAlert
+
+      <CustomModal
         show={showAlert}
-        showProgress={false}
         title={alertTitle}
         message={alertMessage}
-        closeOnTouchOutside={true}
-        closeOnHardwareBackPress={true}
-        showConfirmButton={true}
+        alertType={alertType}
         confirmText="Okay"
-        confirmButtonColor={alertType === 'success' ? '#4CAF50' : '#FF3B30'}
+        showCancelButton={false}
         onConfirmPressed={() => setShowAlert(false)}
+        onCancelPressed={() => setShowAlert(false)}
+        confirmButtonColor={alertType === 'success' ? '#10b981' : 
+                           alertType === 'error' ? '#ef4444' : 
+                           '#3b82f6'}
       />
     </SafeAreaView>
   );

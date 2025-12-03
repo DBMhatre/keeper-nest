@@ -8,9 +8,12 @@ import {
   ActivityIndicator,
   RefreshControl,
   Image,
+  BackHandler,
+  Alert,
+  StatusBar,
 } from 'react-native';
 import { account, databases } from '../server/appwrite';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { styles } from '../styles/adminDashboardStyles';
@@ -29,6 +32,7 @@ export default function AdminDashboard() {
     maintainanceAssets: 0,
   });
   const navigation = useNavigation();
+  const route = useRoute();
 
   const fetchUserAndStats = async () => {
     try {
@@ -61,7 +65,7 @@ export default function AdminDashboard() {
       });
 
     } catch (error) {
-      console.log('No active session found');
+      console.log("Error: ", error);
       navigation.navigate('Login' as never);
     } finally {
       setLoading(false);
@@ -84,20 +88,8 @@ export default function AdminDashboard() {
     }
   };
 
-  const StatCard = ({ title, value, icon, color }) => (
-    <View style={styles.statCard}>
-      <View style={[styles.statIconContainer, { backgroundColor: color }]}>
-        <Icon name={icon} size={15} color="#fff" />
-      </View>
-      <View style={styles.statContent}>
-        <Text style={styles.statValue}>{value}</Text>
-        <Text style={styles.statTitle}>{title}</Text>
-      </View>
-    </View>
-  );
-
   const QuickAction = ({ title, icon, color, onPress, description }) => (
-    <TouchableOpacity style={styles.quickActionCard} onPress={onPress}>
+    <TouchableOpacity style={styles.quickActionCard} onPress={onPress} activeOpacity={0.8}>
       <View style={[styles.actionIconContainer, { backgroundColor: color }]}>
         <Icon name={icon} size={28} color="#fff" />
       </View>
@@ -117,11 +109,13 @@ export default function AdminDashboard() {
 
   return (
     <SafeAreaView style={styles.container}>
+    <StatusBar barStyle="light-content" backgroundColor="#3b82f6" />
+    
       <View style={styles.topHeader}>
         <View style={styles.headerLeft}>
-          <Image 
-            source={{uri: "https://drive.google.com/uc?export=view&id=1o1W4NVpNeMEGNnFmxg20799q6e0NI3pG"}}
-            style={{width: 50, height: 50, borderRadius: 8}}
+          <Image
+            source={{ uri: "https://drive.google.com/uc?export=view&id=1o1W4NVpNeMEGNnFmxg20799q6e0NI3pG" }}
+            style={{ width: 50, height: 50, borderRadius: 8 }}
           />
           <Text style={styles.appTitle}>KeeperNest</Text>
         </View>
@@ -146,55 +140,79 @@ export default function AdminDashboard() {
         <View style={styles.welcomeSection}>
           <View style={styles.welcomeContent}>
             <Text style={styles.welcomeText}>Welcome back,</Text>
-            <Text style={styles.userName}>{name}</Text>
-            <Text style={styles.userEmail}>{email}</Text>
+            <Text style={styles.userName} numberOfLines={2}>{name}</Text>
+            <Text style={styles.userEmail} numberOfLines={1}>{email}</Text>
           </View>
           <TouchableOpacity
             style={styles.welcomeIllustration}
             onPress={() => navigation.navigate('Profile' as never)}
           >
-            <Icon name="account-circle" size={70} color="#3b82f6" />
+            <Icon name="account-circle" size={65} color="#3b82f6" />
           </TouchableOpacity>
         </View>
+        <View style={styles.overviewContainer}>
+          <Text style={[styles.sectionTitle, { paddingBottom: 10 }]}>Overview</Text>
 
-        {/* Stats Overview Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Overview</Text>
           <View style={styles.statsGrid}>
+            <View style={styles.mainRow}>
+              {/* Left Side - 2x2 Grid */}
+              <View style={styles.leftStats}>
+                <View style={styles.statsRow}>
+                  <View style={styles.statItem}>
+                    <View style={[styles.statIconWrapper, { backgroundColor: '#3b82f6' }]}>
+                      <Icon name="package-variant" size={15} color="#fff" />
+                    </View>
+                    <View style={styles.statContent}>
+                      <Text style={styles.statNumber}>{stats.totalAssets}</Text>
+                      <Text style={styles.statLabel}>Total</Text>
+                    </View>
+                  </View>
 
-            <StatCard
-              title="Total Assets"
-              value={stats.totalAssets}
-              icon="package-variant"
-              color="#3b82f6"
-            />
-            <StatCard
-              title="Available Assets"
-              value={stats.availableAssets || 0}
-              icon="check-circle"
-              color="#10b981"
-            />
-            <StatCard
-              title="Assigned Assets"
-              value={stats.assignedAssets || 0}
-              icon="package-variant-closed"
-              color="#f59e0b"
-            />
-            <StatCard
-              title="Maintenance"
-              value={stats.maintainanceAssets || 0}
-              icon="wrench"
-              color="#8b5cf6"
-            />
-          </View>
-          <View style={styles.mainStatCard}>
-            <View style={styles.mainStatContent}>
-              <View style={[styles.mainStatIconContainer, { backgroundColor: '#3b82f6' + '20' }]}>
-                <Icon name="account-group" size={32} color="#3b82f6" />
+                  <View style={styles.statItem}>
+                    <View style={[styles.statIconWrapper, { backgroundColor: '#f59e0b' }]}>
+                      <Icon name="package-variant-closed" size={15} color="#fff" />
+                    </View>
+                    <View style={styles.statContent}>
+                      <Text style={styles.statNumber}>{stats.assignedAssets || 0}</Text>
+                      <Text style={styles.statLabel}>Assigned</Text>
+                    </View>
+                  </View>
+                </View>
+
+                <View style={styles.statsRow}>
+                  <View style={styles.statItem}>
+                    <View style={[styles.statIconWrapper, { backgroundColor: '#10b981' }]}>
+                      <Icon name="check-circle" size={15} color="#fff" />
+                    </View>
+                    <View style={styles.statContent}>
+                      <Text style={styles.statNumber}>{stats.availableAssets || 0}</Text>
+                      <Text style={styles.statLabel}>Available</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.statItem}>
+                    <View style={[styles.statIconWrapper, { backgroundColor: '#8b5cf6' }]}>
+                      <Icon name="wrench" size={15} color="#fff" />
+                    </View>
+                    <View style={styles.statContent}>
+                      <Text style={styles.statNumber}>{stats.maintainanceAssets || 0}</Text>
+                      <Text style={styles.statLabel}>Maintenance</Text>
+                    </View>
+                  </View>
+                </View>
               </View>
-              <View style={styles.mainStatText}>
-                <Text style={styles.mainStatValue}>{stats.totalEmployees}</Text>
-                <Text style={styles.mainStatTitle}>Total Employees</Text>
+
+              {/* Right Side - Employees spanning 2 rows */}
+              <View style={styles.employeeSection}>
+                <View style={styles.employeeItem}>
+                  <View style={[styles.employeeIconWrapper, { backgroundColor: '#ec4899' }]}>
+                    <Icon name="account-group" size={22} color="#fff" />
+                  </View>
+                  <View style={styles.employeeContent}>
+                    <Text style={styles.employeeNumber}>{stats.totalEmployees}</Text>
+                    <Text style={styles.employeeLabel}>Employees</Text>
+                  </View>
+                </View>
               </View>
             </View>
           </View>

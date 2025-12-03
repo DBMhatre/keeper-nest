@@ -15,7 +15,9 @@ import { Query, Role } from 'appwrite';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import EditModal from '../components/EditModal';
-import AwesomeAlert from 'react-native-awesome-alerts';
+import EditPasswordModal from '../components/EditPasswordModal';
+import * as Keychain from 'react-native-keychain';
+import CustomModal from '../components/CustomModal'; // Import CustomModal
 
 export default function Profile() {
   const [email, setEmail] = useState('');
@@ -25,16 +27,18 @@ export default function Profile() {
   const [id, setId] = useState('');
   const navigation = useNavigation();
   const [editVisible, setEditVisible] = useState(false);
+  const [passwordVisible, setPasswordVisible] = useState(false);
 
   const [showAlert, setShowAlert] = useState(false);
   const [alertTitle, setAlertTitle] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
-  const [alertType, setAlertType] = useState('success');
+  const [alertType, setAlertType] = useState<'success' | 'warning' | 'error' | 'info'>('success');
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const user = await account.get();
+        
         const dbId = "user_info";
         const collectionId = "user_info";
         const response = await databases.listDocuments(
@@ -50,6 +54,7 @@ export default function Profile() {
         setId(employeeData.employeeId);
       } catch (err) {
         console.log("Profile error: ", err);
+        navigation.navigate('Login' as any);
       }
     }
     fetchData();
@@ -59,9 +64,12 @@ export default function Profile() {
     try {
       const user = await account.get();
       await account.deleteSession('current');
-      await AsyncStorage.removeItem('rememberMe');
+      // await AsyncStorage.setItem('rememberMe', 'false');
+      // await AsyncStorage.removeItem('userEmail');
+      // await Keychain.resetGenericPassword({ service: 'KeeperNestApp' });
+
       console.log("Logout session: ", user);
-      navigation.navigate('Login' as never);
+      navigation.navigate('Login' as any);
     } catch (err) {
       console.log("Logout error occurred:", err);
     }
@@ -91,7 +99,7 @@ export default function Profile() {
         dbId,
         collectionId,
         userDoc.$id,
-        { gender: gender } 
+        { gender: gender, name: name }
       );
 
       setName(name);
@@ -103,13 +111,17 @@ export default function Profile() {
       setShowAlert(true);
     } catch (err) {
       console.log('Error updating profile:', err);
+      setAlertTitle('Update Failed');
+      setAlertMessage('Failed to update profile. Please try again.');
+      setAlertType('error');
+      setShowAlert(true);
     }
   }
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#3b82f6" />
-      
+
       {/* Professional Header */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
@@ -135,21 +147,27 @@ export default function Profile() {
             <Text style={styles.roleText}>{role}</Text>
           </View>
         </View>
-        
-        <Text style={styles.name}>{name}</Text>
-        <Text style={styles.email}>{email}</Text>
-        <Text style={styles.employeeId}>ID: {id}</Text>
 
-        <TouchableOpacity style={styles.editProfileBtn} onPress={() => setEditVisible(true)}>
-          <Icon name="account-edit" size={18} color="#3b82f6" />
-          <Text style={styles.editProfileText}>Edit Profile</Text>
-        </TouchableOpacity>
+        <Text style={styles.name} numberOfLines={1}>{name}</Text>
+        <Text style={styles.email} numberOfLines={1}>{email}</Text>
+        <Text style={styles.employeeId} numberOfLines={1}>ID: {id}</Text>
+
+        <View style={styles.actionButtonsContainer}>
+          <TouchableOpacity style={[styles.actionButton, styles.editButton]} onPress={() => setEditVisible(true)}>
+            <Icon name="account-edit" size={16} color="#3b82f6" />
+            <Text style={[styles.actionButtonText, styles.editText]}>Edit Profile</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.actionButton, styles.passwordButton]} onPress={() => setPasswordVisible(true)}>
+            <Icon name="lock-reset" size={16} color="#3b82f6" />
+            <Text style={[styles.actionButtonText, styles.passwordText]}>Change Password</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
-      {/* Account Information */}
       <View style={styles.cardContainer}>
         <Text style={styles.sectionTitle}>Account Information</Text>
-        
+
         <View style={styles.infoCard}>
           <View style={styles.infoItem}>
             <View style={styles.infoIcon}>
@@ -169,7 +187,7 @@ export default function Profile() {
             </View>
             <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>Employee ID</Text>
-              <Text style={styles.infoValue}>{id}</Text>
+              <Text style={styles.infoValue} numberOfLines={1}>{id}</Text>
             </View>
           </View>
 
@@ -212,22 +230,33 @@ export default function Profile() {
         currentData={{ name: name, gender: gender }}
       />
 
-      <AwesomeAlert
+      <EditPasswordModal
+        visible={passwordVisible}
+        onClose={() => setPasswordVisible(false)}
+        onAlert={(title, message) => {
+          setAlertTitle(title);
+          setAlertMessage(message);
+          setAlertType('success');
+          setShowAlert(true);
+        }}
+      />
+
+      <CustomModal
         show={showAlert}
-        showProgress={false}
         title={alertTitle}
         message={alertMessage}
-        closeOnTouchOutside={true}
-        closeOnHardwareBackPress={true}
-        showConfirmButton={true}
+        alertType={alertType}
         confirmText="Got It"
-        confirmButtonColor={alertType === 'success' ? '#10b981' : '#ef4444'}
-        confirmButtonStyle={styles.alertButton}
+        showCancelButton={false}
         onConfirmPressed={() => {
           setShowAlert(false);
           setEditVisible(false);
         }}
+        onCancelPressed={() => setShowAlert(false)}
+        confirmButtonColor={alertType === 'success' ? '#10b981' : 
+                           alertType === 'error' ? '#ef4444' : 
+                           alertType === 'warning' ? '#f59e0b' : '#3b82f6'}
       />
-    </ScrollView>
+    </View>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
     View,
     Text,
@@ -12,40 +12,34 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Picker } from '@react-native-picker/picker';
 import { styles } from '../styles/assetDetailsStyles';
-import { databases } from '../server/appwrite';
+import { account, databases } from '../server/appwrite';
 import { ID, Query } from 'appwrite';
-import { setSelectedLog } from 'react-native/types_generated/Libraries/LogBox/Data/LogBoxData';
-import AwesomeAlert from 'react-native-awesome-alerts';
 import CustomModal from './CustomModal';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 export default function AssetDetails() {
     const route = useRoute();
     const { assetId } = route.params;
     const navigation = useNavigation();
+    const queryClient = useQueryClient();
 
-    let currentEmployee = null;
-    const [asset, setAsset] = useState(null);
-    const [employees, setEmployees] = useState([]);
     const [assignedEmployee, setAssignedEmployee] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [assignmentHistory, setAssignmentHistory] = useState([]);
     const [showAlert, setShowAlert] = useState(false);
     const [alertTitle, setAlertTitle] = useState('');
     const [alertMessage, setAlertMessage] = useState('');
-    const [alertType, setAlertType] = useState<'success' | 'error'>('success');
-
+    const [alertType, setAlertType] = useState<'success' | 'error' | 'warning' | 'info'>('success');
     const [modalVisible, setModalVisible] = useState(false);
     const [modalConfig, setModalConfig] = useState({
         title: '',
         message: '',
-        type: 'info',
-        onConfirm: null,
+        type: 'info' as 'success' | 'error' | 'warning' | 'info',
+        onConfirm: null as (() => void) | null,
         confirmText: 'OK',
         showCancel: false,
     });
 
     // Show modal function
-    const showModal = (title, message, type = 'info', onConfirm = null, confirmText = 'OK', showCancel = false) => {
+    const showModal = (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info', onConfirm: (() => void) | null = null, confirmText: string = 'OK', showCancel: boolean = false) => {
         setModalConfig({
             title,
             message,
@@ -57,13 +51,15 @@ export default function AssetDetails() {
         setModalVisible(true);
     };
 
+    const fetchAssetData = useCallback(async () => {
+        try {
+            await account.get();
+        } catch (error) {
+            console.log("Error: ", error);
+            navigation.navigate('Login' as any);
+            throw error;
+        }
 
-    useEffect(() => {
-        fetchAssetData();
-    }, [assetId]);
-
-    const fetchAssetData = async () => {
-        setLoading(true);
         try {
             const assetResponse = await databases.listDocuments(
                 'assetManagement',
@@ -71,53 +67,76 @@ export default function AssetDetails() {
                 [Query.equal('assetId', assetId)]
             );
 
-            let assetData = null;
-            if (assetResponse.documents.length > 0) {
-                assetData = assetResponse.documents[0];
-                setAsset(assetData);
-            } else {
-                Alert.alert('Error', 'Asset not found');
-                return;
+            if (assetResponse.documents.length === 0) {
+                throw new Error('Asset not found');
             }
 
-            const employeesResponse = await databases.listDocuments(
-                'user_info',
-                'user_info',
-                [Query.equal('role', 'employee')]
-            );
-
-            currentEmployee = employeesResponse.documents.filter(emp => emp.employeeId === assetData.assignedTo)[0];
-            console.log('Current Employee:', currentEmployee);
-            const availableEmployees = employeesResponse.documents
-                .filter(emp => emp.employeeId !== assetData.assignedTo)
-                .map(emp => ({
-                    employeeId: emp.employeeId,
-                    name: emp.name,
-                    email: emp.email
-                }));
-
-            setEmployees(availableEmployees);
-            await fetchAssignmentHistory();
-
+            return assetResponse.documents[0];
         } catch (error) {
-            console.error('Error fetching asset data:', error);
-            Alert.alert('Error', 'Failed to load asset details');
-        } finally {
-            setLoading(false);
+            console.log("Error: ", error);
+            throw error;
         }
-    };
+    }, [assetId, navigation]);
 
-    const fetchAssignmentHistory = async () => {
-        const historyResponse = await databases.listDocuments(
-            'assetManagement',
-            'history',
-            [Query.equal('assetId', assetId), Query.orderDesc('assignDate')]
+    const {
+        data: asset,
+        isLoading: isLoadingAsset,
+        error: assetError,
+        refetch: refetchAsset
+    } = useQuery({
+        queryKey: ['asset', assetId],
+        queryFn: fetchAssetData,
+    });
+
+    const fetchEmployees = useCallback(async () => {
+        try {
+            await account.get();
+        } catch (error) {
+            console.log("Error: ", error);
+            navigation.navigate('Login' as any);
+            throw error;
+        }
+
+        const employeesResponse = await databases.listDocuments(
+            'user_info',
+            'user_info',
+            [Query.equal('role', 'employee')]
         );
-        setAssignmentHistory(historyResponse.documents.slice(0, 5));
-        console.log('Assignment History:', historyResponse.documents);
-    };
 
-    const showAlertBox = (title: string, message: string, type: 'success' | 'error') => {
+        const availableEmployees = employeesResponse.documents
+            .filter(emp => emp.employeeId !== asset?.assignedTo)
+            .map(emp => ({
+                employeeId: emp.employeeId,
+                name: emp.name,
+                email: emp.email
+            }));
+
+        return availableEmployees;
+    }, [asset?.assignedTo, navigation]);
+
+    const {
+        data: employees = [],
+        isLoading: isLoadingEmployees,
+    } = useQuery({
+        queryKey: ['employees', asset?.assignedTo],
+        queryFn: fetchEmployees,
+        enabled: !!asset, 
+    });
+
+    const assignmentHistory = React.useMemo(() => {
+        if (!asset?.historyQueue) return [];
+        
+        return asset.historyQueue.map(historyString => {
+            try {
+                return JSON.parse(historyString);
+            } catch (error) {
+                console.error('Error parsing history:', error);
+                return null;
+            }
+        }).filter(Boolean);
+    }, [asset?.historyQueue]);
+
+    const showAlertBox = (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info') => {
         setAlertTitle(title);
         setAlertMessage(message);
         setAlertType(type);
@@ -125,86 +144,75 @@ export default function AssetDetails() {
     };
 
     const handleAssignEmployee = async () => {
+        if (!asset || !assignedEmployee) return;
+
         try {
+            const newHistoryEntry = JSON.stringify({
+                historyId: ID.unique(),
+                employeeId: assignedEmployee,
+                assignDate: new Date().toISOString(),
+            });
+
+            const currentHistory = asset.historyQueue || [];
+            const updatedHistory = [newHistoryEntry, ...currentHistory];
+
+            if (updatedHistory.length > 5) {
+                updatedHistory.pop();
+            }
+
             await databases.updateDocument(
                 'assetManagement',
                 'assets',
                 asset.$id,
                 {
                     status: 'Assigned',
-                    assignedTo: assignedEmployee
+                    assignedTo: assignedEmployee,
+                    historyQueue: updatedHistory
                 }
             );
 
-            await databases.createDocument(
-                'assetManagement',
-                'history',
-                ID.unique(),
-                {
-                    assetId: asset.assetId,
-                    employeeId: assignedEmployee,
-                    assignDate: new Date().toISOString()
-                }
-            );
+            queryClient.invalidateQueries({ queryKey: ['asset', assetId] });
+            queryClient.invalidateQueries({ queryKey: ['employees'] });
+            queryClient.invalidateQueries({ queryKey: ['assigned-assets'] });
+            queryClient.invalidateQueries({ queryKey: ['available-assets'] });
 
             showAlertBox('Success', 'Asset assigned successfully', 'success');
             setAssignedEmployee('');
-            fetchAssetData();
         } catch (error) {
             console.error('Error assigning asset:', error);
             Alert.alert('Error', 'Failed to assign asset');
         }
     };
 
-    if (loading) {
-        return (
-            <View style={styles.loaderContainer}>
-                <ActivityIndicator size="large" color="#3b82f6" />
-                <Text style={styles.loadingText}>Loading asset details...</Text>
-            </View>
-        );
-    }
-
-    if (!asset) {
-        return (
-            <View style={styles.errorContainer}>
-                <Icon name="alert-circle" size={48} color="#ef4444" />
-                <Text style={styles.errorText}>Asset not found</Text>
-            </View>
-        );
-    }
-
     const handleMaintenance = async () => {
+        if (!asset) return;
+
         try {
             if (asset.status === 'Assigned') {
                 showAlertBox(
                     'Cannot Mark for Maintenance',
                     'This asset is currently assigned to an employee. Please unassign it first before marking for maintenance.',
-                    'error'
+                    'warning'
                 );
                 return;
             }
 
-            if (asset.status === 'Maintainance') {
-                showAlertBox(
-                    'Already in Maintenance',
-                    'This asset is already marked for maintenance.',
-                    'error'
-                );
-                return;
-            }
+            const newStatus = asset.status === 'Maintainance' ? 'Available' : 'Maintainance';
+            const successMessage = asset.status === 'Maintainance' 
+                ? 'Asset removed from Maintenance' 
+                : 'Asset marked for maintenance';
 
             await databases.updateDocument(
                 'assetManagement',
                 'assets',
                 asset.$id,
-                {
-                    status: 'Maintainance',
-                }
+                { status: newStatus }
             );
 
-            showAlertBox('Success', 'Asset marked for maintenance', 'success');
-            fetchAssetData();
+            queryClient.invalidateQueries({ queryKey: ['asset', assetId] });
+            queryClient.invalidateQueries({ queryKey: ['available-assets'] });
+
+            showAlertBox('Success', successMessage, 'success');
         } catch (error) {
             console.error('Error marking asset for maintenance:', error);
             showAlertBox('Error', 'Failed to update asset status', 'error');
@@ -212,12 +220,14 @@ export default function AssetDetails() {
     };
 
     const handleRemoveAsset = async () => {
+        if (!asset) return;
+
         try {
             if (asset.status === 'Assigned') {
                 showAlertBox(
                     'Cannot Remove Asset',
                     'This asset is currently assigned to an employee. Please unassign it first before removal.',
-                    'error'
+                    'warning'
                 );
                 return;
             }
@@ -233,6 +243,10 @@ export default function AssetDetails() {
                             'assets',
                             asset.$id
                         );
+
+                        queryClient.invalidateQueries({ queryKey: ['assets'] });
+                        queryClient.invalidateQueries({ queryKey: ['available-assets'] });
+                        
                         navigation.goBack();
                     } catch (error) {
                         console.error('Error removing asset:', error);
@@ -248,7 +262,162 @@ export default function AssetDetails() {
         }
     };
 
+    const getAssetIcon = (type: string) => {
+        switch (type) {
+            case "Laptop": return "laptop";
+            case "Keyboard": return "keyboard";
+            case "Mouse": return "mouse";
+            case "Charger": return "power-plug";
+            default: return "package-variant";
+        }
+    };
 
+    const getAssetColor = (type: string) => {
+        switch (type) {
+            case "Laptop": return "#3b82f6";
+            case "Keyboard": return "#8b5cf6";
+            case "Mouse": return "#f59e0b";
+            case "Charger": return "#10b981";
+            default: return "#6b7280";
+        }
+    };
+
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case "Available": return "#10b981";
+            case "Assigned": return "#3b82f6";
+            case "Maintenance": return "#f59e0b";
+            case "Damaged": return "#ef4444";
+            default: return "#6b7280";
+        }
+    };
+    const isLoading = isLoadingAsset || isLoadingEmployees;
+
+    if (isLoading) {
+        return (
+            <View style={styles.loaderContainer}>
+                <ActivityIndicator size="large" color="#3b82f6" />
+                <Text style={styles.loadingText}>Loading asset details...</Text>
+            </View>
+        );
+    }
+
+    if (assetError || !asset) {
+        return (
+            <View style={styles.errorContainer}>
+                <Icon name="alert-circle" size={48} color="#ef4444" />
+                <Text style={styles.errorText}>Asset not found</Text>
+                <TouchableOpacity 
+                    style={styles.retryButton}
+                    onPress={() => refetchAsset()}
+                >
+                    <Text style={styles.retryButtonText}>Try Again</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    }
+
+    const AssetDetailsCard = () => (
+        <View style={styles.assetCard}>
+            <View style={styles.cardHeader}>
+                <View style={styles.assetIdentity}>
+                    <View style={[
+                        styles.assetIconWrapper,
+                        { backgroundColor: getAssetColor(asset.assetType) + "20" }
+                    ]}>
+                        <Icon
+                            name={getAssetIcon(asset.assetType)}
+                            size={28}
+                            color={getAssetColor(asset.assetType)}
+                        />
+                    </View>
+                    <View style={styles.assetInfo}>
+                        <Text style={styles.assetName} numberOfLines={2}>{asset.assetName}</Text>
+                        <View style={styles.assetMeta}>
+                            <Text style={styles.assetId} numberOfLines={1}>#{asset.assetId}</Text>
+                            <Text style={styles.assetType} numberOfLines={1}>{asset.assetType}</Text>
+                        </View>
+                    </View>
+                </View>
+                <View style={[
+                    styles.statusIndicator,
+                    { backgroundColor: getStatusColor(asset.status) + "20" }
+                ]}>
+                    <View style={[
+                        styles.statusDot,
+                        { backgroundColor: getStatusColor(asset.status) }
+                    ]} />
+                    <Text style={[
+                        styles.statusLabel,
+                        { color: getStatusColor(asset.status) }
+                    ]}>
+                        {asset.status === 'Maintainance' ? "Maintenance" : asset.status}
+                    </Text>
+                </View>
+            </View>
+
+            {/* Card Body */}
+            <View style={styles.cardBody}>
+                {/* First Row */}
+                <View style={styles.detailRow}>
+                    <View style={styles.detailColumn}>
+                        <View style={styles.detailItem}>
+                            <Icon name="calendar" size={16} color="#6b7280" />
+                            <View style={styles.detailContent}>
+                                <Text style={styles.detailLabel}>Purchase Date</Text>
+                                <Text style={styles.detailValue}>
+                                    {new Date(asset.purchaseDate).toLocaleDateString()}
+                                </Text>
+                            </View>
+                        </View>
+                    </View>
+
+                    <View style={styles.detailColumn}>
+                        <View style={styles.detailItem}>
+                            <Icon name="clock-outline" size={16} color="#6b7280" />
+                            <View style={styles.detailContent}>
+                                <Text style={styles.detailLabel}>Created Date</Text>
+                                <Text style={styles.detailValue}>
+                                    {new Date(asset.$createdAt).toLocaleDateString()}
+                                </Text>
+                            </View>
+                        </View>
+                    </View>
+                </View>
+
+                {/* Second Row */}
+                <View style={styles.detailRow}>
+                    <View style={styles.detailColumn}>
+                        <View style={styles.detailItem}>
+                            <Icon name="account" size={16} color="#6b7280" />
+                            <View style={styles.detailContent}>
+                                <Text style={styles.detailLabel}>Assigned To</Text>
+                                <Text style={[
+                                    styles.detailValue,
+                                    asset.assignedTo === "unassigned" && styles.unassignedText
+                                ]}>
+                                    {asset.assignedTo === "unassigned" ? "Not Assigned" : asset.assignedTo}
+                                </Text>
+                            </View>
+                        </View>
+                    </View>
+                </View>
+
+                {/* Description - Full Width */}
+                <View style={styles.descriptionSection}>
+                    <View style={styles.detailItem}>
+                        <Icon name="text-box-outline" size={16} color="#6b7280" />
+                        <View style={styles.detailContent}>
+                            <Text style={styles.detailLabel}>Description</Text>
+                            <Text style={[styles.descriptionText, asset.description === '' && styles.unassignedText]}>
+                                {asset.description || "No description provided"}
+                            </Text>
+                        </View>
+                    </View>
+                </View>
+            </View>
+        </View>
+    );
 
     return (
         <SafeAreaView style={styles.container}>
@@ -257,14 +426,17 @@ export default function AssetDetails() {
                 <View style={styles.header}>
                     <View style={styles.headerContent}>
                         <View style={styles.titleContainer}>
-                            <Icon name="cog" size={28} color="#3b82f6" />
+                            <Icon name="cog" size={26} color="#3b82f6" />
                             <Text style={styles.headerTitle}>Asset Management</Text>
                         </View>
                         <Text style={styles.headerSubtitle}>
-                            Manage assignments for {asset.assetName}
+                            Manage asset assignments and details
                         </Text>
                     </View>
                 </View>
+
+                {/* Asset Details Card */}
+                <AssetDetailsCard />
 
                 {/* Assign Employee Section */}
                 <View style={styles.formCard}>
@@ -279,12 +451,13 @@ export default function AssetDetails() {
                                 style={styles.picker}
                                 dropdownIconColor="#3b82f6"
                             >
-                                <Picker.Item label="Select Employee" value="" color="#9ca3af" />
+                                <Picker.Item label="Select Employee" value="" color="#9ca3af" style={{ fontSize: 14 }} />
                                 {employees.map((employee) => (
                                     <Picker.Item
                                         key={employee.employeeId}
                                         label={`${employee.name} (${employee.employeeId})`}
                                         value={employee.employeeId}
+                                        style={{ fontSize: 14 }}
                                         color="#1f2937"
                                     />
                                 ))}
@@ -304,7 +477,6 @@ export default function AssetDetails() {
                     </View>
                 </View>
 
-                {/* Assignment History Section */}
                 <View style={styles.formCard}>
                     <View style={styles.sectionHeader}>
                         <Text style={styles.sectionTitle}>Assignment History</Text>
@@ -318,7 +490,6 @@ export default function AssetDetails() {
                         </View>
                     ) : (
                         <View style={styles.tableContainer}>
-                            {/* Table Header */}
                             <View style={styles.tableHeader}>
                                 <Text style={[styles.tableHeaderText, styles.columnEmployee]}>Employee</Text>
                                 <Text style={[styles.tableHeaderText, styles.columnDate]}>Assignment Date</Text>
@@ -330,10 +501,10 @@ export default function AssetDetails() {
                                 showsVerticalScrollIndicator={true}
                                 nestedScrollEnabled={true}
                             >
-                                {assignmentHistory.map((record) => (
-                                    <View key={record.$id} style={styles.tableRow}>
+                                {assignmentHistory.map((record, index) => (
+                                    <View key={record.historyId || index} style={styles.tableRow}>
                                         <View style={[styles.tableCell, styles.columnEmployee]}>
-                                            <Text style={styles.employeeName}>{record.employeeId}</Text>
+                                            <Text style={styles.employeeName} numberOfLines={2}>{record.employeeId}</Text>
                                         </View>
                                         <View style={[styles.tableCell, styles.columnDate]}>
                                             <Text style={styles.historyDate}>
@@ -346,13 +517,21 @@ export default function AssetDetails() {
                         </View>
                     )}
                 </View>
+
+                {/* Action Buttons */}
                 <View style={styles.actionButtons}>
                     <TouchableOpacity
                         style={[styles.actionButton, styles.maintenanceButton]}
                         onPress={handleMaintenance}
                     >
-                        <Icon name="wrench" size={16} color="#f59e0b" />
-                        <Text style={[styles.actionButtonText, { color: '#f59e0b' }]}>Maintenance</Text>
+                        <Icon
+                            name={asset.status === 'Maintainance' ? "check-circle" : "wrench"}
+                            size={16}
+                            color="#f59e0b"
+                        />
+                        <Text style={[styles.actionButtonText, { color: '#f59e0b' }]}>
+                            {asset.status === 'Maintainance' ? 'Available' : 'Maintenance'}
+                        </Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
@@ -365,29 +544,36 @@ export default function AssetDetails() {
                 </View>
             </ScrollView>
 
-            <AwesomeAlert
+            {/* Replace AwesomeAlert with CustomModal */}
+            <CustomModal
                 show={showAlert}
-                showProgress={false}
                 title={alertTitle}
                 message={alertMessage}
-                closeOnTouchOutside={true}
-                closeOnHardwareBackPress={true}
-                showConfirmButton={true}
+                alertType={alertType}
                 confirmText="Got It"
-                confirmButtonColor={alertType === 'success' ? '#10b981' : '#ef4444'}
-                confirmButtonStyle={{ paddingHorizontal: 30, paddingVertical: 10, borderRadius: 8, }}
+                showCancelButton={false}
                 onConfirmPressed={() => setShowAlert(false)}
+                onCancelPressed={() => setShowAlert(false)}
+                confirmButtonColor={alertType === 'success' ? '#10b981' : 
+                                   alertType === 'error' ? '#ef4444' : 
+                                   alertType === 'warning' ? '#f59e0b' : '#3b82f6'}
             />
 
             <CustomModal
-                visible={modalVisible}
-                onClose={() => setModalVisible(false)}
+                show={modalVisible}
                 title={modalConfig.title}
                 message={modalConfig.message}
-                type={modalConfig.type}
-                onConfirm={modalConfig.onConfirm}
+                alertType={modalConfig.type}
                 confirmText={modalConfig.confirmText}
-                showCancel={modalConfig.showCancel}
+                showCancelButton={modalConfig.showCancel}
+                onConfirmPressed={() => {
+                    modalConfig.onConfirm?.();
+                    setModalVisible(false);
+                }}
+                onCancelPressed={() => setModalVisible(false)}
+                confirmButtonColor={modalConfig.type === 'success' ? '#10b981' : 
+                                   modalConfig.type === 'error' ? '#ef4444' : 
+                                   modalConfig.type === 'warning' ? '#f59e0b' : '#3b82f6'}
             />
         </SafeAreaView>
     );

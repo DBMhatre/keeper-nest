@@ -36,7 +36,7 @@ export const styles = StyleSheet.create({
   header: {
     backgroundColor: "#ffffff",
     paddingHorizontal: 20,
-    paddingTop: height * 0.05,
+    paddingTop: 20,
     paddingBottom: 25,
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
@@ -47,7 +47,7 @@ export const styles = StyleSheet.create({
     elevation: 4,
   },
   headerContent: {
-    marginBottom: 16,
+    alignItems: 'flex-start',
   },
   titleContainer: {
     flexDirection: 'row',
@@ -330,4 +330,39 @@ logoutButton: {
     fontSize: 15,
     marginLeft: 8,
   },
+  loadingOverlay: {
+  flex: 1,
+  backgroundColor: 'rgba(255, 255, 255, 0.95)',
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+loadingContainer: {
+  backgroundColor: '#ffffff',
+  padding: 30,
+  borderRadius: 16,
+  alignItems: 'center',
+  shadowColor: '#000',
+  shadowOffset: {
+    width: 0,
+    height: 2,
+  },
+  shadowOpacity: 0.25,
+  shadowRadius: 3.84,
+  elevation: 5,
+  minWidth: 250,
+},
+loadingMessage: {
+  fontSize: 18,
+  fontWeight: '600',
+  color: '#1f2937',
+  marginTop: 16,
+  marginBottom: 8,
+  textAlign: 'center',
+},
+loadingSubMessage: {
+  fontSize: 14,
+  color: '#6b7280',
+  textAlign: 'center',
+  lineHeight: 20,
+}
 });

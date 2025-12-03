@@ -12,10 +12,8 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Picker } from '@react-native-picker/picker';
 import { styles } from '../styles/assetDetailsStyles';
-import { databases } from '../server/appwrite';
+import { account, databases } from '../server/appwrite';
 import { ID, Query } from 'appwrite';
-import { setSelectedLog } from 'react-native/types_generated/Libraries/LogBox/Data/LogBoxData';
-import AwesomeAlert from 'react-native-awesome-alerts';
 import CustomModal from './CustomModal';
 
 export default function AssetEmployeeDetails() {
@@ -32,20 +30,20 @@ export default function AssetEmployeeDetails() {
     const [showAlert, setShowAlert] = useState(false);
     const [alertTitle, setAlertTitle] = useState('');
     const [alertMessage, setAlertMessage] = useState('');
-    const [alertType, setAlertType] = useState<'success' | 'error'>('success');
+    const [alertType, setAlertType] = useState<'success' | 'error' | 'warning' | 'info'>('success');
 
     const [modalVisible, setModalVisible] = useState(false);
     const [modalConfig, setModalConfig] = useState({
         title: '',
         message: '',
-        type: 'info',
-        onConfirm: null,
+        type: 'info' as 'success' | 'error' | 'warning' | 'info',
+        onConfirm: null as (() => void) | null,
         confirmText: 'OK',
         showCancel: false,
     });
 
     // Show modal function
-    const showModal = (title, message, type = 'info', onConfirm = null, confirmText = 'OK', showCancel = false) => {
+    const showModal = (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info', onConfirm: (() => void) | null = null, confirmText: string = 'OK', showCancel: boolean = false) => {
         setModalConfig({
             title,
             message,
@@ -57,7 +55,6 @@ export default function AssetEmployeeDetails() {
         setModalVisible(true);
     };
 
-
     useEffect(() => {
         fetchAssetData();
     }, [assetId]);
@@ -65,6 +62,12 @@ export default function AssetEmployeeDetails() {
     const fetchAssetData = async () => {
         setLoading(true);
         try {
+            try {
+                const user = await account.get();
+            } catch (error) {
+                console.log("Error: ", error);
+                navigation.navigate('Login' as any);
+            }
             const assetResponse = await databases.listDocuments(
                 'assetManagement',
                 'assets',
@@ -80,14 +83,14 @@ export default function AssetEmployeeDetails() {
                 return;
             }
         } catch (error) {
-            console.error('Error fetching asset data:', error);
-            Alert.alert('Error', 'Failed to load asset details');
+            console.log("Error: ", error);
+            navigation.navigate('Login' as any);
         } finally {
             setLoading(false);
         }
     };
 
-    const showAlertBox = (title: string, message: string, type: 'success' | 'error') => {
+    const showAlertBox = (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info') => {
         setAlertTitle(title);
         setAlertMessage(message);
         setAlertType(type);
@@ -127,45 +130,46 @@ export default function AssetEmployeeDetails() {
                         </Text>
                     </View>
                 </View>
-
-                <View style={styles.employeeContainer}>
-                    <View style={styles.employeeItem}>
-                        <Text style={styles.employeeLabel}>Assigned Date</Text>
-                        <Text style={styles.employeeValue}>{new Date(asset.$updatedAt).toLocaleDateString()}</Text>
+                <View>
+                    <View>
+                        <Text>Issue Date</Text>
                     </View>
-
-                    <View style={styles.employeeItem}>
-                        <Text style={styles.employeeLabel}>Expiry Date</Text>
-                        <Text style={styles.employeeValue}>{new Date(asset.expiredAt).toLocaleDateString()}</Text>
+                    <View>
+                        <Text>{asset.$modifiedAt}</Text>
                     </View>
                 </View>
             </ScrollView>
 
-
-
-            <AwesomeAlert
+            {/* Replace AwesomeAlert with CustomModal */}
+            <CustomModal
                 show={showAlert}
-                showProgress={false}
                 title={alertTitle}
                 message={alertMessage}
-                closeOnTouchOutside={true}
-                closeOnHardwareBackPress={true}
-                showConfirmButton={true}
+                alertType={alertType}
                 confirmText="Got It"
-                confirmButtonColor={alertType === 'success' ? '#10b981' : '#ef4444'}
-                confirmButtonStyle={{ paddingHorizontal: 30, paddingVertical: 10, borderRadius: 8, }}
+                showCancelButton={false}
                 onConfirmPressed={() => setShowAlert(false)}
+                onCancelPressed={() => setShowAlert(false)}
+                confirmButtonColor={alertType === 'success' ? '#10b981' : 
+                                   alertType === 'error' ? '#ef4444' : 
+                                   alertType === 'warning' ? '#f59e0b' : '#3b82f6'}
             />
 
             <CustomModal
-                visible={modalVisible}
-                onClose={() => setModalVisible(false)}
+                show={modalVisible}
                 title={modalConfig.title}
                 message={modalConfig.message}
-                type={modalConfig.type}
-                onConfirm={modalConfig.onConfirm}
+                alertType={modalConfig.type}
                 confirmText={modalConfig.confirmText}
-                showCancel={modalConfig.showCancel}
+                showCancelButton={modalConfig.showCancel}
+                onConfirmPressed={() => {
+                    modalConfig.onConfirm?.();
+                    setModalVisible(false);
+                }}
+                onCancelPressed={() => setModalVisible(false)}
+                confirmButtonColor={modalConfig.type === 'success' ? '#10b981' : 
+                                   modalConfig.type === 'error' ? '#ef4444' : 
+                                   modalConfig.type === 'warning' ? '#f59e0b' : '#3b82f6'}
             />
         </SafeAreaView>
     );

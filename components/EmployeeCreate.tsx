@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,15 +7,17 @@ import {
   ActivityIndicator,
   ScrollView,
   SafeAreaView,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Picker } from '@react-native-picker/picker';
 import { useNavigation } from '@react-navigation/native';
-import AwesomeAlert from 'react-native-awesome-alerts';
 import { account, databases } from '../server/appwrite';
 import { styles } from '../styles/employeeFormStyles';
 import { ID } from 'appwrite';
 import { sendMail } from '../server/emailSender';
+import CustomModal from './CustomModal'; // Import CustomModal
 
 const EmployeeCreate = () => {
   const [name, setName] = useState('');
@@ -26,11 +28,11 @@ const EmployeeCreate = () => {
   const [showAlert, setShowAlert] = useState(false);
   const [alertTitle, setAlertTitle] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
-  const [alertType, setAlertType] = useState<'success' | 'error'>('success');
+  const [alertType, setAlertType] = useState<'success' | 'error' | 'warning' | 'info'>('success');
 
   const navigation = useNavigation();
 
-  const showAlertBox = (title: string, message: string, type: 'success' | 'error') => {
+  const showAlertBox = (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info') => {
     setAlertTitle(title);
     setAlertMessage(message);
     setAlertType(type);
@@ -50,8 +52,14 @@ const EmployeeCreate = () => {
 
     try {
       const password = `EMPLOYEE_${employeeId}`;
-      const user = await account.get();
-      const adminEmail = user.email;
+      let user = null;
+      try {
+        user = await account.get();
+      } catch (error) {
+        console.log("Error: ", error);
+        navigation.navigate('Login' as any);
+      }
+      const adminId = user.$id;
       const newUser = await account.create(employeeId, email, password, name);
       console.log("Created employee auth user:", newUser);
 
@@ -67,7 +75,7 @@ const EmployeeCreate = () => {
           email,
           gender,
           role: "employee",
-          creatorMail: adminEmail
+          creatorMail: adminId
         }
       );
 
@@ -143,7 +151,8 @@ const EmployeeCreate = () => {
       setEmployeeId('');
       setGender('No');
     } catch (error: any) {
-      console.error('Create Employee Error:', error);
+      console.log("Error: ", error);
+      navigation.navigate('Login' as any);
       showAlertBox(
         'Error',
         error?.message || 'Failed to create employee. Please try again.',
@@ -156,138 +165,144 @@ const EmployeeCreate = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContainer}
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
       >
-        {/* Header Section */}
-        <View style={styles.header}>
-          <View style={styles.headerContent}>
-            <View style={styles.titleContainer}>
-              <Icon name="account-plus" size={28} color="#3b82f6" />
-              <Text style={styles.headerTitle}>Create Employee</Text>
-            </View>
-            <Text style={styles.headerSubtitle}>
-              Please fill in the details of the new employee
-            </Text>
-          </View>
-        </View>
-
-        {/* Form Card */}
-        <View style={styles.formCard}>
-          {/* Full Name */}
-          <View style={styles.inputWrapper}>
-            <Text style={styles.inputLabel}>
-              Full Name <Text style={styles.required}>*</Text>
-            </Text>
-            <View style={styles.inputContainer}>
-              <Icon name="account-outline" size={20} color="#3b82f6" style={styles.icon} />
-              <TextInput
-                placeholder="Enter employee's full name"
-                placeholderTextColor="#9ca3af"
-                style={styles.input}
-                value={name}
-                onChangeText={setName}
-                selectionColor="#3b82f6"
-                cursorColor="#3b82f6"
-              />
-            </View>
-          </View>
-
-          {/* Email Address */}
-          <View style={styles.inputWrapper}>
-            <Text style={styles.inputLabel}>
-              Email Address <Text style={styles.required}>*</Text>
-            </Text>
-            <View style={styles.inputContainer}>
-              <Icon name="email-outline" size={20} color="#3b82f6" style={styles.icon} />
-              <TextInput
-                placeholder="Enter employee's email address"
-                placeholderTextColor="#9ca3af"
-                style={styles.input}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                value={email}
-                onChangeText={setEmail}
-                selectionColor="#3b82f6"
-                cursorColor="#3b82f6"
-              />
-            </View>
-          </View>
-
-          {/* Employee ID */}
-          <View style={styles.inputWrapper}>
-            <Text style={styles.inputLabel}>
-              Employee ID <Text style={styles.required}>*</Text>
-            </Text>
-            <View style={styles.inputContainer}>
-              <Icon name="card-account-details-outline" size={20} color="#3b82f6" style={styles.icon} />
-              <TextInput
-                placeholder="Enter unique employee ID"
-                placeholderTextColor="#9ca3af"
-                style={styles.input}
-                value={employeeId}
-                onChangeText={setEmployeeId}
-                selectionColor="#3b82f6"
-                cursorColor="#3b82f6"
-              />
-            </View>
-          </View>
-
-          {/* Gender */}
-          <View style={styles.inputWrapper}>
-            <Text style={styles.inputLabel}>
-              Gender <Text style={styles.required}>*</Text>
-            </Text>
-            <View style={styles.pickerContainer}>
-              <Icon name="gender-male-female" size={20} color="#3b82f6" style={styles.icon} />
-              <Picker
-                selectedValue={gender}
-                onValueChange={(value) => setGender(value)}
-                style={styles.picker}
-                dropdownIconColor="#3b82f6"
-              >
-                <Picker.Item label="Select Gender" value="No" color="#9ca3af" />
-                <Picker.Item label="Male" value="Male" color="#1f2937" />
-                <Picker.Item label="Female" value="Female" color="#1f2937" />
-                <Picker.Item label="Other" value="Other" color="#1f2937" />
-              </Picker>
-            </View>
-          </View>
-
-          {/* Create Button */}
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            disabled={loading}
-            onPress={handleCreateEmployee}
-          >
-            {loading ? (
-              <View style={styles.buttonContent}>
-                <ActivityIndicator size="small" color="#fff" />
-                <Text style={[styles.buttonText, { marginLeft: 10 }]}>Creating Employee...</Text>
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Header Section */}
+          <View style={styles.header}>
+            <View style={styles.headerContent}>
+              <View style={styles.titleContainer}>
+                <Icon name="account-plus" size={26} color="#3b82f6" />
+                <Text style={styles.headerTitle}>Create Employee</Text>
               </View>
-            ) : (
-              <View style={styles.buttonContent}>
-                <Text style={styles.buttonText}>Create Employee</Text>
-                <Icon name="account-check" size={20} color="#fff" style={styles.buttonIcon} />
-              </View>
-            )}
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+              <Text style={styles.headerSubtitle}>
+                Please fill in the details of the new employee
+              </Text>
+            </View>
+          </View>
 
-      <AwesomeAlert
+          {/* Form Card */}
+          <View style={styles.formCard}>
+            {/* Full Name */}
+            <View style={styles.inputWrapper}>
+              <Text style={styles.inputLabel}>
+                Full Name <Text style={styles.required}>*</Text>
+              </Text>
+              <View style={styles.inputContainer}>
+                <Icon name="account-outline" size={20} color="#3b82f6" style={styles.icon} />
+                <TextInput
+                  placeholder="Enter employee's full name"
+                  placeholderTextColor="#9ca3af"
+                  style={styles.input}
+                  value={name}
+                  onChangeText={setName}
+                  selectionColor="#3b82f6"
+                  cursorColor="#3b82f6"
+                />
+              </View>
+            </View>
+
+            {/* Email Address */}
+            <View style={styles.inputWrapper}>
+              <Text style={styles.inputLabel}>
+                Email Address <Text style={styles.required}>*</Text>
+              </Text>
+              <View style={styles.inputContainer}>
+                <Icon name="email-outline" size={20} color="#3b82f6" style={styles.icon} />
+                <TextInput
+                  placeholder="Enter employee's email address"
+                  placeholderTextColor="#9ca3af"
+                  style={styles.input}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  value={email}
+                  onChangeText={setEmail}
+                  selectionColor="#3b82f6"
+                  cursorColor="#3b82f6"
+                />
+              </View>
+            </View>
+
+            {/* Employee ID */}
+            <View style={styles.inputWrapper}>
+              <Text style={styles.inputLabel}>
+                Employee ID <Text style={styles.required}>*</Text>
+              </Text>
+              <View style={styles.inputContainer}>
+                <Icon name="card-account-details-outline" size={20} color="#3b82f6" style={styles.icon} />
+                <TextInput
+                  placeholder="Enter unique employee ID"
+                  placeholderTextColor="#9ca3af"
+                  style={styles.input}
+                  value={employeeId}
+                  onChangeText={setEmployeeId}
+                  selectionColor="#3b82f6"
+                  cursorColor="#3b82f6"
+                />
+              </View>
+            </View>
+
+            {/* Gender */}
+            <View style={styles.inputWrapper}>
+              <Text style={styles.inputLabel}>
+                Gender <Text style={styles.required}>*</Text>
+              </Text>
+              <View style={styles.pickerContainer}>
+                <Icon name="gender-male-female" size={20} color="#3b82f6" style={styles.icon} />
+                <Picker
+                  selectedValue={gender}
+                  onValueChange={(value) => setGender(value)}
+                  style={styles.picker}
+                  dropdownIconColor="#3b82f6"
+                >
+                  <Picker.Item label="Select Gender" value="No" color="#9ca3af" />
+                  <Picker.Item label="Male" value="Male" color="#1f2937" />
+                  <Picker.Item label="Female" value="Female" color="#1f2937" />
+                  {/* <Picker.Item label="Other" value="Other" color="#1f2937" /> */}
+                </Picker>
+              </View>
+            </View>
+
+            {/* Create Button */}
+            <TouchableOpacity
+              style={[styles.button, loading && styles.buttonDisabled]}
+              disabled={loading}
+              onPress={handleCreateEmployee}
+            >
+              {loading ? (
+                <View style={styles.buttonContent}>
+                  <ActivityIndicator size="small" color="#fff" />
+                  <Text style={[styles.buttonText, { marginLeft: 10 }]}>Creating Employee...</Text>
+                </View>
+              ) : (
+                <View style={styles.buttonContent}>
+                  <Text style={styles.buttonText}>Create Employee</Text>
+                  <Icon name="account-check" size={20} color="#fff" style={styles.buttonIcon} />
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+
+      {/* Replace AwesomeAlert with CustomModal */}
+      <CustomModal
         show={showAlert}
-        showProgress={false}
         title={alertTitle}
         message={alertMessage}
-        closeOnTouchOutside={true}
-        closeOnHardwareBackPress={true}
-        showConfirmButton={true}
+        alertType={alertType}
         confirmText="Got It"
-        confirmButtonColor={alertType === 'success' ? '#10b981' : '#ef4444'}
-        confirmButtonStyle={styles.alertButton}
+        showCancelButton={false}
         onConfirmPressed={() => setShowAlert(false)}
+        onCancelPressed={() => setShowAlert(false)}
+        confirmButtonColor={alertType === 'success' ? '#10b981' : 
+                           alertType === 'error' ? '#ef4444' : 
+                           alertType === 'warning' ? '#f59e0b' : '#3b82f6'}
       />
     </SafeAreaView>
   );
