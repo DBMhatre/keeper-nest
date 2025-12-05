@@ -19,6 +19,7 @@ import { Asset } from './asset';
 import { useNavigation } from '@react-navigation/native';
 import DatePicker from 'react-native-neat-date-picker';
 import CustomModal from './CustomModal'; // Import CustomModal
+import CustomDropdown from './CustomDropdown';
 
 const DATABASE_ID = 'assetManagement';
 const COLLECTION_ID = 'assets';
@@ -150,9 +151,7 @@ const AssetForm = () => {
             </View>
           </View>
 
-          {/* Form Card */}
           <View style={styles.formCard}>
-            {/* Asset Name */}
             <View style={styles.inputWrapper}>
               <Text style={styles.inputLabel}>
                 Asset Name <Text style={styles.required}>*</Text>
@@ -178,18 +177,18 @@ const AssetForm = () => {
               </Text>
               <View style={styles.pickerContainer}>
                 <Icon name="shape-outline" size={20} color="#3b82f6" style={styles.icon} />
-                <Picker
+                <CustomDropdown
+                  data={[
+                    { label: "Laptop", value: "Laptop" },
+                    { label: "Mouse", value: "Mouse" },
+                    { label: "Keyboard", value: "Keyboard" },
+                    { label: "Other", value: "Other" },
+                  ]}
                   selectedValue={assetType}
                   onValueChange={(value) => setAssetType(value)}
-                  style={styles.picker}
-                  dropdownIconColor="#3b82f6"
-                >
-                  <Picker.Item label="Select Asset Type" value="" color="#9ca3af" />
-                  <Picker.Item label="Laptop" value="Laptop" color="#1f2937" />
-                  <Picker.Item label="Mouse" value="Mouse" color="#1f2937" />
-                  <Picker.Item label="Keyboard" value="Keyboard" color="#1f2937" />
-                  <Picker.Item label="Other" value="Other" color="#1f2937" />
-                </Picker>
+                  placeholder="Select Asset Type"
+                  searchable={false} 
+                />
               </View>
             </View>
 
@@ -293,9 +292,9 @@ const AssetForm = () => {
         showCancelButton={false}
         onConfirmPressed={() => setShowAlert(false)}
         onCancelPressed={() => setShowAlert(false)}
-        confirmButtonColor={alertType === 'success' ? '#10b981' : 
-                           alertType === 'error' ? '#ef4444' : 
-                           alertType === 'warning' ? '#f59e0b' : '#3b82f6'}
+        confirmButtonColor={alertType === 'success' ? '#10b981' :
+          alertType === 'error' ? '#ef4444' :
+            alertType === 'warning' ? '#f59e0b' : '#3b82f6'}
       />
     </SafeAreaView>
   );

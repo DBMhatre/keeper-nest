@@ -117,13 +117,11 @@ export default function EmployeeDashboard() {
         }
         showsVerticalScrollIndicator={false}
       >
-        {/* Welcome Section */}
         <View style={styles.welcomeSection}>
           <View style={styles.welcomeContent}>
             <Text style={styles.welcomeText}>Welcome back,</Text>
-            <Text style={styles.userName}>{employeeDetails?.name}</Text>
-            <Text style={styles.userEmail}>{employeeDetails?.email}</Text>
-            <Text style={styles.employeeId}>Employee ID: {employeeDetails?.employeeId}</Text>
+            <Text style={styles.userName} numberOfLines={2}>{employeeDetails?.name}</Text>
+            <Text style={styles.userEmail} numberOfLines={1}>{employeeDetails?.email}</Text>
           </View>
           <TouchableOpacity style={styles.welcomeIllustration} onPress={() => navigation.navigate('Profile' as never)}>
             <Icon name={employeeDetails?.gender == 'Male' ? 'face-man' : 'face-woman'} size={80} color="#3b82f6" />
@@ -155,14 +153,14 @@ export default function EmployeeDashboard() {
                   <TouchableOpacity 
                     key={asset.$id}
                     style={styles.tableRow}
-                    onPress={() => navigation.navigate('AssetEmployeeDetails' as never, { assetId: asset.assetId } as never)}
+                    onPress={() => console.log('Hello World')}
                   >
                     <View style={[styles.tableCell, styles.columnAsset]}>
                       <Text style={styles.assetName} numberOfLines={1}>{asset.assetName}</Text>
-                      <Text style={styles.assetId}>#{asset.assetId}</Text>
+                      <Text style={styles.assetId} numberOfLines={1}>#{asset.assetId}</Text>
                     </View>
                     <View style={[styles.tableCell, styles.columnType]}>
-                      <Text style={styles.assetType}>{asset.assetType}</Text>
+                      <Text style={styles.assetType} numberOfLines={1}>{asset.assetType}</Text>
                     </View>
                     <View style={[styles.tableCell, styles.columnStatus]}>
                       <View style={[styles.statusBadge, { backgroundColor: '#10b98115' }]}>

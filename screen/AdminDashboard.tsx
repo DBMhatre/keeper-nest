@@ -155,7 +155,6 @@ export default function AdminDashboard() {
 
           <View style={styles.statsGrid}>
             <View style={styles.mainRow}>
-              {/* Left Side - 2x2 Grid */}
               <View style={styles.leftStats}>
                 <View style={styles.statsRow}>
                   <View style={styles.statItem}>
@@ -202,7 +201,6 @@ export default function AdminDashboard() {
                 </View>
               </View>
 
-              {/* Right Side - Employees spanning 2 rows */}
               <View style={styles.employeeSection}>
                 <View style={styles.employeeItem}>
                   <View style={[styles.employeeIconWrapper, { backgroundColor: '#ec4899' }]}>
@@ -217,9 +215,7 @@ export default function AdminDashboard() {
             </View>
           </View>
         </View>
-
-
-        {/* Quick Actions Section */}
+        
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
           <View style={styles.quickActionsGrid}>

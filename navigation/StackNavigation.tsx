@@ -27,47 +27,14 @@ export default function StackNavigation() {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        // Check and extend asset expiration dates
-        try {
-          const allDocuments = await databases.listDocuments(
-            'AssetManagement',
-            'assets'
-          );
-          
-          if (allDocuments.documents && allDocuments.documents.length > 0) {
-            const currentDate = new Date();
-            const expiredDate = new Date(allDocuments.documents[0].expiredAt);
-            
-            if (currentDate >= expiredDate) {
-              for (const doc of allDocuments.documents) {
-                if (doc.expiredAt) {
-                  const newExpiredAt = new Date(expiredDate.getFullYear() + 1, 11, 31);
-
-                  await databases.updateDocument(
-                    'AssetManagement',
-                    'assets',
-                    doc.$id,
-                    {
-                      expiredAt: newExpiredAt.toISOString(),
-                      assignedTo: 'unassigned',
-                      status: 'Available'
-                    }
-                  );
-                  console.log(`Extended ${doc.$id} from ${expiredDate.getFullYear()} to ${newExpiredAt.getFullYear()}`);
-                }
-              }
-            }
-          }
-        } catch (error) {
-          console.log('Asset extension error:', error);
-        }
-
         try {
           const user = await account.get();
+          console.log('User session found:', user.email);
+        
           const response = await databases.listDocuments(
             'user_info',
             'user_info',
-            [Query.equal("employeeId", user.$id)]
+            [Query.equal("email", user.email)]
           );
 
           if (response.documents && response.documents.length > 0) {
@@ -76,21 +43,38 @@ export default function StackNavigation() {
             const status = employeeData.status;
 
             if (status === 'active') {
+              console.log('User is active, navigating to:', role === 'admin' ? 'AdminTabs' : 'EmployeeTabs');
               setInitialRoute(role === 'admin' ? 'AdminTabs' : 'EmployeeTabs');
               setLoading(false);
               return;
+            } else {
+              console.log('User is not active, redirecting to Login');
+              try {
+                await account.deleteSession('current');
+              } catch (err) {
+                console.log('Error deleting session:', err.message);
+              }
+            }
+          } else {
+            console.log('User not found in database');
+            try {
+              await account.deleteSession('current');
+            } catch (err) {
+              console.log('Error deleting session:', err.message);
             }
           }
         } catch (err) {
-          console.log("Session check failed:", err.message);
+          console.log('No valid session found, redirecting to Login:', err.message);
         }
         
         setInitialRoute('Login');
       } catch (error) {
-        console.log('Session check failed:', error);
+        console.log('Unexpected error in checkSession:', error);
         setInitialRoute('Login');
       } finally {
-        setLoading(false);
+        setTimeout(() => {
+          setLoading(false);
+        }, 2000);
       }
     };
 
@@ -110,17 +94,10 @@ export default function StackNavigation() {
     );
   }
 
-  if (!initialRoute) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Loading...</Text>
-        <ActivityIndicator size="large" color="#007bff" />
-      </View>
-    );
-  }
+  const routeToUse = initialRoute || 'Login';
 
   return (
-    <Stack.Navigator initialRouteName={initialRoute}>
+    <Stack.Navigator initialRouteName={routeToUse}>
       <Stack.Screen name="Signup" component={SignUp} options={{ headerShown: false }} />
       <Stack.Screen name="Login" component={Login} options={{ headerShown: false }} />
       <Stack.Screen name="Profile" component={Profile} options={{ headerShown: false }} />

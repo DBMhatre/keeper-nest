@@ -10,18 +10,21 @@ import {
   Platform,
   ActivityIndicator,
   ScrollView,
+  BackHandler,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { account, databases } from '../server/appwrite';
 import { styles } from '../styles/loginStyles';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Query } from 'appwrite';
 import * as Keychain from 'react-native-keychain';
 import CustomModal from '../components/CustomModal';
+import ExitAppModal from '../components/ExitAppModal';
 
 export default function Login() {
   const navigation = useNavigation();
+  const [showExitModal, setShowExitModal] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -35,6 +38,34 @@ export default function Login() {
   useEffect(() => {
     checkStoredCredentials();
   }, []);
+
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        setShowExitModal(true);
+        return true;
+      };
+
+      const backHandler = BackHandler.addEventListener(
+        'hardwareBackPress',
+        onBackPress
+      );
+
+      return () => {
+        backHandler.remove();
+        setShowExitModal(false);
+      };
+    }, [])
+  );
+
+  const handleExitConfirm = () => {
+    BackHandler.exitApp();
+  };
+
+  const handleExitCancel = () => {
+    setShowExitModal(false);
+  };
 
   const storeCredentials = async (email: string, password: string) => {
     try {
@@ -82,7 +113,7 @@ export default function Login() {
 
       if (shouldRemember === 'true') {
         setRememberMe(true);
-        
+
         const credentials = await getStoredCredentials();
         if (credentials) {
           setEmail(credentials.email);
@@ -281,9 +312,19 @@ export default function Login() {
         showCancelButton={false}
         onConfirmPressed={() => setShowAlert(false)}
         onCancelPressed={() => setShowAlert(false)}
-        confirmButtonColor={alertType === 'success' ? '#10b981' : 
-                           alertType === 'error' ? '#ef4444' : 
-                           alertType === 'warning' ? '#f59e0b' : '#3b82f6'}
+        confirmButtonColor={alertType === 'success' ? '#10b981' :
+          alertType === 'error' ? '#ef4444' :
+            alertType === 'warning' ? '#f59e0b' : '#3b82f6'}
+      />
+
+      <ExitAppModal
+        visible={showExitModal}
+        onConfirm={handleExitConfirm}
+        onCancel={handleExitCancel}
+        title="Exit KeeperNest"
+        message="Are you sure you want to exit the app?"
+        confirmText="Exit"
+        cancelText="Cancel"
       />
     </SafeAreaView>
   );

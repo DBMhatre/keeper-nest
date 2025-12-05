@@ -102,7 +102,7 @@ export const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#d1d5db',
     borderRadius: 8,
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#ffffff',
     marginBottom: 16,
     paddingHorizontal: 12,
   },

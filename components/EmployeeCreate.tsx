@@ -18,6 +18,7 @@ import { styles } from '../styles/employeeFormStyles';
 import { ID } from 'appwrite';
 import { sendMail } from '../server/emailSender';
 import CustomModal from './CustomModal'; // Import CustomModal
+import CustomDropdown from './CustomDropdown';
 
 const EmployeeCreate = () => {
   const [name, setName] = useState('');
@@ -186,9 +187,7 @@ const EmployeeCreate = () => {
             </View>
           </View>
 
-          {/* Form Card */}
           <View style={styles.formCard}>
-            {/* Full Name */}
             <View style={styles.inputWrapper}>
               <Text style={styles.inputLabel}>
                 Full Name <Text style={styles.required}>*</Text>
@@ -207,7 +206,6 @@ const EmployeeCreate = () => {
               </View>
             </View>
 
-            {/* Email Address */}
             <View style={styles.inputWrapper}>
               <Text style={styles.inputLabel}>
                 Email Address <Text style={styles.required}>*</Text>
@@ -227,8 +225,6 @@ const EmployeeCreate = () => {
                 />
               </View>
             </View>
-
-            {/* Employee ID */}
             <View style={styles.inputWrapper}>
               <Text style={styles.inputLabel}>
                 Employee ID <Text style={styles.required}>*</Text>
@@ -254,21 +250,19 @@ const EmployeeCreate = () => {
               </Text>
               <View style={styles.pickerContainer}>
                 <Icon name="gender-male-female" size={20} color="#3b82f6" style={styles.icon} />
-                <Picker
+                <CustomDropdown
+                  data={[
+                    { label: "Male", value: "Male" },
+                    { label: "Female", value: "Female" },
+                  ]}
                   selectedValue={gender}
                   onValueChange={(value) => setGender(value)}
-                  style={styles.picker}
-                  dropdownIconColor="#3b82f6"
-                >
-                  <Picker.Item label="Select Gender" value="No" color="#9ca3af" />
-                  <Picker.Item label="Male" value="Male" color="#1f2937" />
-                  <Picker.Item label="Female" value="Female" color="#1f2937" />
-                  {/* <Picker.Item label="Other" value="Other" color="#1f2937" /> */}
-                </Picker>
+                  placeholder="Select Gender"
+                  searchable={false} 
+                />
               </View>
             </View>
 
-            {/* Create Button */}
             <TouchableOpacity
               style={[styles.button, loading && styles.buttonDisabled]}
               disabled={loading}
@@ -290,7 +284,6 @@ const EmployeeCreate = () => {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Replace AwesomeAlert with CustomModal */}
       <CustomModal
         show={showAlert}
         title={alertTitle}
@@ -300,9 +293,9 @@ const EmployeeCreate = () => {
         showCancelButton={false}
         onConfirmPressed={() => setShowAlert(false)}
         onCancelPressed={() => setShowAlert(false)}
-        confirmButtonColor={alertType === 'success' ? '#10b981' : 
-                           alertType === 'error' ? '#ef4444' : 
-                           alertType === 'warning' ? '#f59e0b' : '#3b82f6'}
+        confirmButtonColor={alertType === 'success' ? '#10b981' :
+          alertType === 'error' ? '#ef4444' :
+            alertType === 'warning' ? '#f59e0b' : '#3b82f6'}
       />
     </SafeAreaView>
   );

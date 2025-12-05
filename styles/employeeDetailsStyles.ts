@@ -63,7 +63,7 @@ export const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: 14,
     color: '#6b7280',
-    marginLeft: 34,
+    marginLeft: 37,
   },
 
   formCard: {

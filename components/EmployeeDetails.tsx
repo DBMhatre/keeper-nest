@@ -18,6 +18,7 @@ import { account, databases, functions } from '../server/appwrite';
 import { ID, Query } from 'appwrite';
 import CustomModal from './CustomModal';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import CustomDropdown from './CustomDropdown';
 
 export default function EmployeeDetails() {
   const route = useRoute();
@@ -76,11 +77,11 @@ export default function EmployeeDetails() {
         'user_info',
         [Query.equal('employeeId', employeeId)]
       );
-      
+
       if (response.documents.length === 0) {
         throw new Error('Employee not found');
       }
-      
+
       return response.documents[0];
     },
   });
@@ -104,11 +105,11 @@ export default function EmployeeDetails() {
     },
   });
 
-  const { 
-    data: assignedAssets = [], 
-    isLoading: isLoadingAssignedAssets, 
+  const {
+    data: assignedAssets = [],
+    isLoading: isLoadingAssignedAssets,
     refetch: refetchAssignedAssets,
-    isRefetching: isRefetchingAssignedAssets 
+    isRefetching: isRefetchingAssignedAssets
   } = useQuery({
     queryKey: ['assigned-assets', employeeId],
     queryFn: async () => {
@@ -145,13 +146,13 @@ export default function EmployeeDetails() {
         employeeId: employeeId,
         assignDate: new Date().toISOString(),
       });
-      
+
       const currentHistory = assetDoc.historyQueue || [];
       const updatedHistory = [newHistoryEntry, ...currentHistory];
       if (updatedHistory.length > 5) {
         updatedHistory.pop();
       }
-      
+
       await databases.updateDocument(
         'assetManagement',
         'assets',
@@ -165,7 +166,7 @@ export default function EmployeeDetails() {
 
       queryClient.invalidateQueries({ queryKey: ['available-assets'] });
       queryClient.invalidateQueries({ queryKey: ['assigned-assets', employeeId] });
-      
+
       showAlertBox('Success', 'Asset assigned successfully', 'success');
       setSelectedAsset('');
 
@@ -191,7 +192,7 @@ export default function EmployeeDetails() {
 
       queryClient.invalidateQueries({ queryKey: ['available-assets'] });
       queryClient.invalidateQueries({ queryKey: ['assigned-assets', employeeId] });
-      
+
       showAlertBox('Success', 'Asset unassigned successfully', 'success');
     } catch (error) {
       console.error('Error unassigning asset:', error);
@@ -227,7 +228,7 @@ export default function EmployeeDetails() {
           await databases.deleteDocument('user_info', 'user_info', employee.$id);
 
           queryClient.invalidateQueries({ queryKey: ['employees'] });
-          
+
           console.log("Execution →", execution);
           showAlertBox("Success", `${employee.name} removed successfully`, "success");
           navigation.goBack();
@@ -258,7 +259,7 @@ export default function EmployeeDetails() {
       <View style={styles.errorContainer}>
         <Icon name="alert-circle" size={48} color="#ef4444" />
         <Text style={styles.errorText}>Employee not found</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.retryButton}
           onPress={() => queryClient.invalidateQueries({ queryKey: ['employee', employeeId] })}
         >
@@ -270,7 +271,7 @@ export default function EmployeeDetails() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView 
+      <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -281,7 +282,6 @@ export default function EmployeeDetails() {
           />
         }
       >
-        {/* Header Section */}
         <View style={styles.header}>
           <View style={styles.headerContent}>
             <View style={styles.titleContainer}>
@@ -293,30 +293,29 @@ export default function EmployeeDetails() {
             </Text>
           </View>
         </View>
-
-        {/* Assign Asset Section */}
         <View style={styles.formCard}>
           <Text style={styles.sectionTitle}>Assign New Asset</Text>
 
           <View style={styles.assignSection}>
             <View style={styles.pickerContainer}>
               <Icon name="package-variant" size={20} color="#3b82f6" style={styles.icon} />
-              <Picker
+              
+              <CustomDropdown
+                data={assets.map(asset => ({
+                  label: `${asset.assetName} (${asset.assetId})`,
+                  value: asset.assetId,
+                  ...asset
+                }))}
                 selectedValue={selectedAsset}
-                onValueChange={(value) => setSelectedAsset(value)}
-                style={styles.picker}
-                dropdownIconColor="#3b82f6"
-              >
-                <Picker.Item label="Select Asset to Assign" value="" color="#9ca3af" />
-                {assets.map((asset) => (
-                  <Picker.Item
-                    key={asset.$id}
-                    label={`${asset.assetName} (${asset.assetId})`}
-                    value={asset.assetId}
-                    color="#1f2937"
-                  />
-                ))}
-              </Picker>
+                onValueChange={(value) => {
+                  console.log('Selected asset:', value);
+                  setSelectedAsset(value);
+                }}
+                placeholder="Select Asset to Assign"
+                searchable={true}
+                disabled={assets.length === 0 || assigning}
+                onRefresh={() => queryClient.invalidateQueries({ queryKey: ['available-assets'] })}
+              />
             </View>
 
             <TouchableOpacity
@@ -409,7 +408,6 @@ export default function EmployeeDetails() {
         </TouchableOpacity>
       </ScrollView>
 
-      {/* Replace AwesomeAlert with CustomModal */}
       <CustomModal
         show={showAlert}
         title={alertTitle}
@@ -419,9 +417,9 @@ export default function EmployeeDetails() {
         showCancelButton={false}
         onConfirmPressed={() => setShowAlert(false)}
         onCancelPressed={() => setShowAlert(false)}
-        confirmButtonColor={alertType === 'success' ? '#10b981' : 
-                           alertType === 'error' ? '#ef4444' : 
-                           alertType === 'warning' ? '#f59e0b' : '#3b82f6'}
+        confirmButtonColor={alertType === 'success' ? '#10b981' :
+          alertType === 'error' ? '#ef4444' :
+            alertType === 'warning' ? '#f59e0b' : '#3b82f6'}
       />
 
       <CustomModal
@@ -436,9 +434,9 @@ export default function EmployeeDetails() {
           setModalVisible(false);
         }}
         onCancelPressed={() => setModalVisible(false)}
-        confirmButtonColor={modalConfig.type === 'success' ? '#10b981' : 
-                           modalConfig.type === 'error' ? '#ef4444' : 
-                           modalConfig.type === 'warning' ? '#f59e0b' : '#3b82f6'}
+        confirmButtonColor={modalConfig.type === 'success' ? '#10b981' :
+          modalConfig.type === 'error' ? '#ef4444' :
+            modalConfig.type === 'warning' ? '#f59e0b' : '#3b82f6'}
       />
 
       <Modal

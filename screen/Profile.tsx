@@ -122,7 +122,6 @@ export default function Profile() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#3b82f6" />
 
-      {/* Professional Header */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <View style={styles.headerLeft}>
@@ -134,7 +133,6 @@ export default function Profile() {
         </View>
       </View>
 
-      {/* Profile Card */}
       <View style={styles.profileCard}>
         <View style={styles.avatarContainer}>
           <Image
@@ -175,7 +173,7 @@ export default function Profile() {
             </View>
             <View style={styles.infoContent}>
               <Text style={styles.infoLabel}>Email Address</Text>
-              <Text style={styles.infoValue}>{email}</Text>
+              <Text style={styles.infoValue} numberOfLines={1}>{email}</Text>
             </View>
           </View>
 

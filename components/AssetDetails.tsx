@@ -10,12 +10,12 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { Picker } from '@react-native-picker/picker';
 import { styles } from '../styles/assetDetailsStyles';
 import { account, databases } from '../server/appwrite';
 import { ID, Query } from 'appwrite';
 import CustomModal from './CustomModal';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import CustomDropdown from './CustomDropdown';
 
 export default function AssetDetails() {
     const route = useRoute();
@@ -120,12 +120,12 @@ export default function AssetDetails() {
     } = useQuery({
         queryKey: ['employees', asset?.assignedTo],
         queryFn: fetchEmployees,
-        enabled: !!asset, 
+        enabled: !!asset,
     });
 
     const assignmentHistory = React.useMemo(() => {
         if (!asset?.historyQueue) return [];
-        
+
         return asset.historyQueue.map(historyString => {
             try {
                 return JSON.parse(historyString);
@@ -198,8 +198,8 @@ export default function AssetDetails() {
             }
 
             const newStatus = asset.status === 'Maintainance' ? 'Available' : 'Maintainance';
-            const successMessage = asset.status === 'Maintainance' 
-                ? 'Asset removed from Maintenance' 
+            const successMessage = asset.status === 'Maintainance'
+                ? 'Asset removed from Maintenance'
                 : 'Asset marked for maintenance';
 
             await databases.updateDocument(
@@ -246,7 +246,7 @@ export default function AssetDetails() {
 
                         queryClient.invalidateQueries({ queryKey: ['assets'] });
                         queryClient.invalidateQueries({ queryKey: ['available-assets'] });
-                        
+
                         navigation.goBack();
                     } catch (error) {
                         console.error('Error removing asset:', error);
@@ -307,7 +307,7 @@ export default function AssetDetails() {
             <View style={styles.errorContainer}>
                 <Icon name="alert-circle" size={48} color="#ef4444" />
                 <Text style={styles.errorText}>Asset not found</Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                     style={styles.retryButton}
                     onPress={() => refetchAsset()}
                 >
@@ -356,9 +356,7 @@ export default function AssetDetails() {
                 </View>
             </View>
 
-            {/* Card Body */}
             <View style={styles.cardBody}>
-                {/* First Row */}
                 <View style={styles.detailRow}>
                     <View style={styles.detailColumn}>
                         <View style={styles.detailItem}>
@@ -385,7 +383,6 @@ export default function AssetDetails() {
                     </View>
                 </View>
 
-                {/* Second Row */}
                 <View style={styles.detailRow}>
                     <View style={styles.detailColumn}>
                         <View style={styles.detailItem}>
@@ -395,7 +392,7 @@ export default function AssetDetails() {
                                 <Text style={[
                                     styles.detailValue,
                                     asset.assignedTo === "unassigned" && styles.unassignedText
-                                ]}>
+                                ]} numberOfLines={1}>
                                     {asset.assignedTo === "unassigned" ? "Not Assigned" : asset.assignedTo}
                                 </Text>
                             </View>
@@ -422,7 +419,6 @@ export default function AssetDetails() {
     return (
         <SafeAreaView style={styles.container}>
             <ScrollView showsVerticalScrollIndicator={false}>
-                {/* Header Section */}
                 <View style={styles.header}>
                     <View style={styles.headerContent}>
                         <View style={styles.titleContainer}>
@@ -435,33 +431,26 @@ export default function AssetDetails() {
                     </View>
                 </View>
 
-                {/* Asset Details Card */}
                 <AssetDetailsCard />
-
-                {/* Assign Employee Section */}
                 <View style={styles.formCard}>
                     <Text style={styles.sectionTitle}>Assign to Employee</Text>
 
                     <View style={styles.assignSection}>
                         <View style={styles.pickerContainer}>
                             <Icon name="account" size={20} color="#3b82f6" style={styles.icon} />
-                            <Picker
+                            <CustomDropdown
+                                data={employees.map(employee => ({
+                                    label: `${employee.name} (${employee.employeeId})`,
+                                    value: employee.employeeId,
+                                    ...employee
+                                }))}
                                 selectedValue={assignedEmployee}
                                 onValueChange={(value) => setAssignedEmployee(value)}
-                                style={styles.picker}
-                                dropdownIconColor="#3b82f6"
-                            >
-                                <Picker.Item label="Select Employee" value="" color="#9ca3af" style={{ fontSize: 14 }} />
-                                {employees.map((employee) => (
-                                    <Picker.Item
-                                        key={employee.employeeId}
-                                        label={`${employee.name} (${employee.employeeId})`}
-                                        value={employee.employeeId}
-                                        style={{ fontSize: 14 }}
-                                        color="#1f2937"
-                                    />
-                                ))}
-                            </Picker>
+                                placeholder="Select Employee"
+                                searchable={true}
+                                disabled={employees.length === 0}
+                                onRefresh={() => queryClient.invalidateQueries({ queryKey: ['employees'] })}
+                            />
                         </View>
 
                         <TouchableOpacity
@@ -495,7 +484,6 @@ export default function AssetDetails() {
                                 <Text style={[styles.tableHeaderText, styles.columnDate]}>Assignment Date</Text>
                             </View>
 
-                            {/* Scrollable Table Body */}
                             <ScrollView
                                 style={styles.tableBody}
                                 showsVerticalScrollIndicator={true}
@@ -518,7 +506,6 @@ export default function AssetDetails() {
                     )}
                 </View>
 
-                {/* Action Buttons */}
                 <View style={styles.actionButtons}>
                     <TouchableOpacity
                         style={[styles.actionButton, styles.maintenanceButton]}
@@ -544,7 +531,6 @@ export default function AssetDetails() {
                 </View>
             </ScrollView>
 
-            {/* Replace AwesomeAlert with CustomModal */}
             <CustomModal
                 show={showAlert}
                 title={alertTitle}
@@ -554,9 +540,9 @@ export default function AssetDetails() {
                 showCancelButton={false}
                 onConfirmPressed={() => setShowAlert(false)}
                 onCancelPressed={() => setShowAlert(false)}
-                confirmButtonColor={alertType === 'success' ? '#10b981' : 
-                                   alertType === 'error' ? '#ef4444' : 
-                                   alertType === 'warning' ? '#f59e0b' : '#3b82f6'}
+                confirmButtonColor={alertType === 'success' ? '#10b981' :
+                    alertType === 'error' ? '#ef4444' :
+                        alertType === 'warning' ? '#f59e0b' : '#3b82f6'}
             />
 
             <CustomModal
@@ -571,9 +557,9 @@ export default function AssetDetails() {
                     setModalVisible(false);
                 }}
                 onCancelPressed={() => setModalVisible(false)}
-                confirmButtonColor={modalConfig.type === 'success' ? '#10b981' : 
-                                   modalConfig.type === 'error' ? '#ef4444' : 
-                                   modalConfig.type === 'warning' ? '#f59e0b' : '#3b82f6'}
+                confirmButtonColor={modalConfig.type === 'success' ? '#10b981' :
+                    modalConfig.type === 'error' ? '#ef4444' :
+                        modalConfig.type === 'warning' ? '#f59e0b' : '#3b82f6'}
             />
         </SafeAreaView>
     );

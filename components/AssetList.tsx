@@ -313,14 +313,14 @@ export default function AssetList() {
                                                         />
                                                     </View>
                                                     <View style={styles.assetDetails}>
-                                                        <Text style={styles.assetName}>{item.assetName}</Text>
-                                                        <Text style={styles.assetId}>#{item.assetId}</Text>
+                                                        <Text style={styles.assetName} numberOfLines={2}>{item.assetName}</Text>
+                                                        <Text style={styles.assetId} numberOfLines={1}>#{item.assetId}</Text>
                                                     </View>
                                                 </View>
                                             </View>
 
                                             <View style={[styles.cell, styles.typeCell]}>
-                                                <Text style={styles.typeText}>{item.assetType}</Text>
+                                                <Text style={styles.typeText} numberOfLines={2}>{item.assetType}</Text>
                                             </View>
 
                                             <View style={[styles.cell, styles.notesCell]}>
@@ -348,7 +348,7 @@ export default function AssetList() {
                                             </View>
 
                                             <View style={[styles.cell, styles.assignedCell]}>
-                                                <Text style={styles.assignedText}>
+                                                <Text style={styles.assignedText} numberOfLines={1}>
                                                     {item.assignedTo === "unassigned" ? "-" : item.assignedTo}
                                                 </Text>
                                             </View>
