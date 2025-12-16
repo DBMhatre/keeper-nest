@@ -161,4 +161,7 @@ export const styles = StyleSheet.create({
     color: '#94a3b8',
     textAlign: 'center',
   },
+  eyeButton: {
+    paddingVertical: 12,
+  },
 });

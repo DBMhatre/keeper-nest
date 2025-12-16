@@ -37,6 +37,7 @@ export default function AssetDetails() {
         confirmText: 'OK',
         showCancel: false,
     });
+    const [removeLoading, setRemoveLoading] = useState(false);
 
     // Show modal function
     const showModal = (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info', onConfirm: (() => void) | null = null, confirmText: string = 'OK', showCancel: boolean = false) => {
@@ -221,7 +222,7 @@ export default function AssetDetails() {
 
     const handleRemoveAsset = async () => {
         if (!asset) return;
-
+        setRemoveLoading(true);
         try {
             if (asset.status === 'Assigned') {
                 showAlertBox(
@@ -251,6 +252,8 @@ export default function AssetDetails() {
                     } catch (error) {
                         console.error('Error removing asset:', error);
                         showModal('Error', 'Failed to remove asset', 'error');
+                    } finally {
+                        setRemoveLoading(false);
                     }
                 },
                 'Remove',
@@ -525,8 +528,18 @@ export default function AssetDetails() {
                         style={[styles.actionButton, styles.removeButton]}
                         onPress={handleRemoveAsset}
                     >
-                        <Icon name="trash-can-outline" size={16} color="#ef4444" />
-                        <Text style={[styles.actionButtonText, { color: '#ef4444' }]}>Remove</Text>
+                        {!removeLoading ? (
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                <Icon name="trash-can-outline" size={16} color="#ef4444" />
+                                <Text style={[styles.actionButtonText, { color: '#ef4444' }]}>
+                                    Remove
+                                </Text>
+                            </View>
+                        ) : (
+                            <ActivityIndicator size="small" color="#ef4444" />
+                        )
+
+                        }
                     </TouchableOpacity>
                 </View>
             </ScrollView>

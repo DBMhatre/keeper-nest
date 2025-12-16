@@ -11,14 +11,13 @@ import {
   KeyboardAvoidingView,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { Picker } from '@react-native-picker/picker';
-import { ID } from 'appwrite';
+import { ID, Query } from 'appwrite';
 import { account, databases } from '../server/appwrite';
 import { styles } from '../styles/assetFormStyles';
 import { Asset } from './asset';
 import { useNavigation } from '@react-navigation/native';
 import DatePicker from 'react-native-neat-date-picker';
-import CustomModal from './CustomModal'; // Import CustomModal
+import CustomModal from './CustomModal'; 
 import CustomDropdown from './CustomDropdown';
 
 const DATABASE_ID = 'assetManagement';
@@ -37,6 +36,7 @@ const AssetForm = () => {
   const [alertTitle, setAlertTitle] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
   const [alertType, setAlertType] = useState<'success' | 'error' | 'warning' | 'info'>('success');
+  const [success, setSuccess] = useState(false); // Added success state
   const [focusedInput, setFocusedInput] = useState('');
   const navigation = useNavigation();
 
@@ -72,6 +72,25 @@ const AssetForm = () => {
 
     setLoading(true);
 
+    const existingAssets = await databases.listDocuments(
+      DATABASE_ID,
+      COLLECTION_ID,
+      [
+        Query.equal('assetId', assetId) 
+      ]
+    );
+
+    if (existingAssets.total > 0) {
+      setSuccess(false);
+      showAlertBox(
+        'Duplicate Asset ID',
+        `Asset ID "${assetId}" already exists. Please use a different ID.`,
+        'error'
+      );
+      setLoading(false);
+      return; // Stop here, don't create the asset
+    }
+
     const currentYear = new Date().getFullYear();
     const expiredAt = new Date(currentYear, 11, 31);
 
@@ -94,8 +113,12 @@ const AssetForm = () => {
       );
 
       console.log('Asset created:', response);
+      
+      // Set success before showing alert
+      setSuccess(true);
       showAlertBox('Success', 'Asset added successfully!', 'success');
 
+      // Reset form AFTER success
       setAssetName('');
       setAssetType('');
       setAssetId('');
@@ -103,11 +126,19 @@ const AssetForm = () => {
       setPurchaseDate('');
     } catch (error: any) {
       console.error('Create Asset Error:', error);
+      // Reset success on error
+      setSuccess(false);
       showAlertBox('Error', error?.message || 'Failed to add asset.', 'error');
       navigation.navigate('Login' as any);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Handle modal close
+  const handleModalClose = () => {
+    setShowAlert(false);
+    setSuccess(false);
   };
 
   const getInputStyle = (fieldName: string) => {
@@ -282,7 +313,7 @@ const AssetForm = () => {
         }}
       />
 
-      {/* Replace AwesomeAlert with CustomModal */}
+      {/* CustomModal with success tick */}
       <CustomModal
         show={showAlert}
         title={alertTitle}
@@ -290,11 +321,12 @@ const AssetForm = () => {
         alertType={alertType}
         confirmText="Got It"
         showCancelButton={false}
-        onConfirmPressed={() => setShowAlert(false)}
-        onCancelPressed={() => setShowAlert(false)}
+        onConfirmPressed={handleModalClose}
+        onCancelPressed={handleModalClose}
         confirmButtonColor={alertType === 'success' ? '#10b981' :
           alertType === 'error' ? '#ef4444' :
             alertType === 'warning' ? '#f59e0b' : '#3b82f6'}
+        showSuccessTick={success && alertType === 'success'}
       />
     </SafeAreaView>
   );

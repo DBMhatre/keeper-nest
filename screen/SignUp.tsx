@@ -32,6 +32,7 @@ const SignUp = () => {
   const [alertTitle, setAlertTitle] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
   const [alertType, setAlertType] = useState<'success' | 'warning' | 'error' | 'info'>('info');
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // EXACT SAME FUNCTIONALITY - NO CHANGES
   const handleSignUp = async () => {
@@ -191,12 +192,22 @@ const SignUp = () => {
                 placeholder="Password"
                 placeholderTextColor="#999"
                 style={styles.input}
-                secureTextEntry
+                secureTextEntry={!showConfirmPassword}
                 value={password}
                 onChangeText={setPassword}
                 selectionColor="#3b82f6"
                 cursorColor="#3b82f6"
               />
+              <TouchableOpacity
+                style={styles.eyeButton}
+                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+              >
+                <Icon
+                  name={showConfirmPassword ? "eye-off" : "eye"}
+                  size={22}
+                  color="#666"
+                />
+              </TouchableOpacity>
             </View>
             <Text style={styles.passwordHint}>Must be at least 8 characters</Text>
           </View>
@@ -214,7 +225,7 @@ const SignUp = () => {
                 selectedValue={gender}
                 onValueChange={(value) => setGender(value)}
                 placeholder="Select Gender"
-                searchable={false} 
+                searchable={false}
               />
             </View>
           </View>
@@ -231,7 +242,7 @@ const SignUp = () => {
                 selectedValue={role}
                 onValueChange={(value) => setRole(value)}
                 placeholder="Select Role"
-                searchable={false} 
+                searchable={false}
               />
             </View>
           </View>

@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ScrollView,
   StatusBar,
+  ActivityIndicator,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { styles } from '../styles/profileStyles';
@@ -17,7 +18,7 @@ import { useNavigation } from '@react-navigation/native';
 import EditModal from '../components/EditModal';
 import EditPasswordModal from '../components/EditPasswordModal';
 import * as Keychain from 'react-native-keychain';
-import CustomModal from '../components/CustomModal'; // Import CustomModal
+import CustomModal from '../components/CustomModal';
 
 export default function Profile() {
   const [email, setEmail] = useState('');
@@ -28,6 +29,8 @@ export default function Profile() {
   const navigation = useNavigation();
   const [editVisible, setEditVisible] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const [signOutLoading, setSignOutLoading] = useState(false);
+  const [alert, setAlert] = useState('success');
 
   const [showAlert, setShowAlert] = useState(false);
   const [alertTitle, setAlertTitle] = useState('');
@@ -38,7 +41,7 @@ export default function Profile() {
     const fetchData = async () => {
       try {
         const user = await account.get();
-        
+
         const dbId = "user_info";
         const collectionId = "user_info";
         const response = await databases.listDocuments(
@@ -61,6 +64,7 @@ export default function Profile() {
   }, []);
 
   const handleLogout = async () => {
+    setSignOutLoading(true);
     try {
       const user = await account.get();
       await account.deleteSession('current');
@@ -72,6 +76,8 @@ export default function Profile() {
       navigation.navigate('Login' as any);
     } catch (err) {
       console.log("Logout error occurred:", err);
+    } finally {
+      setSignOutLoading(false);
     }
   };
 
@@ -214,13 +220,13 @@ export default function Profile() {
           </View>
         </View>
 
-        {/* Logout Button */}
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Icon name="logout" size={20} color="#fff" />
-          <Text style={styles.logoutText}>Sign Out</Text>
+        <TouchableOpacity style={[styles.logoutButton, signOutLoading && { opacity: 0.6 }]} onPress={handleLogout} disabled={signOutLoading}>
+          {
+            signOutLoading ? <ActivityIndicator size={20} color="#fff" /> : <Icon name="logout" size={20} color="#fff" />
+          }
+          <Text style={styles.logoutText}>{signOutLoading ? "Signing Out..." : "Sign Out"}</Text>
         </TouchableOpacity>
       </View>
-
       <EditModal
         visible={editVisible}
         onClose={() => setEditVisible(false)}
@@ -234,7 +240,12 @@ export default function Profile() {
         onAlert={(title, message) => {
           setAlertTitle(title);
           setAlertMessage(message);
-          setAlertType('success');
+
+          const type = title === 'Success' ? 'success' :
+            title === 'Error' ? 'error' :
+              'info';
+          setAlertType(type);
+
           setShowAlert(true);
         }}
       />
@@ -251,9 +262,9 @@ export default function Profile() {
           setEditVisible(false);
         }}
         onCancelPressed={() => setShowAlert(false)}
-        confirmButtonColor={alertType === 'success' ? '#10b981' : 
-                           alertType === 'error' ? '#ef4444' : 
-                           alertType === 'warning' ? '#f59e0b' : '#3b82f6'}
+        confirmButtonColor={alertType === 'success' ? '#10b981' :
+          alertType === 'error' ? '#ef4444' :
+            alertType === 'warning' ? '#f59e0b' : '#3b82f6'}
       />
     </View>
   );

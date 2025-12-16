@@ -21,6 +21,7 @@
     "appwrite": "^21.4.0",
     "events": "^3.3.0",
     "git-filter-repo": "^0.0.30",
+    "lottie-react-native": "^7.3.4",
     "react": "19.1.1",
     "react-native": "0.82.1",
     "react-native-awesome-alerts": "^2.0.0",

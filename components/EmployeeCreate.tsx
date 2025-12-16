@@ -15,7 +15,7 @@ import { Picker } from '@react-native-picker/picker';
 import { useNavigation } from '@react-navigation/native';
 import { account, databases } from '../server/appwrite';
 import { styles } from '../styles/employeeFormStyles';
-import { ID } from 'appwrite';
+import { ID, Query } from 'appwrite';
 import { sendMail } from '../server/emailSender';
 import CustomModal from './CustomModal'; // Import CustomModal
 import CustomDropdown from './CustomDropdown';
@@ -30,7 +30,7 @@ const EmployeeCreate = () => {
   const [alertTitle, setAlertTitle] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
   const [alertType, setAlertType] = useState<'success' | 'error' | 'warning' | 'info'>('success');
-
+  const [success, setSuccess] = useState(false);
   const navigation = useNavigation();
 
   const showAlertBox = (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info') => {
@@ -47,6 +47,28 @@ const EmployeeCreate = () => {
 
     if (gender === 'No') {
       return showAlertBox('Invalid Gender', 'Please select a valid gender.', 'error');
+    }
+
+    const dbId = "user_info";
+    const collectionId = "user_info";
+
+    const existingEmp = await databases.listDocuments(
+      dbId,
+      collectionId,
+      [
+        Query.equal('employeeId', employeeId)
+      ]
+    );
+
+    if (existingEmp.total > 0) {
+      setSuccess(false);
+      showAlertBox(
+        'Duplicate Employee ID',
+        `Employee ID "${employeeId}" already exists. Please use a different ID.`,
+        'error'
+      );
+      setLoading(false);
+      return; 
     }
 
     setLoading(true);
@@ -79,6 +101,9 @@ const EmployeeCreate = () => {
           creatorMail: adminId
         }
       );
+
+      // Set success BEFORE showing alert
+      setSuccess(true);
 
       await sendMail({
         to: email,
@@ -140,13 +165,13 @@ const EmployeeCreate = () => {
       });
 
       console.log("Employee details stored in DB:", employeeDoc);
-
       showAlertBox(
         'Success',
         `Employee ${name} created successfully!`,
         'success'
       );
 
+      // Reset form AFTER success
       setName('');
       setEmail('');
       setEmployeeId('');
@@ -159,9 +184,17 @@ const EmployeeCreate = () => {
         error?.message || 'Failed to create employee. Please try again.',
         'error'
       );
+      // Reset success state on error
+      setSuccess(false);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Reset success when modal closes
+  const handleModalClose = () => {
+    setShowAlert(false);
+    setSuccess(false);
   };
 
   return (
@@ -258,7 +291,7 @@ const EmployeeCreate = () => {
                   selectedValue={gender}
                   onValueChange={(value) => setGender(value)}
                   placeholder="Select Gender"
-                  searchable={false} 
+                  searchable={false}
                 />
               </View>
             </View>
@@ -291,11 +324,12 @@ const EmployeeCreate = () => {
         alertType={alertType}
         confirmText="Got It"
         showCancelButton={false}
-        onConfirmPressed={() => setShowAlert(false)}
-        onCancelPressed={() => setShowAlert(false)}
+        onConfirmPressed={handleModalClose}
+        onCancelPressed={handleModalClose}
         confirmButtonColor={alertType === 'success' ? '#10b981' :
           alertType === 'error' ? '#ef4444' :
             alertType === 'warning' ? '#f59e0b' : '#3b82f6'}
+        showSuccessTick={success && alertType === 'success'}
       />
     </SafeAreaView>
   );

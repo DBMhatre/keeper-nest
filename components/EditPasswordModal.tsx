@@ -6,7 +6,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { account } from '../server/appwrite';
@@ -15,20 +14,27 @@ interface ChangePasswordModalProps {
   visible: boolean;
   onClose: () => void;
   onAlert?: (title: string, message: string) => void;
+  // Remove setAlert from props
 }
 
 export default function EditPasswordModal({
   visible,
   onClose,
-  onAlert
+  onAlert, // Only keep onAlert
 }: ChangePasswordModalProps) {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  // Password visibility states
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleChangePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
+      // Remove setAlert calls
       onAlert && onAlert('Error', 'Please fill in all fields');
       return;
     }
@@ -53,6 +59,7 @@ export default function EditPasswordModal({
     } catch (error: any) {
       console.log('Password change error:', error);
       onAlert && onAlert('Error', error.message || 'Failed to change password. Please check your current password.');
+      
     } finally {
       setLoading(false);
     }
@@ -62,6 +69,9 @@ export default function EditPasswordModal({
     setCurrentPassword('');
     setNewPassword('');
     setConfirmPassword('');
+    setShowCurrentPassword(false);
+    setShowNewPassword(false);
+    setShowConfirmPassword(false);
   };
 
   const handleClose = () => {
@@ -70,45 +80,94 @@ export default function EditPasswordModal({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="none">
+    <Modal visible={visible} transparent animationType="fade">
       <View style={styles.overlay}>
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Change Password</Text>
             <TouchableOpacity onPress={handleClose}>
-              <Icon name="close" size={22} color="#333" />
+              <Icon name="close" size={24} color="#333" />
             </TouchableOpacity>
           </View>
 
-          <TextInput
-            style={styles.input}
-            placeholder="Current Password"
-            secureTextEntry
-            value={currentPassword}
-            onChangeText={setCurrentPassword}
-            cursorColor="#007bff"
-            placeholderTextColor="#999"
-          />
+          <View style={styles.inputContainer}>
+            <View style={styles.passwordInputWrapper}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="Enter current password"
+                secureTextEntry={!showCurrentPassword}
+                value={currentPassword}
+                onChangeText={setCurrentPassword}
+                cursorColor="#007bff"
+                placeholderTextColor="#999"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <TouchableOpacity 
+                style={styles.eyeButton}
+                onPress={() => setShowCurrentPassword(!showCurrentPassword)}
+              >
+                <Icon 
+                  name={showCurrentPassword ? "eye-off" : "eye"} 
+                  size={22} 
+                  color="#666" 
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+          
+          <View style={styles.inputContainer}>
+            <View style={styles.passwordInputWrapper}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="Enter new password"
+                secureTextEntry={!showNewPassword}
+                value={newPassword}
+                onChangeText={setNewPassword}
+                cursorColor="#007bff"
+                placeholderTextColor="#999"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <TouchableOpacity 
+                style={styles.eyeButton}
+                onPress={() => setShowNewPassword(!showNewPassword)}
+              >
+                <Icon 
+                  name={showNewPassword ? "eye-off" : "eye"} 
+                  size={22} 
+                  color="#666" 
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
 
-          <TextInput
-            style={styles.input}
-            placeholder="New Password"
-            secureTextEntry
-            value={newPassword}
-            onChangeText={setNewPassword}
-            cursorColor="#007bff"
-            placeholderTextColor="#999"
-          />
-
-          <TextInput
-            style={styles.input}
-            placeholder="Confirm New Password"
-            secureTextEntry
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            cursorColor="#007bff"
-            placeholderTextColor="#999"
-          />
+          {/* Confirm Password Input */}
+          <View style={styles.inputContainer}>
+            <View style={styles.passwordInputWrapper}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="Confirm new password"
+                secureTextEntry={!showConfirmPassword}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                cursorColor="#007bff"
+                placeholderTextColor="#999"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <TouchableOpacity 
+                style={styles.eyeButton}
+                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+              >
+                <Icon 
+                  name={showConfirmPassword ? "eye-off" : "eye"} 
+                  size={22} 
+                  color="#666" 
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
 
           <Text style={styles.passwordHint}>
             Password must be at least 8 characters long
@@ -133,43 +192,63 @@ export default function EditPasswordModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 20,
   },
   modalContainer: {
     backgroundColor: '#fff',
-    width: '85%',
-    borderRadius: 15,
-    padding: 20,
-    elevation: 6,
+    width: '100%',
+    maxWidth: 400,
+    borderRadius: 16,
+    padding: 24,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 20,
   },
   modalTitle: { 
-    fontSize: 18, 
+    fontSize: 20, 
     fontWeight: '700', 
     color: '#007bff' 
   },
-  input: {
+  inputContainer: {
+    marginBottom: 16,
+  },
+  passwordInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: '#ddd',
     borderRadius: 10,
-    padding: 10,
-    marginVertical: 8,
+    backgroundColor: '#f9f9f9',
+    overflow: 'hidden',
+  },
+  passwordInput: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     fontSize: 16,
     color: '#333',
   },
+  eyeButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
   passwordHint: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#666',
     textAlign: 'center',
-    marginTop: 5,
-    marginBottom: 10,
+    marginTop: 4,
+    marginBottom: 16,
     fontStyle: 'italic',
   },
   saveButton: {
@@ -177,17 +256,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#007bff',
-    paddingVertical: 12,
-    borderRadius: 25,
-    marginTop: 10,
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginTop: 8,
+    shadowColor: '#007bff',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
   },
   disabledButton: {
     opacity: 0.6,
   },
   saveText: {
     color: '#fff',
-    fontWeight: '700',
+    fontWeight: '600',
     fontSize: 16,
-    marginLeft: 6,
+    marginLeft: 8,
   },
 });

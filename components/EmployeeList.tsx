@@ -108,7 +108,7 @@ export default function EmployeeList() {
           
           <View style={styles.idBadge}>
             <Text style={styles.idText}>
-              BBL-123456
+              {item.employeeId}
             </Text>
           </View>
         </View>

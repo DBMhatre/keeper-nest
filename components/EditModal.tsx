@@ -26,14 +26,21 @@ export default function EditModal({
   
   const [name, setName] = useState(currentData.name);
   const [gender, setGender] = useState(currentData.gender);
-
+  const [loading, setLoading] = useState(false);
   useEffect(() => {
     setName(currentData.name);
     setGender(currentData.gender);
   }, [currentData]);
 
-  const handleSave = () => {
-    onSave({ name, gender });
+  const handleSave = async () => {
+    try{
+       setLoading(true);
+       await onSave({ name, gender });
+    }catch(err){
+      console.log(err);
+    }finally{
+      setLoading(false);
+    }
   };
 
   return (
@@ -69,9 +76,9 @@ export default function EditModal({
             </View>
           </View>
 
-          <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+          <TouchableOpacity style={[styles.saveButton, loading && styles.disabledButton]} onPress={handleSave} disabled={loading}>
             <Icon name="content-save" size={20} color="#fff" />
-            <Text style={styles.saveText}>Save Changes</Text>
+            <Text style={styles.saveText}>{loading ? 'Updating Changes...' : 'Save Changes'}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -139,5 +146,8 @@ const styles = StyleSheet.create({
   },
   picker: {
     color: '#333',
+  },
+  disabledButton: {
+    opacity: 0.6,
   },
 });

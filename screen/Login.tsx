@@ -34,6 +34,7 @@ export default function Login() {
   const [alertTitle, setAlertTitle] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
   const [alertType, setAlertType] = useState<'success' | 'warning' | 'error' | 'info'>('info');
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
     checkStoredCredentials();
@@ -244,12 +245,22 @@ export default function Login() {
                   placeholder="Enter your password"
                   placeholderTextColor="#999"
                   style={styles.input}
-                  secureTextEntry
+                  secureTextEntry={!showConfirmPassword}
                   value={password}
                   onChangeText={setPassword}
                   selectionColor="#3b82f6"
                   cursorColor="#3b82f6"
                 />
+                <TouchableOpacity
+                  style={styles.eyeButton}
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  <Icon
+                    name={showConfirmPassword ? "eye-off" : "eye"}
+                    size={22}
+                    color="#666"
+                  />
+                </TouchableOpacity>
               </View>
             </View>
 
