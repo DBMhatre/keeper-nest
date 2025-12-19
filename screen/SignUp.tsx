@@ -92,7 +92,7 @@ const SignUp = () => {
           email,
           gender,
           role,
-          creatorMail: employeeId
+          creatorMail: `${name} (${employeeId})`
         }
       );
 

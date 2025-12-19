@@ -262,6 +262,8 @@ export default function AssetDetails() {
         } catch (error) {
             console.error('Error in remove process:', error);
             showAlertBox('Error', 'Failed to remove asset', 'error');
+        } finally {
+            setRemoveLoading(false);
         }
     };
 
@@ -403,7 +405,6 @@ export default function AssetDetails() {
                     </View>
                 </View>
 
-                {/* Description - Full Width */}
                 <View style={styles.descriptionSection}>
                     <View style={styles.detailItem}>
                         <Icon name="text-box-outline" size={16} color="#6b7280" />
@@ -444,14 +445,13 @@ export default function AssetDetails() {
                             <CustomDropdown
                                 data={employees.map(employee => ({
                                     label: `${employee.name} (${employee.employeeId})`,
-                                    value: employee.employeeId,
+                                    value: `${employee.name} (${employee.employeeId})`,
                                     ...employee
                                 }))}
                                 selectedValue={assignedEmployee}
                                 onValueChange={(value) => setAssignedEmployee(value)}
                                 placeholder="Select Employee"
                                 searchable={true}
-                                disabled={employees.length === 0}
                                 onRefresh={() => queryClient.invalidateQueries({ queryKey: ['employees'] })}
                             />
                         </View>

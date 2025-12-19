@@ -26,15 +26,10 @@ const Dropdown = ({
               style={styles.valueIcon}
             />
           )}
-          <Text style={styles.dropdownButtonText}>
+          <Text style={styles.dropdownButtonText} numberOfLines={1}>
             {value?.label || `Select ${label}`}
           </Text>
         </View>
-        <Icon 
-          name={visible ? "chevron-up" : "chevron-down"} 
-          size={20} 
-          color="#6b7280" 
-        />
       </TouchableOpacity>
 
       <Modal
@@ -182,7 +177,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: '#e5e7eb',
     borderRadius: 12,
-    paddingHorizontal: 16,
+    paddingHorizontal: 8,
     paddingVertical: 14,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -199,7 +194,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   dropdownButtonText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '500',
     color: '#1f2937',
   },
@@ -242,7 +237,7 @@ const styles = StyleSheet.create({
     width: 20,
   },
   dropdownItemText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '500',
     color: '#374151',
     flex: 1,

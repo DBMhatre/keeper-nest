@@ -9,23 +9,24 @@ import {
   Alert,
   Modal,
   RefreshControl,
+  Image,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { Picker } from '@react-native-picker/picker';
 import { styles } from '../styles/employeeDetailsStyles';
 import { account, databases, functions } from '../server/appwrite';
 import { ID, Query } from 'appwrite';
 import CustomModal from './CustomModal';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import CustomDropdown from './CustomDropdown';
+import MaleImage from '../assets/images/man.png';
+import FemaleImage from '../assets/images/woman.png';
 
 export default function EmployeeDetails() {
   const route = useRoute();
-  const { employeeId } = route.params;
+  const { employeeId, name } = route.params;
   const navigation = useNavigation();
   const queryClient = useQueryClient();
-
   const [selectedAsset, setSelectedAsset] = useState('');
   const [assigning, setAssigning] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
@@ -123,12 +124,12 @@ export default function EmployeeDetails() {
       const response = await databases.listDocuments(
         'assetManagement',
         'assets',
-        [Query.equal('assignedTo', employeeId)]
+        [Query.equal('assignedTo', `${name} (${employeeId})`)]
       );
+
       return response.documents;
     },
   });
-
   const isLoading = isLoadingEmployee || isLoadingAssets || isLoadingAssignedAssets;
 
   const handleAssignAsset = async () => {
@@ -159,7 +160,7 @@ export default function EmployeeDetails() {
         assetDoc.$id,
         {
           status: 'Assigned',
-          assignedTo: employeeId,
+          assignedTo: `${name} (${employeeId})`,
           historyQueue: updatedHistory
         }
       );
@@ -293,13 +294,84 @@ export default function EmployeeDetails() {
             </Text>
           </View>
         </View>
-        <View style={styles.formCard}>
-          <Text style={styles.sectionTitle}>Assign New Asset</Text>
 
-          <View style={styles.assignSection}>
-            <View style={styles.pickerContainer}>
+        <View style={styles.formCard}>
+          <View style={styles.employeeProfileContainer}>
+            <View style={styles.centeredImageContainer}>
+              <View style={styles.bigIconContainer}>
+                <Image
+                  source={employee.gender === 'Female' ? FemaleImage : MaleImage}
+                  style={styles.faceImage}
+                  resizeMode="cover"
+                />
+              </View>
+              <View style={styles.idBadge}>
+                <Text style={styles.idText}>
+                  {employee.employeeId}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.employeeInfoBottom}>
+              <Text style={styles.employeeName} numberOfLines={2}>
+                {employee.name}
+              </Text>
+              <Text style={styles.employeeEmail} numberOfLines={1}>
+                {employee.email}
+              </Text>
+            </View>
+
+            <View style={styles.employeeDetailsGrid}>
+              <View style={styles.detailRow}>
+                <View style={styles.detailLabelContainer}>
+                  <Icon name="calendar-month-outline" size={16} color="#6b7280" />
+                  <Text style={styles.detailLabel}>Joined</Text>
+                </View>
+                <View style={styles.detailValueContainer}>
+                  <Text style={styles.detailValue}>
+                    {new Date(employee.$createdAt).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric'
+                    })}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.detailRow}>
+                <View style={styles.detailLabelContainer}>
+                  <Icon name="gender-male" size={16} color="#6b7280" />
+                  <Text style={styles.detailLabel}>Gender</Text>
+                </View>
+                <View style={styles.detailValueContainer}>
+                  <Text style={styles.detailValue} numberOfLines={1}>
+                    {employee.gender || 'Not specified'}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.detailRow}>
+                <View style={styles.detailLabelContainer}>
+                  <Icon name="account-plus-outline" size={16} color="#6b7280" />
+                  <Text style={styles.detailLabel}>Created By</Text>
+                </View>
+                <View style={styles.detailValueContainer}>
+                  <Text style={styles.detailValue} numberOfLines={1}>
+                    {employee.creatorMail || 'Not specified'}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        </View>
+        <View style={styles.formCard}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Assign New Asset</Text>
+          </View>
+
+          <View style={styles.compactAssignSection}>
+            <View style={styles.compactPickerContainer}>
               <Icon name="package-variant" size={20} color="#3b82f6" style={styles.icon} />
-              
               <CustomDropdown
                 data={assets.map(asset => ({
                   label: `${asset.assetName} (${asset.assetId})`,
@@ -308,31 +380,24 @@ export default function EmployeeDetails() {
                 }))}
                 selectedValue={selectedAsset}
                 onValueChange={(value) => {
-                  console.log('Selected asset:', value);
                   setSelectedAsset(value);
                 }}
-                placeholder="Select Asset to Assign"
+                placeholder="Select Asset"
                 searchable={true}
-                disabled={assets.length === 0 || assigning}
                 onRefresh={() => queryClient.invalidateQueries({ queryKey: ['available-assets'] })}
               />
             </View>
 
             <TouchableOpacity
-              style={[styles.assignButton, (!selectedAsset || assigning) && styles.buttonDisabled]}
-              disabled={!selectedAsset || assigning}
+              style={[styles.compactAssignButton, (!selectedAsset || assigning || assets.length === 0) && styles.buttonDisabled]}
+              disabled={!selectedAsset || assigning || assets.length === 0}
               onPress={handleAssignAsset}
             >
-              <View style={styles.buttonContent}>
-                {assigning ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <>
-                    <Text style={styles.assignButtonText}>Assign Asset</Text>
-                    <Icon name="link" size={20} color="#fff" style={styles.buttonIcon} />
-                  </>
-                )}
-              </View>
+              {assigning ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Icon name="link" size={20} color="#fff" />
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -345,7 +410,6 @@ export default function EmployeeDetails() {
 
           {assignedAssets.length === 0 ? (
             <View style={styles.emptyState}>
-              <Icon name="package-variant" size={48} color="#d1d5db" />
               <Text style={styles.emptyText}>No assets assigned</Text>
               <Text style={styles.emptySubtext}>Assign assets using the section above</Text>
             </View>
@@ -386,9 +450,10 @@ export default function EmployeeDetails() {
           )}
         </View>
 
+        {/* Remove Employee Button */}
         <TouchableOpacity
           style={[
-            styles.logoutButton,
+            styles.removeButton,
             removingEmployee && styles.buttonDisabled
           ]}
           onPress={handleRemoveEmployee}
@@ -397,17 +462,18 @@ export default function EmployeeDetails() {
           {removingEmployee ? (
             <>
               <ActivityIndicator size="small" color="#ffffff" />
-              <Text style={styles.logoutText}>Removing Employee...</Text>
+              <Text style={styles.removeText}>Removing Employee...</Text>
             </>
           ) : (
             <>
               <Icon name="account-remove" size={20} color="#fff" />
-              <Text style={styles.logoutText}>Remove Employee</Text>
+              <Text style={styles.removeText}>Remove Employee</Text>
             </>
           )}
         </TouchableOpacity>
       </ScrollView>
 
+      {/* Modals */}
       <CustomModal
         show={showAlert}
         title={alertTitle}

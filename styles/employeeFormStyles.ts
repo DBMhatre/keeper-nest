@@ -158,4 +158,28 @@ export const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
   },
+
+  inputContainerError: {
+    borderColor: '#ef4444',
+    backgroundColor: '#fef2f2',
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    marginLeft: 4,
+  },
+  errorText: {
+    color: '#ef4444',
+    fontSize: 12,
+    marginLeft: 4,
+    fontWeight: '500',
+  },
+  helperText: {
+    color: '#6b7280',
+    fontSize: 12,
+    marginTop: 4,
+    marginLeft: 4,
+    fontStyle: 'italic',
+  },
 });

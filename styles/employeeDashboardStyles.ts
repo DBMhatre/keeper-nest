@@ -24,7 +24,7 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: height * 0.03,
+    paddingTop: height * 0.025,
     paddingBottom: 15,
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
@@ -34,6 +34,21 @@ export const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
+  imageCircleContainer: {
+    width: 45, 
+    height: 45,
+    borderRadius: 30, 
+    borderWidth: 2,
+    borderColor: '#3b82f6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'white', 
+  },
+  
+  circleImage: {
+    width: 46, 
+    height: 41,
+  },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -42,7 +57,7 @@ export const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '800',
     color: '#3b82f6',
-    marginLeft: 10,
+    marginLeft: 15,
     letterSpacing: 0.5,
   },
   profileButton: {

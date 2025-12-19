@@ -18,6 +18,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { styles } from '../styles/adminDashboardStyles';
 import { Query } from 'appwrite';
+import sticker from '../assets/images/logo_app.png'
+
 
 export default function AdminDashboard() {
   const [email, setEmail] = useState('');
@@ -109,17 +111,7 @@ export default function AdminDashboard() {
 
   return (
     <SafeAreaView style={styles.container}>
-    <StatusBar barStyle="light-content" backgroundColor="#3b82f6" />
-    
-      <View style={styles.topHeader}>
-        <View style={styles.headerLeft}>
-          <Image
-            source={{ uri: "https://drive.google.com/uc?export=view&id=1o1W4NVpNeMEGNnFmxg20799q6e0NI3pG" }}
-            style={{ width: 50, height: 50, borderRadius: 8 }}
-          />
-          <Text style={styles.appTitle}>KeeperNest</Text>
-        </View>
-      </View>
+      <StatusBar barStyle="light-content" backgroundColor="#3b82f6" />
 
       <ScrollView
         refreshControl={
@@ -136,7 +128,21 @@ export default function AdminDashboard() {
         showsVerticalScrollIndicator={false}
         style={styles.scrollView}
       >
-        {/* Welcome Section */}
+
+        <View style={styles.topHeader}>
+          <View style={styles.headerLeft}>
+            <View style={styles.imageCircleContainer}>
+              <Image
+                source={sticker}
+                style={styles.circleImage}
+              />
+            </View>
+            <Text style={styles.appTitle}>KeeperNest</Text>
+          </View>
+        </View>
+
+
+
         <View style={styles.welcomeSection}>
           <View style={styles.welcomeContent}>
             <Text style={styles.welcomeText}>Welcome back,</Text>
@@ -215,7 +221,7 @@ export default function AdminDashboard() {
             </View>
           </View>
         </View>
-        
+
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
           <View style={styles.quickActionsGrid}>

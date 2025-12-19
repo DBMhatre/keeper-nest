@@ -1,8 +1,15 @@
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { 
+  View, 
+  Image, 
+  StyleSheet, 
+  Text, 
+  Animated, 
+  Easing 
+} from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { account, databases } from '../server/appwrite';
+import sticker from '../assets/images/logo_app.png'
 
 import SignUp from '../screen/SignUp';
 import Login from '../screen/Login';
@@ -23,8 +30,20 @@ const Stack = createNativeStackNavigator();
 export default function StackNavigation() {
   const [initialRoute, setInitialRoute] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  const rotateAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    // Start rotating animation
+    Animated.loop(
+      Animated.timing(rotateAnim, {
+        toValue: 1,
+        duration: 1500,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      })
+    ).start();
+    
     const checkSession = async () => {
       try {
         try {
@@ -84,12 +103,31 @@ export default function StackNavigation() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <Image
-          source={{ uri: "https://drive.google.com/uc?export=view&id=1hlW_8inXI5vgSmzF2O7BIUrl1hb1E4Zr" }}
-          style={styles.logo}
-        />
+        <View style={styles.imageContainer}>
+          <Animated.View 
+            style={[
+              styles.continuousLoader,
+              {
+                transform: [
+                  {
+                    rotate: rotateAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ['0deg', '360deg']
+                    })
+                  }
+                ]
+              }
+            ]}
+          >
+            <View style={styles.circularPath} />
+          </Animated.View>
+          
+          <Image
+            source={sticker}
+            style={styles.logo}
+          />
+        </View>
         <Text style={styles.loadingText}>KeeperNest</Text>
-        <ActivityIndicator size="large" color="#007bff" style={styles.spinner} />
       </View>
     );
   }
@@ -121,19 +159,40 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#ffffff',
   },
+  imageContainer: {
+    position: 'relative',
+    width: 200,
+    height: 200,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 30,
+  },
   logo: {
-    width: 140,
-    height: 140,
-    marginBottom: 20,
+    width: 120,
+    height: 120,
     resizeMode: 'contain',
+  },
+  continuousLoader: {
+    position: 'absolute',
+    width: 200,
+    height: 200,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  circularPath: {
+    width: 180, 
+    height: 180,
+    borderRadius: 90,
+    borderWidth: 3,
+    borderColor: '#3b82f6',
+    borderTopColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderBottomColor: 'transparent',
   },
   loadingText: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#007bff',
-    marginBottom: 30,
-  },
-  spinner: {
-    marginVertical: 20,
+    color: '#3b82f6',
+    letterSpacing: 1,
   },
 });

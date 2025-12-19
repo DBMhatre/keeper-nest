@@ -17,6 +17,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { styles } from '../styles/employeeDashboardStyles';
 import { Query } from 'appwrite';
+import sticker from '../assets/images/logo_app.png'
 
 export default function EmployeeDashboard() {
   const [employeeDetails, setEmployeeDetails] = useState(null);
@@ -37,24 +38,17 @@ export default function EmployeeDashboard() {
       );
       setEmployeeDetails(employeeDetails);
 
-      // Fetch assigned assets for this employee
       const assignedResponse = await databases.listDocuments(
         'assetManagement',
         'assets',
-        [Query.equal('assignedTo', user.$id)]
+        [Query.equal('assignedTo', `${user.name} (${user.$id})`)]
       );
 
-      const availableResponse = await databases.listDocuments(
-        'assetManagement',
-        'assets',
-        [Query.equal('status', 'Available')]
-      );
-
-      // Fetch total assets count
-      const totalResponse = await databases.listDocuments(
-        'assetManagement',
-        'assets'
-      );
+      // const response = await databases.listDocuments(
+      //       'assetManagement',
+      //       'assets',
+      //       [Query.equal('assignedTo', `${name} (${employeeId})`)]
+      //     );
 
       setAssignedAssets(assignedResponse.documents);
 
@@ -95,18 +89,8 @@ export default function EmployeeDashboard() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#3b82f6" />
-      {/* Header */}
-      <View style={styles.topHeader}>
-              <View style={styles.headerLeft}>
-                <Image 
-                  source={{uri: "https://drive.google.com/uc?export=view&id=1o1W4NVpNeMEGNnFmxg20799q6e0NI3pG"}}
-                  style={{width: 50, height: 50, borderRadius: 8}}
-                />
-                <Text style={styles.appTitle}>KeeperNest</Text>
-              </View>
-            </View>
 
-      <ScrollView 
+      <ScrollView
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -117,6 +101,17 @@ export default function EmployeeDashboard() {
         }
         showsVerticalScrollIndicator={false}
       >
+        <View style={styles.topHeader}>
+          <View style={styles.headerLeft}>
+            <View style={styles.imageCircleContainer}>
+              <Image
+                source={sticker}
+                style={styles.circleImage}
+              />
+            </View>
+            <Text style={styles.appTitle}>KeeperNest</Text>
+          </View>
+        </View>
         <View style={styles.welcomeSection}>
           <View style={styles.welcomeContent}>
             <Text style={styles.welcomeText}>Welcome back,</Text>
@@ -124,7 +119,7 @@ export default function EmployeeDashboard() {
             <Text style={styles.userEmail} numberOfLines={1}>{employeeDetails?.email}</Text>
           </View>
           <TouchableOpacity style={styles.welcomeIllustration} onPress={() => navigation.navigate('Profile' as never)}>
-            <Icon name={employeeDetails?.gender == 'Male' ? 'face-man' : 'face-woman'} size={80} color="#3b82f6" />
+            <Icon name="account-circle" size={65} color="#3b82f6" />
           </TouchableOpacity>
         </View>
 
@@ -133,7 +128,7 @@ export default function EmployeeDashboard() {
             <Text style={styles.sectionTitle}>My Assigned Assets</Text>
             <Text style={styles.assetsCount}>({assignedAssets.length})</Text>
           </View>
-          
+
           <View style={styles.assetsTable}>
             <View style={styles.tableHeader}>
               <Text style={[styles.tableHeaderText, styles.columnAsset]}>Asset Name</Text>
@@ -144,13 +139,12 @@ export default function EmployeeDashboard() {
             <ScrollView style={styles.tableBody}>
               {assignedAssets.length === 0 ? (
                 <View style={styles.emptyAssets}>
-                  <Icon name="package-variant" size={40} color="#d1d5db" />
                   <Text style={styles.emptyAssetsText}>No assets assigned to you</Text>
                   <Text style={styles.emptyAssetsSubtext}>Assets assigned to you will appear here</Text>
                 </View>
               ) : (
                 assignedAssets.map((asset) => (
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     key={asset.$id}
                     style={styles.tableRow}
                     onPress={() => console.log('Hello World')}

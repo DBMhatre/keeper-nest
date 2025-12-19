@@ -305,7 +305,7 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
   },
   employeeName: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '500',
     color: '#1f2937',
   },
@@ -390,7 +390,7 @@ cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    padding: 20,
+    padding: 16,
     paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#f1f5f9',
@@ -537,4 +537,5 @@ assetType: {
     marginLeft: 7,
     width: 70,
 },
+
 });

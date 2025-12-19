@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -11,13 +11,12 @@ import {
   Platform,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { Picker } from '@react-native-picker/picker';
 import { useNavigation } from '@react-navigation/native';
 import { account, databases } from '../server/appwrite';
 import { styles } from '../styles/employeeFormStyles';
-import { ID, Query } from 'appwrite';
+import { Query } from 'appwrite';
 import { sendMail } from '../server/emailSender';
-import CustomModal from './CustomModal'; // Import CustomModal
+import CustomModal from './CustomModal';
 import CustomDropdown from './CustomDropdown';
 
 const EmployeeCreate = () => {
@@ -40,35 +39,115 @@ const EmployeeCreate = () => {
     setShowAlert(true);
   };
 
-  const handleCreateEmployee = async () => {
-    if (!name || !email || !employeeId) {
-      return showAlertBox('Missing Fields', 'Please fill all required fields.', 'error');
+  const validateForm = (): boolean => {
+    if (!name || name.trim().length === 0) {
+      showAlertBox('Validation Error', 'Please enter employee name.', 'error');
+      return false;
+    }
+    
+    if (name.trim().length < 2) {
+      showAlertBox('Validation Error', 'Name must be at least 2 characters.', 'error');
+      return false;
+    }
+    
+    if (name.trim().length > 100) {
+      showAlertBox('Validation Error', 'Name cannot exceed 100 characters.', 'error');
+      return false;
+    }
+
+    if (!email || email.trim().length === 0) {
+      showAlertBox('Validation Error', 'Please enter email address.', 'error');
+      return false;
+    }
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      showAlertBox('Validation Error', 'Please enter a valid email address.', 'error');
+      return false;
+    }
+
+    if (!employeeId || employeeId.trim().length === 0) {
+      showAlertBox('Validation Error', 'Please enter employee ID.', 'error');
+      return false;
+    }
+    
+    if (employeeId.trim().length < 3) {
+      showAlertBox('Validation Error', 'Employee ID must be at least 3 characters.', 'error');
+      return false;
+    }
+    
+    if (employeeId.trim().length > 50) {
+      showAlertBox('Validation Error', 'Employee ID cannot exceed 50 characters.', 'error');
+      return false;
+    }
+    
+    const idRegex = /^[A-Za-z0-9_-]+$/;
+    if (!idRegex.test(employeeId)) {
+      showAlertBox('Validation Error', 'Employee ID can only contain letters, numbers, hyphens, and underscores.', 'error');
+      return false;
     }
 
     if (gender === 'No') {
-      return showAlertBox('Invalid Gender', 'Please select a valid gender.', 'error');
+      showAlertBox('Validation Error', 'Please select gender.', 'error');
+      return false;
+    }
+    
+    if (gender !== 'Male' && gender !== 'Female') {
+      showAlertBox('Validation Error', 'Please select a valid gender (Male or Female).', 'error');
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleCreateEmployee = async () => {
+    if (!validateForm()) {
+      return;
     }
 
     const dbId = "user_info";
     const collectionId = "user_info";
 
-    const existingEmp = await databases.listDocuments(
-      dbId,
-      collectionId,
-      [
-        Query.equal('employeeId', employeeId)
-      ]
-    );
-
-    if (existingEmp.total > 0) {
-      setSuccess(false);
-      showAlertBox(
-        'Duplicate Employee ID',
-        `Employee ID "${employeeId}" already exists. Please use a different ID.`,
-        'error'
+    try {
+      const existingEmp = await databases.listDocuments(
+        dbId,
+        collectionId,
+        [Query.equal('employeeId', employeeId)]
       );
-      setLoading(false);
-      return; 
+
+      if (existingEmp.total > 0) {
+        showAlertBox(
+          'Duplicate Employee ID',
+          `Employee ID "${employeeId}" already exists. Please use a different ID.`,
+          'error'
+        );
+        return; 
+      }
+    } catch (error) {
+      console.error("Error checking duplicate ID:", error);
+      showAlertBox('Error', 'Failed to check employee ID. Please try again.', 'error');
+      return;
+    }
+
+    try {
+      const existingEmail = await databases.listDocuments(
+        dbId,
+        collectionId,
+        [Query.equal('email', email)]
+      );
+
+      if (existingEmail.total > 0) {
+        showAlertBox(
+          'Duplicate Email',
+          `Email "${email}" is already registered. Please use a different email.`,
+          'error'
+        );
+        return;
+      }
+    } catch (error) {
+      console.error("Error checking duplicate email:", error);
+      showAlertBox('Error', 'Failed to check email. Please try again.', 'error');
+      return;
     }
 
     setLoading(true);
@@ -81,28 +160,26 @@ const EmployeeCreate = () => {
       } catch (error) {
         console.log("Error: ", error);
         navigation.navigate('Login' as any);
+        return;
       }
       const adminId = user.$id;
+      const adminName = user?.name;
       const newUser = await account.create(employeeId, email, password, name);
       console.log("Created employee auth user:", newUser);
 
-      const dbId = "user_info";
-      const collectionId = "user_info";
       const employeeDoc = await databases.createDocument(
         dbId,
         collectionId,
         employeeId,
         {
           employeeId,
-          name,
-          email,
+          name: name.trim(),
+          email: email.trim(),
           gender,
           role: "employee",
-          creatorMail: adminId
+          creatorMail: `${adminName} (${adminId})`
         }
       );
-
-      // Set success BEFORE showing alert
       setSuccess(true);
 
       await sendMail({
@@ -170,20 +247,30 @@ const EmployeeCreate = () => {
         `Employee ${name} created successfully!`,
         'success'
       );
-
-      // Reset form AFTER success
       setName('');
       setEmail('');
       setEmployeeId('');
       setGender('No');
     } catch (error: any) {
       console.log("Error: ", error);
-      navigation.navigate('Login' as any);
-      showAlertBox(
-        'Error',
-        error?.message || 'Failed to create employee. Please try again.',
-        'error'
-      );
+      
+      if (error.code === 409) {
+        showAlertBox(
+          'Account Already Exists',
+          'An account with this email or username already exists.',
+          'error'
+        );
+      } else if (error.code === 401) {
+        navigation.navigate('Login' as any);
+        return;
+      } else {
+        showAlertBox(
+          'Error',
+          error?.message || 'Failed to create employee. Please try again.',
+          'error'
+        );
+      }
+      
       // Reset success state on error
       setSuccess(false);
     } finally {

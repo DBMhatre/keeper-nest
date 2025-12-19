@@ -7,34 +7,109 @@ import {
   View,
   TextInput,
   RefreshControl,
+  Image,
 } from 'react-native';
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { account, databases } from '../server/appwrite';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Query } from 'appwrite';
 import EmptyComponent from './EmptyComponent';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
+import debounce from 'lodash/debounce';
+import MaleImage from '../assets/images/man.png';
+import FemaleImage from '../assets/images/woman.png';
 
 export default function EmployeeList() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalEmployees, setTotalEmployees] = useState(0);
   const navigation = useNavigation();
+  const [fetchCount, setFetchCount] = useState(0);
+  const pageSize = 5;
+  const [inputValue, setInputValue] = useState('');
+
+  const debouncedSearch = useMemo(
+    () => debounce((query: string) => {
+      setSearchQuery(query);
+      setPage(1);
+    }, 500),
+    []
+  );
 
   const fetchEmployees = useCallback(async () => {
+
     try {
-      await account.get(); 
+      await account.get();
+
+      const queries = [
+        Query.equal('role', 'employee'),
+        Query.equal('status', 'active')
+      ];
+
+      if (searchQuery.trim()) {
+        queries.push(Query.or([
+          Query.search('name', searchQuery),
+          Query.search('employeeId', searchQuery),
+          Query.search('email', searchQuery)
+        ]));
+        queries.push(Query.limit(100));
+      } else {
+        queries.push(Query.limit(pageSize));
+        queries.push(Query.offset((page - 1) * pageSize));
+      }
+
       const res = await databases.listDocuments(
         'user_info',
         'user_info',
-        [Query.equal('role', 'employee'), Query.equal('status', 'active')]
+        queries
       );
+
+      const countQueries = [
+        Query.equal('role', 'employee'),
+        Query.equal('status', 'active')
+      ];
+
+      if (searchQuery.trim()) {
+        countQueries.push(Query.search('name', searchQuery));
+      }
+
+      const countRes = await databases.listDocuments(
+        'user_info',
+        'user_info',
+        countQueries
+      );
+
+      setFetchCount(prev => prev + 1);
+      console.log(`Fetch count: ${fetchCount + 1} `);
+      setTotalEmployees(countRes.total);
       return res.documents;
     } catch (error) {
       console.log("Error: ", error);
+
+      if (error.message?.includes('Search') || error.message?.includes('index')) {
+        console.log("Search index not available, using client-side filtering");
+
+        const fallbackQueries = [
+          Query.equal('role', 'employee'),
+          Query.equal('status', 'active'),
+          Query.limit(100)
+        ];
+
+        const res = await databases.listDocuments(
+          'user_info',
+          'user_info',
+          fallbackQueries
+        );
+
+        setTotalEmployees(res.total);
+        return res.documents;
+      }
+
       navigation.navigate('Login' as never);
       throw error;
     }
-  }, [navigation]); 
+  }, [navigation, page, searchQuery, pageSize]);
 
   const {
     data: employees = [],
@@ -42,16 +117,33 @@ export default function EmployeeList() {
     refetch,
     isRefetching
   } = useQuery({
-    queryKey: ['employees'],
+    queryKey: ['employees', page, searchQuery],
     queryFn: fetchEmployees,
   });
 
-  // Filter employees based on search query using useMemo
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch])
+  );
+
+  const handleNextPage = () => {
+    if (page < totalPages) {
+      setPage(page + 1);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (page > 1) {
+      setPage(page - 1);
+    }
+  };
+
   const filteredEmployees = useMemo(() => {
     if (!searchQuery.trim()) {
       return employees;
     }
-    
+
     const query = searchQuery.toLowerCase();
     return employees.filter((item) => {
       return (
@@ -62,32 +154,44 @@ export default function EmployeeList() {
     });
   }, [employees, searchQuery]);
 
+  const totalPages = useMemo(() => {
+    if (searchQuery.trim()) {
+      const filteredCount = filteredEmployees.length;
+      return Math.ceil(filteredCount / pageSize);
+    } else {
+      return Math.ceil(totalEmployees / pageSize);
+    }
+  }, [searchQuery, filteredEmployees.length, totalEmployees, pageSize]);
+
   const onRefresh = () => {
     refetch();
   };
 
-  const getGenderColor = (gender: string) => {
-    switch (gender) {
-      case "Male": return "#3b82f6";
-      case "Female": return "#ec4899";
-      case "Other": return "#8b5cf6";
-      default: return "#6b7280";
-    }
+  const handleSearchChange = (text: string) => {
+    setInputValue(text);
+    debouncedSearch(text);
   };
 
-  const getGenderIcon = (gender: string) => {
-    switch (gender) {
-      case "Male": return "face-man";
-      case "Female": return "face-woman";
-      case "Other": return "face";
-      default: return "account";
+  // React.useEffect(() => {
+  //   return () => {
+  //     debouncedSearch.cancel();
+  //   };
+  // }, [debouncedSearch]);
+
+  const paginatedData = useMemo(() => {
+    if (searchQuery.trim()) {
+      const start = (page - 1) * pageSize;
+      const end = start + pageSize;
+      return filteredEmployees.slice(start, end);
+    } else {
+      return employees;
     }
-  };
+  }, [searchQuery, page, pageSize, filteredEmployees, employees]);
 
   const renderItem = ({ item }) => (
     <TouchableOpacity
       style={styles.card}
-      onPress={() => navigation.navigate('EmployeeDetails' as never, { employeeId: item.employeeId } as never)}
+      onPress={() => navigation.navigate('EmployeeDetails' as never, { employeeId: item.employeeId, name: item.name } as never)}
       activeOpacity={0.9}
     >
       <View style={styles.cardHeader}>
@@ -99,13 +203,13 @@ export default function EmployeeList() {
               borderColor: "#3b82f6" + "40"
             }
           ]}>
-            <Icon
-              name={getGenderIcon(item.gender)}
-              size={36}
-              color="#3b82f6"
+            <Image
+              source={item.gender === 'Female' ? FemaleImage : MaleImage}
+              style={styles.faceImage}
+              resizeMode="cover"
             />
           </View>
-          
+
           <View style={styles.idBadge}>
             <Text style={styles.idText}>
               {item.employeeId}
@@ -166,12 +270,11 @@ export default function EmployeeList() {
           </Text>
         </View>
 
-        {/* Search Bar */}
         <View style={styles.searchContainer}>
           <Icon name="magnify" size={20} color="#6b7280" style={styles.searchIcon} />
           <TextInput
-            value={searchQuery}
-            onChangeText={setSearchQuery}
+            value={inputValue}
+            onChangeText={handleSearchChange}
             placeholder="Search employees..."
             placeholderTextColor="#9ca3af"
             style={styles.searchInput}
@@ -188,7 +291,7 @@ export default function EmployeeList() {
           </View>
         ) : (
           <FlatList
-            data={filteredEmployees}
+            data={paginatedData}
             keyExtractor={(item) => item.$id}
             renderItem={renderItem}
             showsVerticalScrollIndicator={false}
@@ -201,15 +304,55 @@ export default function EmployeeList() {
                 tintColor="#3b82f6"
               />
             }
-            ListEmptyComponent={<EmptyComponent name='Employee' />}
+            ListEmptyComponent={
+              <EmptyComponent
+                name='Employee'
+                message={
+                  searchQuery.trim()
+                    ? `No employees found for "${searchQuery}"`
+                    : 'No employees found'
+                }
+              />
+            }
           />
+        )}
+
+        {totalPages > 0 && (
+          <View style={styles.paginationContainer}>
+            <TouchableOpacity
+              style={[styles.paginationButton, page === 1 && styles.paginationButtonDisabled]}
+              onPress={handlePrevPage}
+              disabled={page === 1}
+            >
+              <Icon name="chevron-left" size={20} color={page === 1 ? "#9ca3af" : "#3b82f6"} />
+              <Text style={[styles.paginationButtonText, page === 1 && styles.paginationButtonTextDisabled]}>
+                Previous
+              </Text>
+            </TouchableOpacity>
+
+            <View style={styles.pageInfo}>
+              <Text style={styles.pageText}>Page</Text>
+              <Text style={styles.pageNumber}>{page}</Text>
+              <Text style={styles.pageText}>of {totalPages}</Text>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.paginationButton, page === totalPages && styles.paginationButtonDisabled]}
+              onPress={handleNextPage}
+              disabled={page === totalPages}
+            >
+              <Text style={[styles.paginationButtonText, page === totalPages && styles.paginationButtonTextDisabled]}>
+                Next
+              </Text>
+              <Icon name="chevron-right" size={20} color={page === totalPages ? "#9ca3af" : "#3b82f6"} />
+            </TouchableOpacity>
+          </View>
         )}
       </View>
     </View>
   );
 }
 
-// Styles remain exactly the same...
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -258,6 +401,7 @@ const styles = StyleSheet.create({
     height: 48,
     borderWidth: 1.5,
     borderColor: '#e5e7eb',
+    position: 'relative',
   },
   searchIcon: {
     marginRight: 12,
@@ -267,6 +411,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#1f2937',
     fontWeight: '500',
+  },
+  searchLoading: {
+    marginLeft: 8,
   },
   content: {
     flex: 1,
@@ -316,6 +463,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 2,
+    overflow: 'hidden',
+  },
+  faceImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 8,
   },
   idBadge: {
     position: 'absolute',
@@ -402,5 +555,64 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#6b7280',
     fontWeight: '500',
+  },
+  paginationContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#ffffff',
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
+    borderRadius: 12,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  paginationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#f8fafc',
+    borderWidth: 1.5,
+    borderColor: '#e5e7eb',
+    gap: 6,
+  },
+  paginationButtonDisabled: {
+    backgroundColor: '#f9fafb',
+    borderColor: '#f3f4f6',
+  },
+  paginationButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#3b82f6',
+  },
+  paginationButtonTextDisabled: {
+    color: '#9ca3af',
+  },
+  pageInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  pageText: {
+    fontSize: 14,
+    color: '#6b7280',
+    fontWeight: '500',
+  },
+  pageNumber: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#3b82f6',
+    backgroundColor: '#eff6ff',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 6,
   },
 });

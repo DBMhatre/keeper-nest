@@ -9,9 +9,6 @@ interface EmptyProp{
 export default function EmptyComponent({name}: EmptyProp) {
   return (
     <View style={styles.container}>
-      <View style={styles.iconContainer}>
-        <Icon name="inbox" size={64} color="#d1d5db" />
-      </View>
       <Text style={styles.title}>No {name}s Found</Text>
       <Text style={styles.subtitle}>
         {name === 'Asset' 

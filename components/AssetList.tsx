@@ -8,15 +8,16 @@ import {
     ScrollView,
     RefreshControl
 } from 'react-native';
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { account, databases } from '../server/appwrite';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Query } from 'appwrite';
 import EmptyComponent from './EmptyComponent';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Dropdown, TwoDropdowns } from './Dropdown';
 import CustomModal from './CustomModal';
 import { useQuery } from '@tanstack/react-query';
+import { debounce } from 'lodash';
 
 export default function AssetList() {
     const pageSize = 5;
@@ -32,6 +33,9 @@ export default function AssetList() {
     const [selectedStatus, setSelectedStatus] = useState(null);
     const [selectedType, setSelectedType] = useState(null);
     const [modalVisible, setModalVisible] = useState(false);
+    const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+    const [input, setInput] = useState('');
+    const [fetchCount, setFetchCount] = useState(0);
     const [modalConfig, setModalConfig] = useState({
         title: '',
         message: '',
@@ -40,6 +44,18 @@ export default function AssetList() {
         confirmText: 'OK',
         showCancel: false,
     });
+
+
+    const toggleViewMode = () => {
+        setViewMode(prevMode => prevMode === 'table' ? 'grid' : 'table');
+    };
+
+    const debouncedSearch = useMemo(
+        () => debounce((query: string) => {
+            setName(query);
+        }, 500),
+        []
+    );
 
     const fetchAssets = useCallback(async () => {
         try {
@@ -53,13 +69,15 @@ export default function AssetList() {
                 "assetManagement",
                 "assets",
             );
+            setFetchCount(prev => prev + 1);
+            console.log(`Fetch count: ${fetchCount + 1} `);
             return res.documents;
         } catch (error) {
             console.log("Error: ", error);
             navigation.navigate('Login' as any);
             throw error;
         }
-    }, [navigation]); 
+    }, [navigation]);
 
     const {
         data: assets = [],
@@ -98,12 +116,18 @@ export default function AssetList() {
         { label: 'Other', value: 'other', icon: 'package-variant', color: '#6b7280' }
     ];
 
+    useFocusEffect(
+        useCallback(() => {
+            refetch();
+        }, [refetch])
+    );
+
     useEffect(() => {
         const text = name.toLowerCase();
 
         const result = assets.filter((item: any) => {
             return (
-                item.assetName?.toLowerCase().includes(text) 
+                item.assetName?.toLowerCase().includes(text)
             );
         });
 
@@ -115,12 +139,12 @@ export default function AssetList() {
 
         if (selectedStatus && selectedStatus.value !== 'all') {
             result = result.filter((item: any) =>
-                item.status?.toLowerCase() === selectedStatus.value.toLowerCase() 
+                item.status?.toLowerCase() === selectedStatus.value.toLowerCase()
             );
         }
         if (selectedType && selectedType.value !== 'all') {
             result = result.filter((item: any) =>
-                item.assetType?.toLowerCase() === selectedType.value.toLowerCase() 
+                item.assetType?.toLowerCase() === selectedType.value.toLowerCase()
             );
         }
 
@@ -201,16 +225,13 @@ export default function AssetList() {
         );
     };
 
+    const handleSearch = (text: string) => {
+        setInput(text);
+        debouncedSearch(text);
+    }
+
     return (
-        <ScrollView style={styles.container} refreshControl={
-            <RefreshControl
-                refreshing={isRefetching}
-                onRefresh={onRefresh}
-                colors={['#3b82f6']}
-                tintColor="#3b82f6"
-                progressBackgroundColor="#ffffff"
-            />
-        }>
+        <View style={styles.container} >
             <View style={styles.header}>
                 <View style={styles.headerContent}>
                     <View style={styles.titleContainer}>
@@ -225,8 +246,8 @@ export default function AssetList() {
                 <View style={styles.searchContainer}>
                     <Icon name="magnify" size={20} color="#6b7280" style={styles.searchIcon} />
                     <TextInput
-                        value={name}
-                        onChangeText={setName}
+                        value={input}
+                        onChangeText={handleSearch}
                         placeholder="Search assets by name..."
                         placeholderTextColor="#9ca3af"
                         style={styles.searchInput}
@@ -247,12 +268,26 @@ export default function AssetList() {
                     />
 
                     <Dropdown
-                        label="Asset Type"
+                        label="Type"
                         value={selectedType}
                         onValueChange={handleTypeChange}
                         options={typeOptions}
                         style={styles.dropdown}
                     />
+
+                    <TouchableOpacity
+                        style={[
+                            styles.viewToggleButton,
+                            viewMode === 'grid' && styles.viewToggleButtonActive
+                        ]}
+                        onPress={toggleViewMode}
+                    >
+                        <Icon
+                            name={viewMode === 'table' ? 'view-grid' : 'table'}
+                            size={20}
+                            color={viewMode === 'grid' ? '#ffffff' : '#3b82f6'}
+                        />
+                    </TouchableOpacity>
                 </View>
             </View>
 
@@ -262,11 +297,20 @@ export default function AssetList() {
                         <ActivityIndicator size="large" color="#3b82f6" />
                         <Text style={styles.loadingText}>Loading assets...</Text>
                     </View>
-                ) : (
+                ) : viewMode === 'table' ? (
                     <View style={styles.tableContainer}>
                         <ScrollView
                             horizontal
                             showsHorizontalScrollIndicator={false}
+                            refreshControl={
+                                <RefreshControl
+                                    refreshing={false}
+                                    onRefresh={onRefresh}
+                                    colors={['#3b82f6']}
+                                    tintColor="#3b82f6"
+                                    progressBackgroundColor="#ffffff"
+                                />
+                            }
                         >
                             <View style={styles.tableWrapper}>
                                 <View style={styles.tableHeader}>
@@ -373,8 +417,6 @@ export default function AssetList() {
                                 </ScrollView>
                             </View>
                         </ScrollView>
-
-                        {/* Replace AwesomeAlert with CustomModal */}
                         <CustomModal
                             show={showAlert}
                             title={alertTitle}
@@ -384,11 +426,106 @@ export default function AssetList() {
                             showCancelButton={false}
                             onConfirmPressed={() => setShowAlert(false)}
                             onCancelPressed={() => setShowAlert(false)}
-                            confirmButtonColor={alertType === 'success' ? '#10b981' : 
-                                               alertType === 'error' ? '#ef4444' : 
-                                               alertType === 'warning' ? '#f59e0b' : '#3b82f6'}
+                            confirmButtonColor={alertType === 'success' ? '#10b981' :
+                                alertType === 'error' ? '#ef4444' :
+                                    alertType === 'warning' ? '#f59e0b' : '#3b82f6'}
                         />
                     </View>
+                ) : (
+                    <ScrollView
+                        style={styles.gridContainer}
+                        showsVerticalScrollIndicator={false}
+                        refreshControl={
+                            <RefreshControl
+                                refreshing={false}
+                                onRefresh={onRefresh}
+                                colors={['#3b82f6']}
+                                tintColor="#3b82f6"
+                                progressBackgroundColor="#ffffff"
+                            />
+                        }
+                    >
+                        {
+                            filteredAsset.length === 0 && (
+                                <View style={styles.Emptycontainer}>
+                                    <Text style={styles.Emptymessage}>Assets not found</Text>
+                                </View>
+                            )
+                        }
+                        <View style={styles.grid}>
+                            {filteredAsset.map((item) => (
+                                <TouchableOpacity
+                                    key={item.$id}
+                                    style={styles.gridCard}
+                                    onPress={() => navigation.navigate('AssetDetails', { assetId: item.assetId })}
+                                    activeOpacity={0.9}
+                                >
+                                    <View style={styles.cardHeader}>
+                                        <View style={[
+                                            styles.cardIconContainer,
+                                            { backgroundColor: getAssetColor(item.assetType) + "15" }
+                                        ]}>
+                                            <Icon
+                                                name={getAssetIcon(item.assetType)}
+                                                size={24}
+                                                color={getAssetColor(item.assetType)}
+                                            />
+                                        </View>
+                                        <View style={styles.cardTitleContainer}>
+                                            <Text style={styles.cardAssetName} numberOfLines={1}>
+                                                {item.assetName}
+                                            </Text>
+                                            <Text style={styles.cardAssetId}>#{item.assetId}</Text>
+                                        </View>
+                                    </View>
+                                    <View style={styles.cardBody}>
+                                        <View style={styles.cardInfoRow}>
+                                            <View style={styles.infoContent}>
+                                                <Text style={styles.infoLabel}>Asset Type: </Text>
+                                                <Text style={styles.cardInfoText}>{item.assetType}</Text>
+                                            </View>
+                                        </View>
+
+                                        <View style={styles.cardInfoRow}>
+                                            <View style={styles.infoContent}>
+                                                <Text style={styles.infoLabel}>Assignment: </Text>
+                                                <Text style={styles.cardInfoText}>
+                                                    {item.assignedTo === "unassigned" ? "Not assigned" : item.assignedTo}
+                                                </Text>
+                                            </View>
+                                        </View>
+                                    </View>
+                                    <View style={styles.cardFooter}>
+                                        <View style={[
+                                            styles.cardStatusBadge,
+                                            { backgroundColor: getStatusColor(item.status) + "15" }
+                                        ]}>
+                                            <View style={[
+                                                styles.cardStatusDot,
+                                                { backgroundColor: getStatusColor(item.status) }
+                                            ]} />
+                                            <Text style={[
+                                                styles.cardStatusText,
+                                                { color: getStatusColor(item.status) }
+                                            ]}>
+                                                {item.status === 'Maintainance' ? "Maintenance" : item.status}
+                                            </Text>
+                                        </View>
+
+                                        <TouchableOpacity
+                                            style={styles.cardRemoveButton}
+                                            onPress={() => handleRemoveAsset(item.$id, item.assetName, item.status)}
+                                        >
+                                            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
+                                                <Icon name="link-off" size={16} color="#ef4444" />
+                                                <Text style={styles.unassignText}> remove</Text>
+                                            </View>
+                                        </TouchableOpacity>
+                                    </View>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    </ScrollView>
                 )}
             </View>
 
@@ -404,11 +541,11 @@ export default function AssetList() {
                     setModalVisible(false);
                 }}
                 onCancelPressed={() => setModalVisible(false)}
-                confirmButtonColor={modalConfig.type === 'success' ? '#10b981' : 
-                                   modalConfig.type === 'error' ? '#ef4444' : 
-                                   modalConfig.type === 'warning' ? '#f59e0b' : '#3b82f6'}
+                confirmButtonColor={modalConfig.type === 'success' ? '#10b981' :
+                    modalConfig.type === 'error' ? '#ef4444' :
+                        modalConfig.type === 'warning' ? '#f59e0b' : '#3b82f6'}
             />
-        </ScrollView>
+        </View>
     );
 }
 
@@ -472,7 +609,7 @@ const styles = StyleSheet.create({
     content: {
         flex: 1,
         paddingHorizontal: 16,
-        paddingTop: 20,
+        paddingTop: 8,
     },
     tableContainer: {
         flex: 1,
@@ -684,7 +821,7 @@ const styles = StyleSheet.create({
         borderRadius: 16,
         marginHorizontal: 16,
         marginTop: 16,
-        marginBottom: 8,
+        marginBottom: 16,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.1,
@@ -695,9 +832,24 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         gap: 12,
+        alignItems: 'center',
     },
     dropdown: {
         flex: 1,
+    },
+    viewToggleButton: {
+        width: 48,
+        height: 48,
+        borderRadius: 12,
+        backgroundColor: '#eff6ff',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1.5,
+        borderColor: '#dbeafe',
+    },
+    viewToggleButtonActive: {
+        backgroundColor: '#3b82f6',
+        borderColor: '#3b82f6',
     },
     unassignButton: {
         flexDirection: 'row',
@@ -715,5 +867,197 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#ef4444',
         fontWeight: '600',
+    },
+
+    gridContainer: {
+        flex: 1,
+        backgroundColor: '#f8fafc',
+    },
+    grid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        padding: 8,
+        gap: 12,
+    },
+    gridCard: {
+        width: '100%',
+        backgroundColor: '#ffffff',
+        borderRadius: 16,
+        padding: 16,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 5,
+        borderWidth: 1,
+        borderColor: '#f1f5f9',
+        marginTop: -6,
+    },
+    cardHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    cardIconContainer: {
+        width: 50,
+        height: 50,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+    },
+    cardTitleContainer: {
+        flex: 1,
+    },
+    cardAssetName: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#1f2937',
+        marginBottom: 4,
+    },
+    cardAssetId: {
+        fontSize: 12,
+        color: '#6b7280',
+        fontWeight: '500',
+    },
+    cardBody: {
+        marginBottom: 12,
+    },
+    cardInfoRow: {
+        marginBottom: 10,
+    },
+    cardInfoText: {
+        fontSize: 13,
+        color: '#4b5563',
+        lineHeight: 18,
+    },
+    cardFooter: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        borderTopWidth: 1,
+        borderTopColor: '#f3f4f6',
+        paddingTop: 12,
+    },
+    cardStatusBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 8,
+    },
+    cardStatusDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        marginRight: 6,
+    },
+    cardStatusText: {
+        fontSize: 11,
+        fontWeight: '700',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+    },
+    cardRemoveButton: {
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 8,
+        backgroundColor: '#fef2f2',
+        borderWidth: 1,
+        borderColor: '#fecaca',
+    },
+    infoIconContainer: {
+        width: 32,
+        height: 32,
+        borderRadius: 8,
+        backgroundColor: '#f8fafc',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 4,
+    },
+    infoContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    infoLabel: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#6b7280',
+        marginRight: 4,
+    },
+    typeBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 8,
+        alignSelf: 'flex-start',
+        borderWidth: 1,
+        borderColor: 'transparent',
+    },
+    typeIcon: {
+        marginRight: 6,
+    },
+    assignedBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 8,
+        alignSelf: 'flex-start',
+        borderWidth: 1,
+    },
+    assignedIcon: {
+        marginRight: 6,
+    },
+    dateContainer: {
+        backgroundColor: '#f8fafc',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#e5e7eb',
+    },
+    dateText: {
+        fontSize: 13,
+        fontWeight: '500',
+        color: '#374151',
+    },
+    descriptionContainer: {
+        backgroundColor: '#f8fafc',
+        padding: 12,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#e5e7eb',
+    },
+    descriptionText: {
+        fontSize: 13,
+        color: '#4b5563',
+        lineHeight: 18,
+    },
+    moreButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        alignSelf: 'flex-end',
+        marginTop: 8,
+        gap: 4,
+    },
+    moreText: {
+        fontSize: 12,
+        color: '#3b82f6',
+        fontWeight: '600',
+    },
+    Emptycontainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+        marginVertical: 20,
+    },
+    Emptymessage: {
+        fontSize: 16,
+        color: '#666',
+        fontStyle: 'italic',
+        textAlign: 'center',
     },
 });

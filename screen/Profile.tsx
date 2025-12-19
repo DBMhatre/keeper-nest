@@ -36,6 +36,7 @@ export default function Profile() {
   const [alertTitle, setAlertTitle] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
   const [alertType, setAlertType] = useState<'success' | 'warning' | 'error' | 'info'>('success');
+  const [logoutModalVisible, setLogoutModalVisible] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -220,7 +221,7 @@ export default function Profile() {
           </View>
         </View>
 
-        <TouchableOpacity style={[styles.logoutButton, signOutLoading && { opacity: 0.6 }]} onPress={handleLogout} disabled={signOutLoading}>
+        <TouchableOpacity style={[styles.logoutButton, signOutLoading && { opacity: 0.6 }]} onPress={() => setLogoutModalVisible(true)} disabled={signOutLoading}>
           {
             signOutLoading ? <ActivityIndicator size={20} color="#fff" /> : <Icon name="logout" size={20} color="#fff" />
           }
@@ -266,6 +267,22 @@ export default function Profile() {
           alertType === 'error' ? '#ef4444' :
             alertType === 'warning' ? '#f59e0b' : '#3b82f6'}
       />
+
+      <CustomModal
+        show={logoutModalVisible}
+        title="Sign Out"
+        message="Are you sure you want to sign out of your account?"
+        alertType="warning"
+        confirmText="Sign Out"
+        showCancelButton={true}
+        onConfirmPressed={async () => {
+          setLogoutModalVisible(false);
+          await handleLogout();
+        }}
+        onCancelPressed={() => setLogoutModalVisible(false)}
+        confirmButtonColor="#ef4444"
+      />
+
     </View>
   );
 }
