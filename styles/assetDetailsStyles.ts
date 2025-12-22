@@ -1,3 +1,4 @@
+import { update } from 'lodash';
 import { Dimensions, StyleSheet } from 'react-native';
 const { width, height } = Dimensions.get('window');
 export const styles = StyleSheet.create({
@@ -331,9 +332,9 @@ actionButton: {
   borderWidth: 1,
   gap: 6,
 },
-maintenanceButton: {
-  backgroundColor: '#fefce8',
-  borderColor: '#fef08a',
+updateButton: {
+    backgroundColor: '#f0fdf4',
+    borderColor: '#a0e4b9ff',
 },
 removeButton: {
   backgroundColor: '#fef2f2',
@@ -536,6 +537,27 @@ assetType: {
     borderRadius: 6,
     marginLeft: 7,
     width: 70,
+},
+maintenanceButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fefce8', // Light yellow background
+    borderWidth: 0.5,
+    borderColor: '#f59e0b', // Yellow border
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    gap: 12,
+    marginHorizontal: 16,
+    marginVertical: 3,
+    marginTop: 10,
+},
+    
+maintenanceButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#d97706', // Darker yellow for text
 },
 
 });

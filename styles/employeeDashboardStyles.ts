@@ -35,8 +35,8 @@ export const styles = StyleSheet.create({
     elevation: 4,
   },
   imageCircleContainer: {
-    width: 45, 
-    height: 45,
+    width: 42, 
+    height: 42,
     borderRadius: 30, 
     borderWidth: 2,
     borderColor: '#3b82f6',
@@ -46,8 +46,8 @@ export const styles = StyleSheet.create({
   },
   
   circleImage: {
-    width: 46, 
-    height: 41,
+    width: 44, 
+    height: 39,
   },
   headerLeft: {
     flexDirection: 'row',

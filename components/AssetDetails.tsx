@@ -7,8 +7,9 @@ import {
     SafeAreaView,
     ActivityIndicator,
     Alert,
+    RefreshControl,
 } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { styles } from '../styles/assetDetailsStyles';
 import { account, databases } from '../server/appwrite';
@@ -16,6 +17,7 @@ import { ID, Query } from 'appwrite';
 import CustomModal from './CustomModal';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import CustomDropdown from './CustomDropdown';
+import UpdateModal from './UpdateModal';
 
 export default function AssetDetails() {
     const route = useRoute();
@@ -38,6 +40,8 @@ export default function AssetDetails() {
         showCancel: false,
     });
     const [removeLoading, setRemoveLoading] = useState(false);
+    const [updateModalVisible, setUpdateModalVisible] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
 
     // Show modal function
     const showModal = (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info', onConfirm: (() => void) | null = null, confirmText: string = 'OK', showCancel: boolean = false) => {
@@ -137,6 +141,21 @@ export default function AssetDetails() {
         }).filter(Boolean);
     }, [asset?.historyQueue]);
 
+    // Refresh function
+    const onRefresh = useCallback(async () => {
+        setRefreshing(true);
+        try {
+            await Promise.all([
+                refetchAsset(),
+                queryClient.invalidateQueries({ queryKey: ['employees', asset?.assignedTo] }),
+            ]);
+        } catch (error) {
+            console.error('Refresh error:', error);
+        } finally {
+            setRefreshing(false);
+        }
+    }, [refetchAsset, queryClient, asset?.assignedTo]);
+
     const showAlertBox = (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info') => {
         setAlertTitle(title);
         setAlertMessage(message);
@@ -220,6 +239,12 @@ export default function AssetDetails() {
         }
     };
 
+    useFocusEffect(
+        useCallback(() => {
+            queryClient.invalidateQueries({ queryKey: ['asset', assetId] });
+        }, [assetId, queryClient])
+    );
+
     const handleRemoveAsset = async () => {
         if (!asset) return;
         setRemoveLoading(true);
@@ -296,9 +321,10 @@ export default function AssetDetails() {
             default: return "#6b7280";
         }
     };
+    
     const isLoading = isLoadingAsset || isLoadingEmployees;
 
-    if (isLoading) {
+    if (isLoading && !refreshing) {
         return (
             <View style={styles.loaderContainer}>
                 <ActivityIndicator size="large" color="#3b82f6" />
@@ -422,7 +448,18 @@ export default function AssetDetails() {
 
     return (
         <SafeAreaView style={styles.container}>
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView 
+                showsVerticalScrollIndicator={false} 
+                refreshControl={
+                    <RefreshControl 
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                        colors={['#3b82f6']}
+                        tintColor="#3b82f6"
+                        progressBackgroundColor="#ffffff"
+                    />
+                }
+            >
                 <View style={styles.header}>
                     <View style={styles.headerContent}>
                         <View style={styles.titleContainer}>
@@ -508,41 +545,64 @@ export default function AssetDetails() {
                         </View>
                     )}
                 </View>
+                <View>
+                    <View>
+                        <TouchableOpacity
+                            style={styles.maintenanceButton}
+                            onPress={handleMaintenance}
+                        >
+                            <Icon
+                                name={asset.status === 'Maintainance' ? "check-circle" : "wrench"}
+                                size={22}
+                                color="#f59e0b"
+                            />
+                            <Text style={styles.maintenanceButtonText}>
+                                {asset.status === 'Maintainance' ? 'Mark as Available' : 'Send to Maintenance'}
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
 
-                <View style={styles.actionButtons}>
-                    <TouchableOpacity
-                        style={[styles.actionButton, styles.maintenanceButton]}
-                        onPress={handleMaintenance}
-                    >
-                        <Icon
-                            name={asset.status === 'Maintainance' ? "check-circle" : "wrench"}
-                            size={16}
-                            color="#f59e0b"
-                        />
-                        <Text style={[styles.actionButtonText, { color: '#f59e0b' }]}>
-                            {asset.status === 'Maintainance' ? 'Available' : 'Maintenance'}
-                        </Text>
-                    </TouchableOpacity>
+                    <View style={styles.actionButtons}>
 
-                    <TouchableOpacity
-                        style={[styles.actionButton, styles.removeButton]}
-                        onPress={handleRemoveAsset}
-                    >
-                        {!removeLoading ? (
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                <Icon name="trash-can-outline" size={16} color="#ef4444" />
-                                <Text style={[styles.actionButtonText, { color: '#ef4444' }]}>
-                                    Remove
-                                </Text>
-                            </View>
-                        ) : (
-                            <ActivityIndicator size="small" color="#ef4444" />
-                        )
+                        <TouchableOpacity
+                            style={[styles.actionButton, styles.updateButton]}
+                            onPress={() => setUpdateModalVisible(true)}
+                        >
+                            <Icon
+                                name="pencil"
+                                size={16}
+                                color="#16a34a"
+                            />
+                            <Text style={[styles.actionButtonText, { color: '#16a34a' }]}>
+                                Update
+                            </Text>
+                        </TouchableOpacity>
 
-                        }
-                    </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.actionButton, styles.removeButton]}
+                            onPress={handleRemoveAsset}
+                        >
+                            {!removeLoading ? (
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                    <Icon name="trash-can-outline" size={16} color="#ef4444" />
+                                    <Text style={[styles.actionButtonText, { color: '#ef4444' }]}>
+                                        Delete
+                                    </Text>
+                                </View>
+                            ) : (
+                                <ActivityIndicator size="small" color="#ef4444" />
+                            )
+                            }
+                        </TouchableOpacity>
+                    </View>
                 </View>
             </ScrollView>
+
+            <UpdateModal
+                asset={asset}
+                visible={updateModalVisible}
+                onClose={() => setUpdateModalVisible(false)}
+            />
 
             <CustomModal
                 show={showAlert}

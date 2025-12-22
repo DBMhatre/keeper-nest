@@ -44,12 +44,6 @@ export default function EmployeeDashboard() {
         [Query.equal('assignedTo', `${user.name} (${user.$id})`)]
       );
 
-      // const response = await databases.listDocuments(
-      //       'assetManagement',
-      //       'assets',
-      //       [Query.equal('assignedTo', `${name} (${employeeId})`)]
-      //     );
-
       setAssignedAssets(assignedResponse.documents);
 
     } catch (error) {
@@ -147,7 +141,7 @@ export default function EmployeeDashboard() {
                   <TouchableOpacity
                     key={asset.$id}
                     style={styles.tableRow}
-                    onPress={() => console.log('Hello World')}
+                    onPress={() => navigation.navigate('EmployeeAssetDetails' as never, { asset } as never)}
                   >
                     <View style={[styles.tableCell, styles.columnAsset]}>
                       <Text style={styles.assetName} numberOfLines={1}>{asset.assetName}</Text>

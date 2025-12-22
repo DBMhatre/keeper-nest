@@ -163,7 +163,7 @@ export default function AdminDashboard() {
             <View style={styles.mainRow}>
               <View style={styles.leftStats}>
                 <View style={styles.statsRow}>
-                  <View style={styles.statItem}>
+                  <TouchableOpacity style={styles.statItem} onPress={() => navigation.navigate('AssetList' as never, {filter: 'all', label: 'All Status' } as never)} activeOpacity={0.8}>
                     <View style={[styles.statIconWrapper, { backgroundColor: '#3b82f6' }]}>
                       <Icon name="package-variant" size={15} color="#fff" />
                     </View>
@@ -171,9 +171,9 @@ export default function AdminDashboard() {
                       <Text style={styles.statNumber}>{stats.totalAssets}</Text>
                       <Text style={styles.statLabel}>Total</Text>
                     </View>
-                  </View>
+                  </TouchableOpacity>
 
-                  <View style={styles.statItem}>
+                  <TouchableOpacity style={styles.statItem} activeOpacity={0.8} onPress={() => navigation.navigate('AssetList' as never, {filter: 'assigned', label: 'Assigned' } as never)}>
                     <View style={[styles.statIconWrapper, { backgroundColor: '#f59e0b' }]}>
                       <Icon name="package-variant-closed" size={15} color="#fff" />
                     </View>
@@ -181,11 +181,11 @@ export default function AdminDashboard() {
                       <Text style={styles.statNumber}>{stats.assignedAssets || 0}</Text>
                       <Text style={styles.statLabel}>Assigned</Text>
                     </View>
-                  </View>
+                  </TouchableOpacity>
                 </View>
 
                 <View style={styles.statsRow}>
-                  <View style={styles.statItem}>
+                  <TouchableOpacity style={styles.statItem} onPress={() => navigation.navigate('AssetList' as never, {filter: 'available', label: 'Available' } as never)} activeOpacity={0.8}>
                     <View style={[styles.statIconWrapper, { backgroundColor: '#10b981' }]}>
                       <Icon name="check-circle" size={15} color="#fff" />
                     </View>
@@ -193,9 +193,9 @@ export default function AdminDashboard() {
                       <Text style={styles.statNumber}>{stats.availableAssets || 0}</Text>
                       <Text style={styles.statLabel}>Available</Text>
                     </View>
-                  </View>
+                  </TouchableOpacity>
 
-                  <View style={styles.statItem}>
+                  <TouchableOpacity style={styles.statItem} onPress={() => navigation.navigate('AssetList' as never, {filter: 'maintainance', label: 'Maintenance' } as never)} activeOpacity={0.8}>
                     <View style={[styles.statIconWrapper, { backgroundColor: '#8b5cf6' }]}>
                       <Icon name="wrench" size={15} color="#fff" />
                     </View>
@@ -203,11 +203,11 @@ export default function AdminDashboard() {
                       <Text style={styles.statNumber}>{stats.maintainanceAssets || 0}</Text>
                       <Text style={styles.statLabel}>Maintenance</Text>
                     </View>
-                  </View>
+                  </TouchableOpacity>
                 </View>
               </View>
 
-              <View style={styles.employeeSection}>
+              <TouchableOpacity style={styles.employeeSection} onPress={() => navigation.navigate('EmployeeList' as never)} activeOpacity={0.8}>
                 <View style={styles.employeeItem}>
                   <View style={[styles.employeeIconWrapper, { backgroundColor: '#ec4899' }]}>
                     <Icon name="account-group" size={22} color="#fff" />
@@ -217,7 +217,7 @@ export default function AdminDashboard() {
                     <Text style={styles.employeeLabel}>Employees</Text>
                   </View>
                 </View>
-              </View>
+              </TouchableOpacity>
             </View>
           </View>
         </View>

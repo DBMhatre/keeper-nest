@@ -19,7 +19,7 @@ import EditModal from '../components/EditModal';
 import EditPasswordModal from '../components/EditPasswordModal';
 import * as Keychain from 'react-native-keychain';
 import CustomModal from '../components/CustomModal';
-
+import user from '../assets/images/user.png';
 export default function Profile() {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
@@ -69,9 +69,6 @@ export default function Profile() {
     try {
       const user = await account.get();
       await account.deleteSession('current');
-      // await AsyncStorage.setItem('rememberMe', 'false');
-      // await AsyncStorage.removeItem('userEmail');
-      // await Keychain.resetGenericPassword({ service: 'KeeperNestApp' });
 
       console.log("Logout session: ", user);
       navigation.navigate('Login' as any);
@@ -143,9 +140,7 @@ export default function Profile() {
       <View style={styles.profileCard}>
         <View style={styles.avatarContainer}>
           <Image
-            source={{
-              uri: 'https://drive.google.com/uc?export=view&id=1CPY8C4qvoLeIyYIJjNDYOPC8vdI6ns_D',
-            }}
+            source={user}
             style={styles.avatar}
           />
           <View style={styles.roleBadge}>

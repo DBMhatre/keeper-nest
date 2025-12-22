@@ -24,6 +24,7 @@ import EmployeeList from '../components/EmployeeList';
 import EmployeeDetails from '../components/EmployeeDetails';
 import AssetDetails from '../components/AssetDetails';
 import AssetEmployeeDetails from '../components/AssetEmployeeDetails';
+import EmployeeAssetDetails from '../components/employee/AssetDetails';
 
 const Stack = createNativeStackNavigator();
 
@@ -148,6 +149,7 @@ export default function StackNavigation() {
       <Stack.Screen name="EmployeeDetails" component={EmployeeDetails} options={{ headerShown: false }} />
       <Stack.Screen name="AssetDetails" component={AssetDetails} options={{ headerShown: false }} />
       <Stack.Screen name="AssetEmployeeDetails" component={AssetEmployeeDetails} options={{ headerShown: false }} />
+      <Stack.Screen name="EmployeeAssetDetails" component={EmployeeAssetDetails} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }

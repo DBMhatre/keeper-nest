@@ -13,7 +13,7 @@ import { account, databases } from '../server/appwrite';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Query } from 'appwrite';
 import EmptyComponent from './EmptyComponent';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { Dropdown, TwoDropdowns } from './Dropdown';
 import CustomModal from './CustomModal';
 import { useQuery } from '@tanstack/react-query';
@@ -26,6 +26,7 @@ export default function AssetList() {
     const [name, setName] = useState('');
     const [filteredAsset, setFilteredAsset] = useState([]);
     const navigation = useNavigation();
+    const route = useRoute(); // Get route object
     const [showAlert, setShowAlert] = useState(false);
     const [alertTitle, setAlertTitle] = useState('');
     const [alertMessage, setAlertMessage] = useState('');
@@ -45,6 +46,74 @@ export default function AssetList() {
         showCancel: false,
     });
 
+    // Extract params from route
+    const { label, filter } = route.params || {};
+
+    // Initialize filter based on route params when component mounts
+    useEffect(() => {
+        if (filter) {
+            if (filter === 'all') {
+                setSelectedStatus({ label: 'All Status', value: 'all', icon: 'filter-variant', color: '#6b7280' });
+            } else if (filter === 'assigned') {
+                setSelectedStatus({
+                    label: label || 'Assigned',
+                    value: 'assigned',
+                    icon: 'account-check',
+                    color: '#3b82f6'
+                });
+            } else if (filter === 'available') {
+                setSelectedStatus({
+                    label: 'Available',
+                    value: 'available',
+                    icon: 'check-circle',
+                    color: '#10b981'
+                });
+            } else if (filter === 'maintainance') {
+                setSelectedStatus({
+                    label: 'Maintenance',
+                    value: 'maintainance',
+                    icon: 'tools',
+                    color: '#f59e0b'
+                });
+            }
+        } else {
+            // Default to all status if no filter
+            setSelectedStatus({ label: 'All Status', value: 'all', icon: 'filter-variant', color: '#6b7280' });
+        }
+    }, [filter, label]);
+
+    // Also update when route params change
+    useFocusEffect(
+        useCallback(() => {
+            if (route.params?.filter) {
+                const { filter, label } = route.params;
+                if (filter === 'all') {
+                    setSelectedStatus({ label: 'All Status', value: 'all', icon: 'filter-variant', color: '#6b7280' });
+                } else if (filter === 'assigned') {
+                    setSelectedStatus({
+                        label: label || 'Assigned',
+                        value: 'assigned',
+                        icon: 'account-check',
+                        color: '#3b82f6'
+                    });
+                } else if (filter === 'available') {
+                    setSelectedStatus({
+                        label: 'Available',
+                        value: 'available',
+                        icon: 'check-circle',
+                        color: '#10b981'
+                    });
+                } else if (filter === 'maintainance') {
+                    setSelectedStatus({
+                        label: 'Maintenance',
+                        value: 'maintainance',
+                        icon: 'tools',
+                        color: '#f59e0b'
+                    });
+                }
+            }
+        }, [route.params])
+    );
 
     const toggleViewMode = () => {
         setViewMode(prevMode => prevMode === 'table' ? 'grid' : 'table');
@@ -299,124 +368,130 @@ export default function AssetList() {
                     </View>
                 ) : viewMode === 'table' ? (
                     <View style={styles.tableContainer}>
-                        <ScrollView
-                            horizontal
-                            showsHorizontalScrollIndicator={false}
-                            refreshControl={
-                                <RefreshControl
-                                    refreshing={false}
-                                    onRefresh={onRefresh}
-                                    colors={['#3b82f6']}
-                                    tintColor="#3b82f6"
-                                    progressBackgroundColor="#ffffff"
-                                />
-                            }
-                        >
-                            <View style={styles.tableWrapper}>
-                                <View style={styles.tableHeader}>
-                                    <View style={[styles.headerCell, styles.assetCell]}>
-                                        <Text style={styles.headerText}>Asset</Text>
+                        {filteredAsset.length === 0 ? (
+                            <View style={styles.Emptycontainer}>
+                                <Text style={styles.Emptymessage}>Assets not found</Text>
+                            </View>
+                        ) : (
+                            <ScrollView
+                                horizontal
+                                showsHorizontalScrollIndicator={false}
+                                refreshControl={
+                                    <RefreshControl
+                                        refreshing={false}
+                                        onRefresh={onRefresh}
+                                        colors={['#3b82f6']}
+                                        tintColor="#3b82f6"
+                                        progressBackgroundColor="#ffffff"
+                                    />
+                                }
+                            >
+                                <View style={styles.tableWrapper}>
+                                    <View style={styles.tableHeader}>
+                                        <View style={[styles.headerCell, styles.assetCell]}>
+                                            <Text style={styles.headerText}>Asset</Text>
+                                        </View>
+                                        <View style={[styles.headerCell, styles.typeCell]}>
+                                            <Text style={styles.headerText}>Type</Text>
+                                        </View>
+                                        <View style={[styles.headerCell, styles.notesCell]}>
+                                            <Text style={styles.headerText}>Description</Text>
+                                        </View>
+                                        <View style={[styles.headerCell, styles.statusCell]}>
+                                            <Text style={styles.headerText}>Status</Text>
+                                        </View>
+                                        <View style={[styles.headerCell, styles.assignedCell]}>
+                                            <Text style={styles.headerText}>Assigned To</Text>
+                                        </View>
+                                        <View style={[styles.headerCell, styles.dateCell]}>
+                                            <Text style={styles.headerText}>Purchase Date</Text>
+                                        </View>
+                                        <View style={[styles.headerCell, styles.dateCell]}>
+                                            <Text style={styles.headerText}>Remove Asset</Text>
+                                        </View>
                                     </View>
-                                    <View style={[styles.headerCell, styles.typeCell]}>
-                                        <Text style={styles.headerText}>Type</Text>
-                                    </View>
-                                    <View style={[styles.headerCell, styles.notesCell]}>
-                                        <Text style={styles.headerText}>Description</Text>
-                                    </View>
-                                    <View style={[styles.headerCell, styles.statusCell]}>
-                                        <Text style={styles.headerText}>Status</Text>
-                                    </View>
-                                    <View style={[styles.headerCell, styles.assignedCell]}>
-                                        <Text style={styles.headerText}>Assigned To</Text>
-                                    </View>
-                                    <View style={[styles.headerCell, styles.dateCell]}>
-                                        <Text style={styles.headerText}>Purchase Date</Text>
-                                    </View>
-                                    <View style={[styles.headerCell, styles.dateCell]}>
-                                        <Text style={styles.headerText}>Remove Asset</Text>
-                                    </View>
-                                </View>
 
-                                <ScrollView style={styles.tableBody}>
-                                    {filteredAsset.map((item) => (
-                                        <TouchableOpacity
-                                            key={item.$id}
-                                            style={styles.tableRow}
-                                            onPress={() => navigation.navigate('AssetDetails', { assetId: item.assetId })}
-                                        >
-                                            <View style={[styles.cell, styles.assetCell]}>
-                                                <View style={styles.assetInfo}>
-                                                    <View style={[
-                                                        styles.iconContainer,
-                                                        { backgroundColor: getAssetColor(item.assetType) + "15" }
-                                                    ]}>
-                                                        <Icon
-                                                            name={getAssetIcon(item.assetType)}
-                                                            size={20}
-                                                            color={getAssetColor(item.assetType)}
-                                                        />
-                                                    </View>
-                                                    <View style={styles.assetDetails}>
-                                                        <Text style={styles.assetName} numberOfLines={2}>{item.assetName}</Text>
-                                                        <Text style={styles.assetId} numberOfLines={1}>#{item.assetId}</Text>
+                                    <ScrollView style={styles.tableBody}>
+                                        {filteredAsset.map((item) => (
+                                            <TouchableOpacity
+                                                key={item.$id}
+                                                style={styles.tableRow}
+                                                onPress={() => navigation.navigate('AssetDetails', { assetId: item.assetId })}
+                                            >
+                                                <View style={[styles.cell, styles.assetCell]}>
+                                                    <View style={styles.assetInfo}>
+                                                        <View style={[
+                                                            styles.iconContainer,
+                                                            { backgroundColor: getAssetColor(item.assetType) + "15" }
+                                                        ]}>
+                                                            <Icon
+                                                                name={getAssetIcon(item.assetType)}
+                                                                size={20}
+                                                                color={getAssetColor(item.assetType)}
+                                                            />
+                                                        </View>
+                                                        <View style={styles.assetDetails}>
+                                                            <Text style={styles.assetName} numberOfLines={2}>{item.assetName}</Text>
+                                                            <Text style={styles.assetId} numberOfLines={1}>#{item.assetId}</Text>
+                                                        </View>
                                                     </View>
                                                 </View>
-                                            </View>
 
-                                            <View style={[styles.cell, styles.typeCell]}>
-                                                <Text style={styles.typeText} numberOfLines={2}>{item.assetType}</Text>
-                                            </View>
+                                                <View style={[styles.cell, styles.typeCell]}>
+                                                    <Text style={styles.typeText} numberOfLines={2}>{item.assetType}</Text>
+                                                </View>
 
-                                            <View style={[styles.cell, styles.notesCell]}>
-                                                <Text style={styles.notesText} numberOfLines={2}>
-                                                    {item.description || "No description"}
-                                                </Text>
-                                            </View>
-
-                                            <View style={[styles.cell, styles.statusCell]}>
-                                                <View style={[
-                                                    styles.statusBadge,
-                                                    { backgroundColor: getStatusColor(item.status) + "15" }
-                                                ]}>
-                                                    <View style={[
-                                                        styles.statusDot,
-                                                        { backgroundColor: getStatusColor(item.status) }
-                                                    ]} />
-                                                    <Text style={[
-                                                        styles.statusText,
-                                                        { color: getStatusColor(item.status) }
-                                                    ]}>
-                                                        {item.status === 'Maintainance' ? "Maintenance" : item.status}
+                                                <View style={[styles.cell, styles.notesCell]}>
+                                                    <Text style={styles.notesText} numberOfLines={2}>
+                                                        {item.description || "No description"}
                                                     </Text>
                                                 </View>
-                                            </View>
 
-                                            <View style={[styles.cell, styles.assignedCell]}>
-                                                <Text style={styles.assignedText} numberOfLines={1}>
-                                                    {item.assignedTo === "unassigned" ? "-" : item.assignedTo}
-                                                </Text>
-                                            </View>
+                                                <View style={[styles.cell, styles.statusCell]}>
+                                                    <View style={[
+                                                        styles.statusBadge,
+                                                        { backgroundColor: getStatusColor(item.status) + "15" }
+                                                    ]}>
+                                                        <View style={[
+                                                            styles.statusDot,
+                                                            { backgroundColor: getStatusColor(item.status) }
+                                                        ]} />
+                                                        <Text style={[
+                                                            styles.statusText,
+                                                            { color: getStatusColor(item.status) }
+                                                        ]}>
+                                                            {item.status === 'Maintainance' ? "Maintenance" : item.status}
+                                                        </Text>
+                                                    </View>
+                                                </View>
 
-                                            <View style={[styles.cell, styles.dateCell]}>
-                                                <Text style={styles.dateText}>
-                                                    {new Date(item.purchaseDate).toLocaleDateString()}
-                                                </Text>
-                                            </View>
+                                                <View style={[styles.cell, styles.assignedCell]}>
+                                                    <Text style={styles.assignedText} numberOfLines={1}>
+                                                        {item.assignedTo === "unassigned" ? "-" : item.assignedTo}
+                                                    </Text>
+                                                </View>
 
-                                            <View style={[styles.cell, styles.dateCell]}>
-                                                <TouchableOpacity
-                                                    style={styles.unassignButton}
-                                                    onPress={() => handleRemoveAsset(item.$id, item.assetName, item.status)}
-                                                >
-                                                    <Icon name="link-off" size={16} color="#ef4444" />
-                                                    <Text style={styles.unassignText}>Remove</Text>
-                                                </TouchableOpacity>
-                                            </View>
-                                        </TouchableOpacity>
-                                    ))}
-                                </ScrollView>
-                            </View>
-                        </ScrollView>
+                                                <View style={[styles.cell, styles.dateCell]}>
+                                                    <Text style={styles.dateText}>
+                                                        {new Date(item.purchaseDate).toLocaleDateString()}
+                                                    </Text>
+                                                </View>
+
+                                                <View style={[styles.cell, styles.dateCell]}>
+                                                    <TouchableOpacity
+                                                        style={styles.unassignButton}
+                                                        onPress={() => handleRemoveAsset(item.$id, item.assetName, item.status)}
+                                                    >
+                                                        <Icon name="link-off" size={16} color="#ef4444" />
+                                                        <Text style={styles.unassignText}>Remove</Text>
+                                                    </TouchableOpacity>
+                                                </View>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </ScrollView>
+                                </View>
+                            </ScrollView>
+                        )}
                         <CustomModal
                             show={showAlert}
                             title={alertTitle}
