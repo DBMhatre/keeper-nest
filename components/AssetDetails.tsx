@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, use } from 'react';
 import {
     View,
     Text,
@@ -11,19 +11,24 @@ import {
 } from 'react-native';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { styles } from '../styles/assetDetailsStyles';
+import { createAssetDetailsStyles } from '../styles/assetDetailsStyles';
 import { account, databases } from '../server/appwrite';
 import { ID, Query } from 'appwrite';
 import CustomModal from './CustomModal';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import CustomDropdown from './CustomDropdown';
 import UpdateModal from './UpdateModal';
+import { useTheme } from '../contexts/ThemeContext';
+import { create } from 'lodash';
 
 export default function AssetDetails() {
     const route = useRoute();
     const { assetId } = route.params;
     const navigation = useNavigation();
     const queryClient = useQueryClient();
+
+    const { colors, isDark } = useTheme();
+    const styles = createAssetDetailsStyles(colors);
 
     const [assignedEmployee, setAssignedEmployee] = useState('');
     const [showAlert, setShowAlert] = useState(false);
@@ -321,7 +326,7 @@ export default function AssetDetails() {
             default: return "#6b7280";
         }
     };
-    
+
     const isLoading = isLoadingAsset || isLoadingEmployees;
 
     if (isLoading && !refreshing) {
@@ -448,15 +453,15 @@ export default function AssetDetails() {
 
     return (
         <SafeAreaView style={styles.container}>
-            <ScrollView 
-                showsVerticalScrollIndicator={false} 
+            <ScrollView
+                showsVerticalScrollIndicator={false}
                 refreshControl={
-                    <RefreshControl 
+                    <RefreshControl
                         refreshing={refreshing}
                         onRefresh={onRefresh}
-                        colors={['#3b82f6']}
-                        tintColor="#3b82f6"
-                        progressBackgroundColor="#ffffff"
+                        colors={[colors.primary]}
+                        tintColor={colors.primary}
+                        progressBackgroundColor={colors.background}
                     />
                 }
             >

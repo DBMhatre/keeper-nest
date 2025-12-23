@@ -1,6 +1,7 @@
 import React from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import LottieView from 'lottie-react-native';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface CustomModalProps {
   show: boolean;
@@ -27,6 +28,9 @@ const CustomModal: React.FC<CustomModalProps> = ({
   onCancelPressed,
   showSuccessTick = false, 
 }) => {
+
+  const { colors, isDark } = useTheme();
+  const styles = createModalStyles({ ...colors, isDark });
   
   return (
     <Modal visible={show} transparent animationType="fade">
@@ -68,7 +72,7 @@ const CustomModal: React.FC<CustomModalProps> = ({
   );
 };
 
-const styles = StyleSheet.create({
+export const createModalStyles = (colors) => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -76,11 +80,18 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   container: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
     borderRadius: 12,
     padding: 20,
     margin: 20,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
   },
   animationContainer: {
     marginBottom: 16,
@@ -92,13 +103,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1f2937',
+    color: colors.text,
     textAlign: 'center',
     marginBottom: 8,
   },
   message: {
     fontSize: 14,
-    color: '#6b7280',
+    color: colors.textSecondary,
     lineHeight: 20,
     marginBottom: 20,
     textAlign: 'center',
@@ -114,8 +125,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 6,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: colors.background,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   confirmBtn: {
     flex: 1,
@@ -127,13 +140,23 @@ const styles = StyleSheet.create({
   cancelText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#374151',
+    color: colors.text,
   },
   confirmText: {
     fontSize: 14,
     fontWeight: '500',
     color: '#fff',
   },
+});
+
+export const modalStyles = createModalStyles({
+  background: '#f8fafc',
+  surface: '#ffffff',
+  text: '#1f2937',
+  textSecondary: '#6b7280',
+  primary: '#3b82f6',
+  border: '#e5e7eb',
+  isDark: false,
 });
 
 export default CustomModal;

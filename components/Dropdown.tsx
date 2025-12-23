@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, ScrollView, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useTheme } from '../contexts/ThemeContext';
 
 const Dropdown = ({ 
   label = "Select Option",
@@ -10,6 +11,9 @@ const Dropdown = ({
   style 
 }) => {
   const [visible, setVisible] = useState(false);
+
+  const { colors, isDark } = useTheme();
+  const styles = createDropdownStyles({ ...colors, isDark });
 
   return (
     <View style={[styles.dropdownWrapper, style]}>
@@ -131,10 +135,10 @@ const TwoDropdowns = () => {
   );
 };
 
-const styles = StyleSheet.create({
+export const createDropdownStyles = (colors) => StyleSheet.create({
   dropcontainer: {
     padding: 20,
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     marginHorizontal: 16,
     marginTop: 16,
@@ -144,11 +148,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 5,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#1f2937',
+    color: colors.text,
     marginBottom: 20,
     textAlign: 'center',
   },
@@ -166,16 +172,16 @@ const styles = StyleSheet.create({
   dropdownLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#374151',
+    color: colors.text,
     marginBottom: 8,
   },
   dropdownButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface,
     borderWidth: 1.5,
-    borderColor: '#e5e7eb',
+    borderColor: colors.border,
     borderRadius: 12,
     paddingHorizontal: 8,
     paddingVertical: 14,
@@ -196,7 +202,7 @@ const styles = StyleSheet.create({
   dropdownButtonText: {
     fontSize: 11,
     fontWeight: '500',
-    color: '#1f2937',
+    color: colors.text,
   },
   modalOverlay: {
     flex: 1,
@@ -206,7 +212,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   dropdownMenu: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     maxHeight: 300,
     width: '80%',
@@ -216,7 +222,7 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
     elevation: 8,
     borderWidth: 1,
-    borderColor: '#f3f4f6',
+    borderColor: colors.border,
   },
   dropdownScroll: {
     borderRadius: 12,
@@ -227,10 +233,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: colors.border,
   },
   dropdownItemSelected: {
-    backgroundColor: '#eff6ff',
+    backgroundColor: colors.isDark ? '#2d3748' : '#eff6ff',
   },
   optionIcon: {
     marginRight: 12,
@@ -239,13 +245,22 @@ const styles = StyleSheet.create({
   dropdownItemText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#374151',
+    color: colors.text,
     flex: 1,
   },
   dropdownItemTextSelected: {
-    color: '#3b82f6',
+    color: colors.primary,
     fontWeight: '600',
   },
+});
+
+export const dropdownStyles = createDropdownStyles({
+  background: '#f8fafc',
+  surface: '#ffffff',
+  text: '#1f2937',
+  primary: '#3b82f6',
+  border: '#e5e7eb',
+  isDark: false,
 });
 
 export {    TwoDropdowns, Dropdown  };

@@ -15,9 +15,9 @@ import {
 import { account, databases } from '../server/appwrite';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { styles } from '../styles/employeeDashboardStyles';
 import { Query } from 'appwrite';
 import sticker from '../assets/images/logo_app.png'
+import { useTheme } from '../contexts/ThemeContext';
 
 export default function EmployeeDashboard() {
   const [employeeDetails, setEmployeeDetails] = useState(null);
@@ -26,7 +26,8 @@ export default function EmployeeDashboard() {
   const [assignedAssets, setAssignedAssets] = useState([]);
   const navigation = useNavigation();
   const route = useRoute();
-
+  const { colors, isDark, toggleTheme } = useTheme();
+  const styles = require('../styles/employeeDashboardStyles').createDashboardStyles(colors);
   const fetchUserAndAssets = async () => {
     try {
       const user = await account.get();
@@ -89,8 +90,9 @@ export default function EmployeeDashboard() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={['#3b82f6']}
-            tintColor="#3b82f6"
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+            progressBackgroundColor={colors.background}
           />
         }
         showsVerticalScrollIndicator={false}
@@ -104,6 +106,15 @@ export default function EmployeeDashboard() {
               />
             </View>
             <Text style={styles.appTitle}>KeeperNest</Text>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center' }}>
+            <TouchableOpacity onPress={toggleTheme}>
+              <Icon
+                name={isDark ? 'white-balance-sunny' : 'weather-night'}
+                size={24}
+                color={colors.primary}
+              />
+            </TouchableOpacity>
           </View>
         </View>
         <View style={styles.welcomeSection}>

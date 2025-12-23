@@ -1,12 +1,13 @@
 import { StyleSheet } from 'react-native';
+import { Colors } from 'react-native/Libraries/NewAppScreen';
 
-export const styles = StyleSheet.create({
+export const createStyles = (colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8fafc",
+    backgroundColor: colors.background,
   },
   header: {
-    backgroundColor: "#ffffff",
+    backgroundColor: colors.surface,
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 16,
@@ -30,16 +31,16 @@ export const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#1f2937',
+    color: colors.text,
     marginLeft: 13,
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#6b7280',
+    color: colors.textSecondary,
     marginLeft: 41,
   },
   card: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     marginHorizontal: 16,
     marginTop: 20,
@@ -50,7 +51,7 @@ export const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 5,
     borderWidth: 1,
-    borderColor: '#f1f5f9',
+    borderColor: colors.surface,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -71,17 +72,17 @@ export const styles = StyleSheet.create({
   assetName: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1f2937',
+    color: colors.text,
     marginBottom: 4,
   },
   assetId: {
     fontSize: 14,
-    color: '#6b7280',
+    color: colors.textSecondary,
     fontWeight: '500',
   },
   divider: {
     height: 1,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: colors.surface,
     marginVertical: 16,
   },
   detailsSection: {
@@ -102,7 +103,7 @@ export const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: 14,
-    color: '#6b7280',
+    color: colors.textSecondary,
     fontWeight: '500',
     marginLeft: 10,
   },
@@ -118,19 +119,19 @@ export const styles = StyleSheet.create({
   detailValue: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1f2937',
+    color: colors.text,
     textAlign: 'right',
   },
   descriptionValue: {
     fontSize: 14,
-    color: '#4b5563',
+    color: colors.textSecondary,
     lineHeight: 20,
   },
   backButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#3b82f6',
+    backgroundColor: colors.primary,
     paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 12,
@@ -143,4 +144,14 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#ffffff',
   },
+});
+
+export const assetDetailsStyles = createStyles({
+  background: '#f8fafc',
+  surface: '#ffffff',
+  text: '#1f2937',
+  textSecondary: '#6b7280',
+  primary: '#3b82f6',
+  border: '#e5e7eb',
+  isDark: false,
 });

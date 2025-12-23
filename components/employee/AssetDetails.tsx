@@ -1,13 +1,16 @@
 import { ScrollView, Text, View, TouchableOpacity } from 'react-native'
-import { styles } from './assetDetailsStyles'
+import { createStyles, styles } from './assetDetailsStyles'
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import React from 'react';
+import { useTheme } from '../../contexts/ThemeContext';
 
 export default function EmployeeAssetDetails() {
   const navigation = useNavigation();
   const route = useRoute();
   const { asset } = route.params as { asset: any };
+  const {colors} = useTheme();
+  const styles = createStyles(colors);
 
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
@@ -83,7 +86,6 @@ export default function EmployeeAssetDetails() {
           <View style={styles.divider} />
 
           <View style={styles.detailsSection}>
-            {/* Asset Type */}
             <View style={styles.detailRow}>
               <View style={styles.detailLabelContainer}>
                 <Icon name="tag-outline" size={18} color="#6b7280" />

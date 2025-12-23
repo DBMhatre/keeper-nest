@@ -2,10 +2,10 @@ import { StyleSheet, Dimensions } from "react-native";
 
 const { width, height } = Dimensions.get('window');
 
-export const styles = StyleSheet.create({
+export const createStyles = (colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: colors.surface, 
   },
   scrollView: {
     flex: 1,
@@ -14,17 +14,17 @@ export const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f8fafc',
+    backgroundColor: colors.background, // CHANGED
   },
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: '#6b7280',
+    color: colors.textSecondary, // CHANGED
     fontWeight: '500',
   },
 
   topHeader: {
-    backgroundColor: "#ffffff",
+    backgroundColor: colors.surface, // CHANGED
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -44,10 +44,10 @@ export const styles = StyleSheet.create({
     height: 42,
     borderRadius: 30, 
     borderWidth: 2,
-    borderColor: '#3b82f6',
+    borderColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'white', 
+    backgroundColor: colors.surface, 
   },
   
   circleImage: {
@@ -61,7 +61,7 @@ export const styles = StyleSheet.create({
   appTitle: {
     fontSize: 24,
     fontWeight: '800',
-    color: '#3b82f6',
+    color: colors.primary, // CHANGED
     marginLeft: 15,
     letterSpacing: 0.5,
   },
@@ -69,15 +69,15 @@ export const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#eff6ff',
+    backgroundColor: colors.surface, // KEEP ORIGINAL
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#dbeafe',
+    borderColor: colors.primary, // KEEP ORIGINAL
   },
 
   welcomeSection: {
-    backgroundColor: "#ffffff",
+    backgroundColor: colors.surface, // CHANGED
     marginHorizontal: 20,
     marginTop: 20,
     borderRadius: 20,
@@ -91,38 +91,37 @@ export const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
     borderWidth: 1,
-    borderColor: '#f1f5f9',
+    borderColor: colors.border, // CHANGED
   },
   welcomeContent: {
     flex: 1,
   },
   welcomeText: {
     fontSize: 16,
-    color: '#6b7280',
+    color: colors.textSecondary, // CHANGED
     marginBottom: 4,
   },
   userName: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1f2937',
+    color: colors.text, // CHANGED
     marginBottom: 2,
   },
   userEmail: {
     fontSize: 14,
-    color: '#9ca3af',
+    color: colors.textSecondary, // CHANGED
   },
   welcomeIllustration: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#eff6ff',
+    backgroundColor: colors.surface, // KEEP ORIGINAL
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
-    borderColor: '#dbeafe',
+    borderColor: colors.primary, 
   },
 
-  // Section Styles
   section: {
     paddingHorizontal: 20,
     marginTop: 25,
@@ -136,15 +135,15 @@ export const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#1f2937',
+    color: colors.text, 
   },
   seeAllText: {
     fontSize: 14,
-    color: '#3b82f6',
+    color: colors.primary, 
     fontWeight: '600',
   },
 
-  // Overview Section
+  // Overview Section - ONLY BACKGROUNDS AND TEXT
 overviewContainer: {
   backgroundColor: 'transparent',
   paddingHorizontal: 15,
@@ -153,14 +152,14 @@ overviewContainer: {
 overviewTitle: {
   fontSize: 20,
   fontWeight: '700',
-  color: '#1f2937',
+  color: colors.text, // CHANGED
   marginBottom: 20,
   textAlign: 'left',
 },
 
-// Stats Grid
+// Stats Grid - ONLY BACKGROUND
 statsGrid: {
-  backgroundColor: '#ffffff',
+  backgroundColor: colors.surface, // CHANGED
   borderRadius: 20,
   padding: 6,
   paddingTop: 20,
@@ -170,7 +169,7 @@ statsGrid: {
   shadowRadius: 12,
   elevation: 5,
   borderWidth: 1,
-  borderColor: '#f1f5f9',
+  borderColor: colors.border, // CHANGED
 },
 
 // Main Row Layout
@@ -215,22 +214,22 @@ statContent: {
 statNumber: {
   fontSize: 18,
   fontWeight: '800',
-  color: '#1f2937',
+  color: colors.text, // CHANGED
   marginBottom: 2,
 },
 statLabel: {
   fontSize: 10,
-  color: '#6b7280',
+  color: colors.textSecondary, // CHANGED
   fontWeight: '500',
 },
 
-// Right Side - Employees (Spanning 2 rows)
+// Right Side - Employees
 employeeSection: {
   flex: 1,
   justifyContent: 'center',
   alignItems: 'center',
   borderLeftWidth: 1,
-  borderLeftColor: '#f3f4f6',
+  borderLeftColor: colors.border, // CHANGED
   paddingLeft: 4,
 },
 employeeItem: {
@@ -255,12 +254,12 @@ employeeContent: {
 employeeNumber: {
   fontSize: 21,
   fontWeight: '800',
-  color: '#1f2937',
+  color: colors.text, // CHANGED
   marginBottom: 4,
 },
 employeeLabel: {
   fontSize: 11,
-  color: '#6b7280',
+  color: colors.textSecondary, // CHANGED
   fontWeight: '600',
   textAlign: 'center',
 },
@@ -272,7 +271,7 @@ employeeLabel: {
     marginTop: 10,
   },
   quickActionCard: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface, // CHANGED
     borderRadius: 16,
     padding: 20,
     width: '48%',
@@ -284,7 +283,7 @@ employeeLabel: {
     shadowRadius: 6,
     elevation: 3,
     borderWidth: 1,
-    borderColor: '#f1f5f9',
+    borderColor: colors.border, // CHANGED
   },
   actionIconContainer: {
     width: 60,
@@ -297,20 +296,20 @@ employeeLabel: {
   actionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1f2937',
+    color: colors.text, // CHANGED
     textAlign: 'center',
     marginBottom: 4,
   },
   actionDescription: {
     fontSize: 12,
-    color: '#6b7280',
+    color: colors.textSecondary, // CHANGED
     textAlign: 'center',
     lineHeight: 16,
   },
 
   // Activity Section
   activityCard: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface, // CHANGED
     borderRadius: 16,
     padding: 20,
     shadowColor: '#000',
@@ -319,14 +318,14 @@ employeeLabel: {
     shadowRadius: 6,
     elevation: 3,
     borderWidth: 1,
-    borderColor: '#f1f5f9',
+    borderColor: colors.border, // CHANGED
   },
   activityItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: colors.border, // CHANGED
   },
   activityIcon: {
     width: 40,
@@ -342,30 +341,30 @@ employeeLabel: {
   activityTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#1f2937',
+    color: colors.text, // CHANGED
     marginBottom: 2,
   },
   activityTime: {
     fontSize: 12,
-    color: '#9ca3af',
+    color: colors.textSecondary, // CHANGED
   },
 
-  // Logout Button
+  // Logout Button - KEEP ORIGINAL COLORS
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fef2f2',
+    backgroundColor: '#fef2f2', // KEEP
     marginHorizontal: 20,
     marginTop: 20,
     marginBottom: 30,
     paddingVertical: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#fecaca',
+    borderColor: '#fecaca', // KEEP
   },
   logoutText: {
-    color: '#ef4444',
+    color: '#ef4444', // KEEP
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
@@ -375,22 +374,22 @@ employeeLabel: {
     justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: 16,
-    backgroundColor: '#f8fafc',
+    backgroundColor: colors.background, // CHANGED
     marginHorizontal: 16,
     marginBottom: 16,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.border, // CHANGED
   },
   refreshText: {
     marginLeft: 8,
     fontSize: 14,
-    color: '#6b7280',
+    color: colors.textSecondary, // CHANGED
     fontWeight: '500',
   },
   mainStatCard: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface, // CHANGED
     padding: 20,
     borderRadius: 16,
     shadowColor: '#000',
@@ -399,7 +398,7 @@ employeeLabel: {
     shadowRadius: 12,
     elevation: 5,
     borderWidth: 1,
-    borderColor: '#f1f5f9',
+    borderColor: colors.border, // CHANGED
   },
   mainStatContent: {
     flexDirection: 'row',
@@ -420,29 +419,39 @@ employeeLabel: {
   mainStatValue: {
     fontSize: 32,
     fontWeight: '700',
-    color: '#1f2937',
+    color: colors.text, // CHANGED
     marginBottom: 4,
   },
   mainStatTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#6b7280',
+    color: colors.textSecondary, // CHANGED
   },
   mainStatButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#3b82f6' + '10',
+    backgroundColor: colors.primary + '10',
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#3b82f6' + '20',
+    borderColor: colors.primary + '20',
   },
   mainStatButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#3b82f6',
+    color: colors.primary,
     marginRight: 6,
   },
+});
+
+export const styles = createStyles({
+  background: '#f8fafc',
+  surface: '#ffffff',
+  text: '#1f2937',
+  textSecondary: '#6b7280',
+  textTertiary: '#9ca3af',
+  primary: '#3b82f6',
+  border: '#e5e7eb',
 });

@@ -7,6 +7,8 @@ import {
     StyleSheet,
     Dimensions,
 } from 'react-native';
+import { useTheme } from '../contexts/ThemeContext';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const { width, height } = Dimensions.get('window');
 
@@ -29,6 +31,12 @@ const ExitAppModal: React.FC<ExitAppModalProps> = ({
     confirmText = "Exit",
     cancelText = "Cancel"
 }) => {
+    const { colors, isDark } = useTheme();
+    const styles = createConfirmationModalStyles({ ...colors, isDark });
+    
+    // Get button color for confirm button
+    const confirmButtonColor = isDark ? '#dc2626' : '#ef4444';
+    
     return (
         <Modal
             animationType="fade"
@@ -38,6 +46,7 @@ const ExitAppModal: React.FC<ExitAppModalProps> = ({
         >
             <View style={styles.overlay}>
                 <View style={styles.modalContainer}>
+                    
                     <Text style={styles.title}>{title}</Text>
                     <Text style={styles.message}>{message}</Text>
                     <View style={styles.buttonsContainer}>
@@ -52,7 +61,7 @@ const ExitAppModal: React.FC<ExitAppModalProps> = ({
                         </TouchableOpacity>
 
                         <TouchableOpacity
-                            style={[styles.button, styles.confirmButton]}
+                            style={[styles.button, styles.confirmButton, { backgroundColor: confirmButtonColor }]}
                             onPress={onConfirm}
                             activeOpacity={0.8}
                         >
@@ -67,7 +76,7 @@ const ExitAppModal: React.FC<ExitAppModalProps> = ({
     );
 };
 
-const styles = StyleSheet.create({
+const createConfirmationModalStyles = (colors) => StyleSheet.create({
     overlay: {
         flex: 1,
         backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -76,7 +85,7 @@ const styles = StyleSheet.create({
         padding: 20,
     },
     modalContainer: {
-        backgroundColor: '#ffffff',
+        backgroundColor: colors.surface,
         borderRadius: 16,
         padding: 20,
         width: width * 0.8,
@@ -90,28 +99,28 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.2,
         shadowRadius: 8,
         elevation: 5,
+        borderWidth: 1,
+        borderColor: colors.border,
     },
     iconContainer: {
         width: 60,
         height: 60,
         borderRadius: 30,
-        backgroundColor: '#fef2f2',
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 12,
         borderWidth: 1.5,
-        borderColor: '#fecaca',
     },
     title: {
         fontSize: 18,
         fontWeight: '700',
-        color: '#1f2937',
+        color: colors.text,
         textAlign: 'center',
         marginBottom: 6,
     },
     message: {
         fontSize: 14,
-        color: '#6b7280',
+        color: colors.textSecondary,
         textAlign: 'center',
         lineHeight: 20,
         marginBottom: 20,
@@ -132,19 +141,18 @@ const styles = StyleSheet.create({
         borderWidth: 1.5,
     },
     cancelButton: {
-        backgroundColor: '#f8fafc',
-        borderColor: '#e5e7eb',
+        backgroundColor: colors.background,
+        borderColor: colors.border,
     },
     confirmButton: {
-        backgroundColor: '#ef4444',
-        borderColor: '#ef4444',
+        borderColor: colors.isDark ? '#dc2626' : '#ef4444',
     },
     buttonText: {
         fontSize: 14,
         fontWeight: '600',
     },
     cancelButtonText: {
-        color: '#6b7280',
+        color: colors.textSecondary,
     },
     confirmButtonText: {
         color: '#ffffff',

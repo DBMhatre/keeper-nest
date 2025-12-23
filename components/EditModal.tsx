@@ -9,6 +9,8 @@ import {
   StyleSheet,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useTheme } from '../contexts/ThemeContext';
+import CustomDropdown from './CustomDropdown';
 
 interface EditModalProps {
   visible: boolean;
@@ -23,7 +25,9 @@ export default function EditModal({
   onSave,
   currentData,
 }: EditModalProps) {
-  
+  const { colors, isDark } = useTheme();
+  const styles = createEditModalStyles({ ...colors, isDark });
+
   const [name, setName] = useState(currentData.name);
   const [gender, setGender] = useState(currentData.gender);
   const [loading, setLoading] = useState(false);
@@ -33,12 +37,12 @@ export default function EditModal({
   }, [currentData]);
 
   const handleSave = async () => {
-    try{
-       setLoading(true);
-       await onSave({ name, gender });
-    }catch(err){
+    try {
+      setLoading(true);
+      await onSave({ name, gender });
+    } catch (err) {
       console.log(err);
-    }finally{
+    } finally {
       setLoading(false);
     }
   };
@@ -50,7 +54,7 @@ export default function EditModal({
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Edit Profile</Text>
             <TouchableOpacity onPress={onClose}>
-              <Icon name="close" size={22} color="#333" />
+              <Icon name="close" size={22} color={colors.text} />
             </TouchableOpacity>
           </View>
 
@@ -63,16 +67,16 @@ export default function EditModal({
           />
           <View style={styles.pickerContainer}>
             <View style={styles.pickerWrapper}>
-              <Picker
+              <CustomDropdown
+                data={[
+                  { label: "Male", value: "Male" },
+                  { label: "Female", value: "Female" },
+                ]}
                 selectedValue={gender}
-                onValueChange={(itemValue) => setGender(itemValue)}
-                style={styles.picker}
-                dropdownIconColor="#007bff"
-              >
-                <Picker.Item label="Select Gender" value="" />
-                <Picker.Item label="Male" value="Male" />
-                <Picker.Item label="Female" value="Female" />
-              </Picker>
+                onValueChange={(value) => setGender(value)}
+                placeholder="Select Gender"
+                searchable={false}
+              />
             </View>
           </View>
 
@@ -86,7 +90,7 @@ export default function EditModal({
   );
 }
 
-const styles = StyleSheet.create({
+export const createEditModalStyles = (colors) => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.4)',
@@ -94,35 +98,55 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     width: '85%',
     borderRadius: 15,
     padding: 20,
     elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    paddingBottom: 10,
   },
-  modalTitle: { fontSize: 18, fontWeight: '700', color: '#007bff' },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.primary
+  },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: colors.border,
     borderRadius: 10,
     padding: 10,
     marginVertical: 8,
     fontSize: 16,
+    color: colors.text,
+    backgroundColor: colors.surface,
   },
   saveButton: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#007bff',
+    backgroundColor: colors.primary,
     paddingVertical: 12,
     borderRadius: 25,
     marginTop: 10,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 4,
   },
   saveText: {
     color: '#fff',
@@ -135,19 +159,52 @@ const styles = StyleSheet.create({
   },
   pickerLabel: {
     fontSize: 15,
-    color: '#555',
+    color: colors.text,
     marginBottom: 5,
+    fontWeight: '500',
   },
   pickerWrapper: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: colors.border,
     borderRadius: 10,
+    padding: 10,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
     overflow: 'hidden',
+    backgroundColor: colors.surface,
   },
   picker: {
-    color: '#333',
+    color: colors.text,
   },
   disabledButton: {
     opacity: 0.6,
+    backgroundColor: colors.textSecondary,
   },
+  closeButton: {
+    padding: 6,
+    borderRadius: 20,
+    backgroundColor: colors.background,
+  },
+  inputLabel: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: 4,
+    fontWeight: '500',
+  },
+  errorText: {
+    fontSize: 12,
+    color: colors.isDark ? '#f87171' : '#ef4444',
+    marginTop: 2,
+    marginLeft: 4,
+  },
+});
+
+export const editModalStyles = createEditModalStyles({
+  background: '#f8fafc',
+  surface: '#ffffff',
+  text: '#1f2937',
+  textSecondary: '#6b7280',
+  primary: '#3b82f6',
+  border: '#e5e7eb',
+  isDark: false,
 });

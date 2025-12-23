@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { styles } from '../styles/employeeDetailsStyles';
+import { createEmployeeDetailsStyles, styles } from '../styles/employeeDetailsStyles';
 import { account, databases, functions } from '../server/appwrite';
 import { ID, Query } from 'appwrite';
 import CustomModal from './CustomModal';
@@ -21,6 +21,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import CustomDropdown from './CustomDropdown';
 import MaleImage from '../assets/images/man.png';
 import FemaleImage from '../assets/images/woman.png';
+import { useTheme } from '../contexts/ThemeContext';
 
 export default function EmployeeDetails() {
   const route = useRoute();
@@ -44,6 +45,8 @@ export default function EmployeeDetails() {
     showCancel: false,
   });
 
+  const { colors, isDark } = useTheme();
+  const styles = createEmployeeDetailsStyles({ ...colors, isDark });
   const showModal = (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info', onConfirm: (() => void) | null = null, confirmText: string = 'OK', showCancel: boolean = false) => {
     setModalConfig({
       title,
@@ -275,11 +278,13 @@ export default function EmployeeDetails() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={
+
           <RefreshControl
             refreshing={isRefetchingAssignedAssets}
             onRefresh={refetchAssignedAssets}
-            colors={['#3b82f6']}
-            tintColor="#3b82f6"
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+            progressBackgroundColor={colors.background}
           />
         }
       >

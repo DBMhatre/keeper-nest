@@ -23,19 +23,21 @@ import AssetList from '../components/AssetList';
 import EmployeeList from '../components/EmployeeList';
 import EmployeeDetails from '../components/EmployeeDetails';
 import AssetDetails from '../components/AssetDetails';
-import AssetEmployeeDetails from '../components/AssetEmployeeDetails';
+// import AssetEmployeeDetails from '../components/AssetEmployeeDetails';
 import EmployeeAssetDetails from '../components/employee/AssetDetails';
-
+import { useTheme } from '../contexts/ThemeContext';
 const Stack = createNativeStackNavigator();
 
 export default function StackNavigation() {
   const [initialRoute, setInitialRoute] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
   
   const rotateAnim = useRef(new Animated.Value(0)).current;
-
+  const {colors, isDark, toggleTheme} = useTheme();
+  // useNavigationBarColor(colors.surface, isDark);
+  const styles = createLoadingStyles(colors);
   useEffect(() => {
-    // Start rotating animation
     Animated.loop(
       Animated.timing(rotateAnim, {
         toValue: 1,
@@ -148,18 +150,18 @@ export default function StackNavigation() {
       <Stack.Screen name="EmployeeTabs" component={EmployeeTabs} options={{ headerShown: false }} />
       <Stack.Screen name="EmployeeDetails" component={EmployeeDetails} options={{ headerShown: false }} />
       <Stack.Screen name="AssetDetails" component={AssetDetails} options={{ headerShown: false }} />
-      <Stack.Screen name="AssetEmployeeDetails" component={AssetEmployeeDetails} options={{ headerShown: false }} />
+      {/* <Stack.Screen name="AssetEmployeeDetails" component={AssetEmployeeDetails} options={{ headerShown: false }} /> */}
       <Stack.Screen name="EmployeeAssetDetails" component={EmployeeAssetDetails} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
 
-const styles = StyleSheet.create({
+const createLoadingStyles = (colors) => StyleSheet.create({
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.background,
   },
   imageContainer: {
     position: 'relative',
@@ -186,7 +188,7 @@ const styles = StyleSheet.create({
     height: 180,
     borderRadius: 90,
     borderWidth: 3,
-    borderColor: '#3b82f6',
+    borderColor: colors.primary,
     borderTopColor: 'transparent',
     borderRightColor: 'transparent',
     borderBottomColor: 'transparent',
@@ -194,7 +196,13 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#3b82f6',
+    color: colors.primary,
     letterSpacing: 1,
   },
+});
+
+// For backward compatibility
+const loadingStyles = createLoadingStyles({
+  background: '#f8fafc',
+  primary: '#3b82f6',
 });

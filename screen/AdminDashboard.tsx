@@ -8,20 +8,18 @@ import {
   ActivityIndicator,
   RefreshControl,
   Image,
-  BackHandler,
-  Alert,
   StatusBar,
 } from 'react-native';
 import { account, databases } from '../server/appwrite';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { styles } from '../styles/adminDashboardStyles';
+import { createStyles } from '../styles/adminDashboardStyles'; // CHANGED
 import { Query } from 'appwrite';
-import sticker from '../assets/images/logo_app.png'
-
+import sticker from '../assets/images/logo_app.png';
+import { useTheme } from '../contexts/ThemeContext'; // ADD THIS
 
 export default function AdminDashboard() {
+  const { colors, isDark, toggleTheme } = useTheme(); // ADD THIS
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(true);
@@ -80,7 +78,6 @@ export default function AdminDashboard() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-
     try {
       await fetchUserAndStats();
     } catch (error) {
@@ -89,6 +86,9 @@ export default function AdminDashboard() {
       setRefreshing(false);
     }
   };
+
+  // Use themed styles
+  const styles = createStyles(colors); // CHANGED
 
   const QuickAction = ({ title, icon, color, onPress, description }) => (
     <TouchableOpacity style={styles.quickActionCard} onPress={onPress} activeOpacity={0.8}>
@@ -111,18 +111,21 @@ export default function AdminDashboard() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#3b82f6" />
+      <StatusBar 
+        barStyle={isDark ? "light-content" : "dark-content"}
+        backgroundColor='#3b82f6'
+      />
 
       <ScrollView
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={['#3b82f6']}
-            tintColor="#3b82f6"
-            progressBackgroundColor="#ffffff"
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+            progressBackgroundColor={colors.surface}
             title={refreshing ? "Refreshing..." : "Pull to refresh"}
-            titleColor="#6b7280"
+            titleColor={colors.textSecondary}
           />
         }
         showsVerticalScrollIndicator={false}
@@ -139,9 +142,16 @@ export default function AdminDashboard() {
             </View>
             <Text style={styles.appTitle}>KeeperNest</Text>
           </View>
+          <View style={{flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center'}}>
+            <TouchableOpacity onPress={toggleTheme}>
+              <Icon
+                name={isDark ? 'white-balance-sunny' : 'weather-night'} 
+                size={24}
+                color={colors.primary}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
-
-
 
         <View style={styles.welcomeSection}>
           <View style={styles.welcomeContent}>
@@ -153,9 +163,10 @@ export default function AdminDashboard() {
             style={styles.welcomeIllustration}
             onPress={() => navigation.navigate('Profile' as never)}
           >
-            <Icon name="account-circle" size={65} color="#3b82f6" />
+            <Icon name="account-circle" size={65} color={colors.primary} />
           </TouchableOpacity>
         </View>
+        
         <View style={styles.overviewContainer}>
           <Text style={[styles.sectionTitle, { paddingBottom: 10 }]}>Overview</Text>
 
@@ -163,7 +174,7 @@ export default function AdminDashboard() {
             <View style={styles.mainRow}>
               <View style={styles.leftStats}>
                 <View style={styles.statsRow}>
-                  <TouchableOpacity style={styles.statItem} onPress={() => navigation.navigate('AssetList' as never, {filter: 'all', label: 'All Status' } as never)} activeOpacity={0.8}>
+                  <TouchableOpacity style={styles.statItem} onPress={() => navigation.navigate('AssetList' as never, {filter: 'all' } as never)} activeOpacity={0.8}>
                     <View style={[styles.statIconWrapper, { backgroundColor: '#3b82f6' }]}>
                       <Icon name="package-variant" size={15} color="#fff" />
                     </View>
@@ -185,7 +196,7 @@ export default function AdminDashboard() {
                 </View>
 
                 <View style={styles.statsRow}>
-                  <TouchableOpacity style={styles.statItem} onPress={() => navigation.navigate('AssetList' as never, {filter: 'available', label: 'Available' } as never)} activeOpacity={0.8}>
+                  <TouchableOpacity style={styles.statItem} onPress={() => navigation.navigate('AssetList' as never, {filter: 'available' } as never)} activeOpacity={0.8}>
                     <View style={[styles.statIconWrapper, { backgroundColor: '#10b981' }]}>
                       <Icon name="check-circle" size={15} color="#fff" />
                     </View>
@@ -195,7 +206,7 @@ export default function AdminDashboard() {
                     </View>
                   </TouchableOpacity>
 
-                  <TouchableOpacity style={styles.statItem} onPress={() => navigation.navigate('AssetList' as never, {filter: 'maintainance', label: 'Maintenance' } as never)} activeOpacity={0.8}>
+                  <TouchableOpacity style={styles.statItem} onPress={() => navigation.navigate('AssetList' as never, {filter: 'maintainance' } as never)} activeOpacity={0.8}>
                     <View style={[styles.statIconWrapper, { backgroundColor: '#8b5cf6' }]}>
                       <Icon name="wrench" size={15} color="#fff" />
                     </View>
@@ -207,7 +218,7 @@ export default function AdminDashboard() {
                 </View>
               </View>
 
-              <TouchableOpacity style={styles.employeeSection} onPress={() => navigation.navigate('EmployeeList' as never)} activeOpacity={0.8}>
+              <View style={styles.employeeSection}>
                 <View style={styles.employeeItem}>
                   <View style={[styles.employeeIconWrapper, { backgroundColor: '#ec4899' }]}>
                     <Icon name="account-group" size={22} color="#fff" />
@@ -217,7 +228,7 @@ export default function AdminDashboard() {
                     <Text style={styles.employeeLabel}>Employees</Text>
                   </View>
                 </View>
-              </TouchableOpacity>
+              </View>
             </View>
           </View>
         </View>
@@ -255,13 +266,6 @@ export default function AdminDashboard() {
             />
           </View>
         </View>
-
-        {refreshing && (
-          <View style={styles.refreshIndicator}>
-            <ActivityIndicator size="small" color="#3b82f6" />
-            <Text style={styles.refreshText}>Updating dashboard...</Text>
-          </View>
-        )}
       </ScrollView>
     </SafeAreaView>
   );

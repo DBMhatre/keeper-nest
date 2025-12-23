@@ -9,10 +9,12 @@ import { account } from '../server/appwrite';
 import AdminDashboard from '../screen/AdminDashboard';
 import Profile from '../screen/Profile';
 import ExitAppModal from '../components/ExitAppModal';
+import { useTheme } from '../contexts/ThemeContext';
 const Tab = createBottomTabNavigator();
 
 export default function AdminTabs() {
   const navigation = useNavigation();
+  const { colors, isDark, toggleTheme } = useTheme(); 
   const [showExitModal, setShowExitModal] = useState(false);
   useEffect(() => {
     const checkUserSession = async () => {
@@ -67,9 +69,9 @@ export default function AdminTabs() {
         tabBarActiveTintColor: '#007bff',
         tabBarInactiveTintColor: '#94a3b8',
         tabBarStyle: {
-          backgroundColor: '#ffffff',
+          backgroundColor: colors.background,
           borderTopWidth: 1,
-          borderTopColor: '#e2e8f0',
+          borderTopColor: colors.surface,
           height: 60,
           paddingBottom: 8,
           paddingTop: 4,

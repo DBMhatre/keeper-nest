@@ -14,8 +14,9 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { databases } from '../server/appwrite';
-import { styles } from '../styles/updateModalStyles';
 import CustomModal from './CustomModal';
+import { useTheme } from '../contexts/ThemeContext';
+import { createAssetFormModalStyles } from '../styles/updateModalStyles';
 
 const { width, height } = Dimensions.get('window');
 
@@ -24,6 +25,9 @@ export default function UpdateModal({ asset, visible, onClose }) {
     const [assetName, setAssetName] = useState('');
     const [assetId, setAssetId] = useState('');
     const [description, setDescription] = useState('');
+
+    const {colors, isDark } = useTheme();  
+    const styles = createAssetFormModalStyles({ ...colors, isDark });
     
     const [showAlert, setShowAlert] = useState(false);
     const [alertTitle, setAlertTitle] = useState('');
@@ -206,4 +210,8 @@ export default function UpdateModal({ asset, visible, onClose }) {
             />
         </Modal>
     );
+}
+
+function createUpdateModalStyles(arg0: any) {
+    throw new Error('Function not implemented.');
 }

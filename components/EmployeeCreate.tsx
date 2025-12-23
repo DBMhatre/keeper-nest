@@ -13,11 +13,12 @@ import {
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useNavigation } from '@react-navigation/native';
 import { account, databases } from '../server/appwrite';
-import { styles } from '../styles/employeeFormStyles';
+import { createFormStyles } from '../styles/employeeFormStyles';
 import { Query } from 'appwrite';
 import { sendMail } from '../server/emailSender';
 import CustomModal from './CustomModal';
 import CustomDropdown from './CustomDropdown';
+import { useTheme } from '../contexts/ThemeContext';
 
 const EmployeeCreate = () => {
   const [name, setName] = useState('');
@@ -31,6 +32,9 @@ const EmployeeCreate = () => {
   const [alertType, setAlertType] = useState<'success' | 'error' | 'warning' | 'info'>('success');
   const [success, setSuccess] = useState(false);
   const navigation = useNavigation();
+
+  const { colors, isDark } = useTheme();
+  const styles = createFormStyles({ ...colors, isDark });
 
   const showAlertBox = (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info') => {
     setAlertTitle(title);

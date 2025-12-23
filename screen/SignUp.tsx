@@ -11,12 +11,12 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Picker } from '@react-native-picker/picker';
-import { styles } from '../styles/signupStyles';
+import { createSignupStyles } from '../styles/signupStyles';
 import { useNavigation } from '@react-navigation/native';
 import { account, databases } from '../server/appwrite';
-import { ID } from 'appwrite';
-import CustomModal from '../components/CustomModal'; // Import CustomModal
+import CustomModal from '../components/CustomModal'; 
 import CustomDropdown from '../components/CustomDropdown';
+import { useTheme } from '../contexts/ThemeContext';
 
 const SignUp = () => {
   const [name, setName] = useState('');
@@ -34,7 +34,9 @@ const SignUp = () => {
   const [alertType, setAlertType] = useState<'success' | 'warning' | 'error' | 'info'>('info');
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // EXACT SAME FUNCTIONALITY - NO CHANGES
+  const { colors, isDark } = useTheme();
+  const styles = createSignupStyles({ ...colors, isDark });
+
   const handleSignUp = async () => {
     if (!name || !email || !employeeId) {
       setAlertTitle('Missing Fields');

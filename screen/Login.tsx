@@ -15,12 +15,13 @@ import {
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { account, databases } from '../server/appwrite';
-import { styles } from '../styles/loginStyles';
+import { createLoginStyles, styles } from '../styles/loginStyles';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Query } from 'appwrite';
 import * as Keychain from 'react-native-keychain';
 import CustomModal from '../components/CustomModal';
 import ExitAppModal from '../components/ExitAppModal';
+import { useTheme } from '../contexts/ThemeContext';
 
 export default function Login() {
   const navigation = useNavigation();
@@ -35,6 +36,9 @@ export default function Login() {
   const [alertMessage, setAlertMessage] = useState('');
   const [alertType, setAlertType] = useState<'success' | 'warning' | 'error' | 'info'>('info');
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const {colors, isDark } = useTheme();  
+  const styles = createLoginStyles({ ...colors, isDark });
 
   useEffect(() => {
     checkStoredCredentials();
@@ -340,18 +344,3 @@ export default function Login() {
     </SafeAreaView>
   );
 }
-
-const additionalStyles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f8fafc',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#64748b',
-    fontWeight: '500',
-  },
-});

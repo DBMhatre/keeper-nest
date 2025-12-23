@@ -11,6 +11,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { useTheme } from '../contexts/ThemeContext';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -46,11 +47,14 @@ export default function CustomDropdown({
   const [refreshing, setRefreshing] = useState(false);
   const dropdownRef = useRef<TouchableOpacity>(null);
 
+  const { colors, isDark } = useTheme();
+  const styles = createDropdownStyles({ ...colors, isDark });
+
   const selectedItem = data.find(item => item.value === selectedValue);
-  const filteredData = searchable 
-    ? data.filter(item => 
-        item.label.toLowerCase().includes(searchText.toLowerCase())
-      )
+  const filteredData = searchable
+    ? data.filter(item =>
+      item.label.toLowerCase().includes(searchText.toLowerCase())
+    )
     : data;
 
   const handleSelect = (value: string) => {
@@ -61,7 +65,7 @@ export default function CustomDropdown({
 
   const handleRefresh = async () => {
     if (!onRefresh) return;
-    
+
     setRefreshing(true);
     try {
       await onRefresh();
@@ -166,6 +170,7 @@ export default function CustomDropdown({
                 <TextInput
                   style={styles.searchInput}
                   placeholder="Search..."
+                  placeholderTextColor={colors.textSecondary}
                   value={searchText}
                   onChangeText={setSearchText}
                   autoCapitalize="none"
@@ -212,8 +217,9 @@ export default function CustomDropdown({
                     <RefreshControl
                       refreshing={refreshing}
                       onRefresh={handleRefresh}
-                      colors={['#3b82f6']}
-                      tintColor="#3b82f6"
+                      colors={[colors.primary]}
+                      tintColor={colors.primary}
+                      progressBackgroundColor={colors.background}
                     />
                   ) : undefined
                 }
@@ -226,29 +232,31 @@ export default function CustomDropdown({
   );
 }
 
-const styles = StyleSheet.create({
+const { width, height } = Dimensions.get('window');
+
+const createDropdownStyles = (colors) => StyleSheet.create({
   dropdownButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface,
     paddingHorizontal: 12,
     paddingVertical: 14,
     minHeight: 52,
   },
   disabledButton: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface,
     opacity: 0.6,
   },
   dropdownButtonText: {
     flex: 1,
     fontSize: 16,
-    color: '#1f2937',
+    color: colors.text,
     marginRight: 8,
   },
   placeholderText: {
-    color: '#9ca3af',
+    color: colors.textSecondary,
   },
   modalOverlay: {
     flex: 1,
@@ -259,10 +267,12 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     width: '100%',
-    backgroundColor: 'white',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     overflow: 'hidden',
-    maxHeight: SCREEN_HEIGHT * 0.4,
+    maxHeight: height * 0.4,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -271,8 +281,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
-    backgroundColor: '#f9fafb',
+    borderBottomColor: colors.border,
+    backgroundColor: colors.background,
   },
   headerLeft: {
     flexDirection: 'row',
@@ -282,7 +292,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#111827',
+    color: colors.text,
   },
   refreshButton: {
     padding: 6,
@@ -299,6 +309,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
   searchIcon: {
     marginRight: 8,
@@ -306,7 +318,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: '#1f2937',
+    color: colors.text,
     paddingVertical: 4,
   },
   clearSearchButton: {
@@ -321,13 +333,13 @@ const styles = StyleSheet.create({
   listHeader: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#f9fafb',
+    backgroundColor: colors.background,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: colors.border,
   },
   listHeaderText: {
     fontSize: 12,
-    color: '#6b7280',
+    color: colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -338,19 +350,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    borderBottomColor: colors.border,
   },
   selectedItem: {
-    backgroundColor: '#eff6ff',
+    backgroundColor: colors.isDark ? '#2d3748' : '#eff6ff',
   },
   itemText: {
     flex: 1,
     fontSize: 16,
-    color: '#1f2937',
+    color: colors.text,
     marginRight: 12,
   },
   selectedItemText: {
-    color: '#1d4ed8',
+    color: colors.primary,
     fontWeight: '500',
   },
   emptyContainer: {
@@ -361,13 +373,23 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#6b7280',
+    color: colors.textSecondary,
     marginTop: 12,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#9ca3af',
+    color: colors.textSecondary,
     marginTop: 4,
     textAlign: 'center',
   },
+});
+
+export const dropdownStyles = createDropdownStyles({
+  background: '#f8fafc',
+  surface: '#ffffff',
+  text: '#1f2937',
+  textSecondary: '#6b7280',
+  primary: '#3b82f6',
+  border: '#e5e7eb',
+  isDark: false,
 });

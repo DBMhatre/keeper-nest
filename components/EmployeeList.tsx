@@ -19,6 +19,8 @@ import { useQuery } from '@tanstack/react-query';
 import debounce from 'lodash/debounce';
 import MaleImage from '../assets/images/man.png';
 import FemaleImage from '../assets/images/woman.png';
+import { createEmployeeListStyles } from '../styles/employeeListStyles';
+import { useTheme } from '../contexts/ThemeContext';
 
 export default function EmployeeList() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -28,6 +30,9 @@ export default function EmployeeList() {
   const [fetchCount, setFetchCount] = useState(0);
   const pageSize = 5;
   const [inputValue, setInputValue] = useState('');
+
+  const {colors, isDark} = useTheme();
+  const styles = createEmployeeListStyles({ ...colors, isDark });
 
   const debouncedSearch = useMemo(
     () => debounce((query: string) => {
@@ -199,7 +204,7 @@ export default function EmployeeList() {
           <View style={[
             styles.bigIconContainer,
             {
-              backgroundColor: '#ffffff',
+              backgroundColor: colors.surface,
               borderColor: "#3b82f6" + "40"
             }
           ]}>
@@ -300,8 +305,9 @@ export default function EmployeeList() {
               <RefreshControl
                 refreshing={isRefetching}
                 onRefresh={onRefresh}
-                colors={['#3b82f6']}
-                tintColor="#3b82f6"
+                colors={[colors.primary]}
+                tintColor={colors.primary}
+                progressBackgroundColor={colors.background}
               />
             }
             ListEmptyComponent={
@@ -353,266 +359,3 @@ export default function EmployeeList() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f8fafc",
-  },
-  header: {
-    backgroundColor: "#ffffff",
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  headerContent: {
-    marginBottom: 16,
-  },
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-    marginLeft: 2,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1f2937',
-    marginLeft: 10,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginLeft: 43,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    paddingTop: 1,
-    alignItems: 'center',
-    backgroundColor: '#f8fafc',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    height: 48,
-    borderWidth: 1.5,
-    borderColor: '#e5e7eb',
-    position: 'relative',
-  },
-  searchIcon: {
-    marginRight: 12,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 14,
-    color: '#1f2937',
-    fontWeight: '500',
-  },
-  searchLoading: {
-    marginLeft: 8,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 20,
-  },
-  listContent: {
-    paddingBottom: 20,
-    paddingTop: 8,
-  },
-  card: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: '#f1f5f9',
-    overflow: 'hidden',
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    padding: 18,
-    paddingBottom: 16,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
-  },
-  iconWithBadgeContainer: {
-    position: 'relative',
-    marginRight: 16,
-  },
-  bigIconContainer: {
-    width: 75,
-    height: 60,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    backgroundColor: '#ffffff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-    overflow: 'hidden',
-  },
-  faceImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 8,
-  },
-  idBadge: {
-    position: 'absolute',
-    bottom: -7,
-    left: '40%',
-    transform: [{ translateX: -30 }],
-    backgroundColor: '#3b82f6',
-    paddingHorizontal: 2,
-    paddingVertical: 3,
-    borderRadius: 6,
-    minWidth: 75,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  idText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: '#ffffff',
-    letterSpacing: 0.3,
-  },
-  headerText: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  employeeName: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#1f2937',
-    letterSpacing: -0.3,
-    marginBottom: 4,
-  },
-  employeeEmail: {
-    fontSize: 13,
-    color: '#6b7280',
-    fontWeight: '500',
-  },
-  cardBody: {
-    padding: 20,
-    paddingTop: 16,
-    paddingBottom: 16,
-    backgroundColor: '#f8fafc',
-  },
-  detailsGrid: {
-    gap: 12,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  detailLabelContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: 90,
-  },
-  detailLabel: {
-    fontSize: 13,
-    color: '#6b7280',
-    fontWeight: '500',
-    marginLeft: 8,
-  },
-  detailValueContainer: {
-    flex: 1,
-    marginLeft: 16,
-  },
-  detailValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1f2937',
-    textAlign: 'left',
-  },
-  loaderContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 12,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: '#6b7280',
-    fontWeight: '500',
-  },
-  paginationContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#ffffff',
-    borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
-    borderRadius: 12,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  paginationButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: '#f8fafc',
-    borderWidth: 1.5,
-    borderColor: '#e5e7eb',
-    gap: 6,
-  },
-  paginationButtonDisabled: {
-    backgroundColor: '#f9fafb',
-    borderColor: '#f3f4f6',
-  },
-  paginationButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#3b82f6',
-  },
-  paginationButtonTextDisabled: {
-    color: '#9ca3af',
-  },
-  pageInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  pageText: {
-    fontSize: 14,
-    color: '#6b7280',
-    fontWeight: '500',
-  },
-  pageNumber: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#3b82f6',
-    backgroundColor: '#eff6ff',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-});

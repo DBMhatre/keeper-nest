@@ -13,12 +13,13 @@ import {
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { ID, Query } from 'appwrite';
 import { account, databases } from '../server/appwrite';
-import { styles } from '../styles/assetFormStyles';
+import { getFormStyles } from '../styles/assetFormStyles';
 import { Asset } from './asset';
 import { useNavigation } from '@react-navigation/native';
 import DatePicker from 'react-native-neat-date-picker';
 import CustomModal from './CustomModal'; 
 import CustomDropdown from './CustomDropdown';
+import { useTheme } from '../contexts/ThemeContext';
 
 const DATABASE_ID = 'assetManagement';
 const COLLECTION_ID = 'assets';
@@ -39,6 +40,9 @@ const AssetForm = () => {
   const [success, setSuccess] = useState(false); // Added success state
   const [focusedInput, setFocusedInput] = useState('');
   const navigation = useNavigation();
+
+  const { colors } = useTheme();
+  const styles = getFormStyles(colors);
 
   const showAlertBox = (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info') => {
     setAlertTitle(title);
@@ -156,7 +160,7 @@ const AssetForm = () => {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.surface }}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
@@ -250,7 +254,7 @@ const AssetForm = () => {
                 onPress={openDatePicker}
               >
                 <Icon name="calendar-today" size={20} color="#3b82f6" style={styles.icon} />
-                <Text style={[styles.input, { color: purchaseDate ? '#1f2937' : '#9ca3af' }]}>
+                <Text style={[styles.input, { color: purchaseDate ? colors.text : '#9ca3af' }]}>
                   {formatDisplayDate(purchaseDate)}
                 </Text>
               </TouchableOpacity>

@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { account } from '../server/appwrite';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface ChangePasswordModalProps {
   visible: boolean;
@@ -27,14 +28,14 @@ export default function EditPasswordModal({
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   
-  // Password visibility states
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
+  const {colors, isDark } = useTheme();  
+  const styles = createPasswordModalStyles({ ...colors, isDark });
+  
   const handleChangePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
-      // Remove setAlert calls
       onAlert && onAlert('Error', 'Please fill in all fields');
       return;
     }
@@ -86,7 +87,7 @@ export default function EditPasswordModal({
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Change Password</Text>
             <TouchableOpacity onPress={handleClose}>
-              <Icon name="close" size={24} color="#333" />
+              <Icon name="close" size={24} color={colors.text} />
             </TouchableOpacity>
           </View>
 
@@ -142,7 +143,6 @@ export default function EditPasswordModal({
             </View>
           </View>
 
-          {/* Confirm Password Input */}
           <View style={styles.inputContainer}>
             <View style={styles.passwordInputWrapper}>
               <TextInput
@@ -189,7 +189,7 @@ export default function EditPasswordModal({
   );
 }
 
-const styles = StyleSheet.create({
+export const createPasswordModalStyles = (colors) => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   modalContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     width: '100%',
     maxWidth: 400,
     borderRadius: 16,
@@ -208,28 +208,40 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    paddingBottom: 10,
   },
   modalTitle: { 
     fontSize: 20, 
     fontWeight: '700', 
-    color: '#007bff' 
+    color: colors.primary 
   },
   inputContainer: {
     marginBottom: 16,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 8,
+    marginLeft: 4,
   },
   passwordInputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: colors.border,
     borderRadius: 10,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: colors.surface,
     overflow: 'hidden',
   },
   passwordInput: {
@@ -237,7 +249,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     fontSize: 16,
-    color: '#333',
+    color: colors.text,
   },
   eyeButton: {
     paddingHorizontal: 16,
@@ -245,7 +257,7 @@ const styles = StyleSheet.create({
   },
   passwordHint: {
     fontSize: 13,
-    color: '#666',
+    color: colors.textSecondary,
     textAlign: 'center',
     marginTop: 4,
     marginBottom: 16,
@@ -255,11 +267,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#007bff',
+    backgroundColor: colors.primary,
     paddingVertical: 14,
     borderRadius: 12,
     marginTop: 8,
-    shadowColor: '#007bff',
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -267,6 +279,7 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.6,
+    backgroundColor: colors.textSecondary,
   },
   saveText: {
     color: '#fff',
@@ -274,4 +287,42 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginLeft: 8,
   },
+  closeButton: {
+    padding: 6,
+    borderRadius: 20,
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  errorText: {
+    fontSize: 12,
+    color: colors.isDark ? '#f87171' : '#ef4444',
+    marginTop: 4,
+    marginLeft: 4,
+    fontWeight: '500',
+  },
+  successText: {
+    fontSize: 12,
+    color: colors.isDark ? '#34d399' : '#10b981',
+    marginTop: 4,
+    marginLeft: 4,
+    fontWeight: '500',
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 4,
+  },
 });
+
+export const passwordModalStyles = createPasswordModalStyles({
+  background: '#f8fafc',
+  surface: '#ffffff',
+  text: '#1f2937',
+  textSecondary: '#6b7280',
+  primary: '#3b82f6',
+  border: '#e5e7eb',
+  isDark: false,
+});
+

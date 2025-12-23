@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { styles } from '../styles/profileStyles';
+import { getStyles } from '../styles/profileStyles';
 import { account, databases } from '../server/appwrite';
 import { Query, Role } from 'appwrite';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -20,6 +20,7 @@ import EditPasswordModal from '../components/EditPasswordModal';
 import * as Keychain from 'react-native-keychain';
 import CustomModal from '../components/CustomModal';
 import user from '../assets/images/user.png';
+import { useTheme } from '../contexts/ThemeContext';
 export default function Profile() {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
@@ -31,6 +32,9 @@ export default function Profile() {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [signOutLoading, setSignOutLoading] = useState(false);
   const [alert, setAlert] = useState('success');
+
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
 
   const [showAlert, setShowAlert] = useState(false);
   const [alertTitle, setAlertTitle] = useState('');

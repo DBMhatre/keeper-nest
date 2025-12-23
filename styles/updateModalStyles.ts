@@ -2,7 +2,7 @@ import { StyleSheet, Platform, Dimensions } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
-export const styles = StyleSheet.create({
+export const createAssetFormModalStyles = (colors) => StyleSheet.create({
     modalOverlay: {
         flex: 1,
         backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -15,7 +15,7 @@ export const styles = StyleSheet.create({
         maxHeight: '80%',
     },
     modalContainer: {
-        backgroundColor: '#ffffff',
+        backgroundColor: colors.surface,
         borderRadius: 16,
         width: '100%',
         maxWidth: 500,
@@ -28,6 +28,9 @@ export const styles = StyleSheet.create({
         shadowOpacity: 0.25,
         shadowRadius: 3.84,
         elevation: 5,
+        borderWidth: 1,
+        borderColor: colors.border,
+        overflow: 'hidden',
     },
     modalHeader: {
         flexDirection: 'row',
@@ -36,7 +39,8 @@ export const styles = StyleSheet.create({
         paddingHorizontal: 17,
         paddingVertical: 17,
         borderBottomWidth: 1,
-        borderBottomColor: '#f1f5f9',
+        borderBottomColor: colors.border,
+        backgroundColor: colors.background,
     },
     modalTitleContainer: {
         flexDirection: 'row',
@@ -46,11 +50,13 @@ export const styles = StyleSheet.create({
     modalTitle: {
         fontSize: 19,
         fontWeight: '700',
-        color: '#1f2937',
+        color: colors.text,
         marginLeft: 12,
     },
     closeButton: {
         padding: 4,
+        borderRadius: 20,
+        backgroundColor: colors.background,
     },
     modalContent: {
         padding: 20,
@@ -62,19 +68,19 @@ export const styles = StyleSheet.create({
     inputLabel: {
         fontSize: 14,
         fontWeight: '600',
-        color: '#374151',
+        color: colors.text,
         marginBottom: 8,
     },
     required: {
-        color: '#ef4444',
+        color: colors.isDark ? '#f87171' : '#ef4444',
     },
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#f9fafb',
+        backgroundColor: colors.background,
         borderRadius: 10,
         borderWidth: 1,
-        borderColor: '#e5e7eb',
+        borderColor: colors.border,
         paddingHorizontal: 16,
         paddingVertical: 14,
     },
@@ -84,7 +90,7 @@ export const styles = StyleSheet.create({
     input: {
         flex: 1,
         fontSize: 16,
-        color: '#1f2937',
+        color: colors.text,
         padding: 0,
         height: Platform.OS === 'ios' ? 20 : 24,
     },
@@ -102,8 +108,8 @@ export const styles = StyleSheet.create({
         paddingHorizontal: 10,
         paddingVertical: 10,
         borderTopWidth: 1,
-        borderTopColor: '#f1f5f9',
-        backgroundColor: '#ffffff',
+        borderTopColor: colors.border,
+        backgroundColor: colors.surface,
         borderBottomLeftRadius: 16,
         borderBottomRightRadius: 16,
         gap: 12,
@@ -113,11 +119,16 @@ export const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#3b82f6',
+        backgroundColor: colors.primary,
         paddingVertical: 14,
         paddingHorizontal: 20,
         borderRadius: 10,
         gap: 8,
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 3,
     },
     submitButtonText: {
         fontSize: 16,
@@ -126,5 +137,63 @@ export const styles = StyleSheet.create({
     },
     buttonDisabled: {
         opacity: 0.6,
+        backgroundColor: colors.textSecondary,
     },
+    cancelButton: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: colors.background,
+        paddingVertical: 14,
+        paddingHorizontal: 20,
+        borderRadius: 10,
+        gap: 8,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    cancelButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: colors.textSecondary,
+    },
+    errorText: {
+        fontSize: 12,
+        color: colors.isDark ? '#f87171' : '#ef4444',
+        marginTop: 4,
+        marginLeft: 4,
+        fontWeight: '500',
+    },
+    pickerContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: colors.background,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: colors.border,
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+    },
+    picker: {
+        flex: 1,
+        color: colors.text,
+        fontSize: 16,
+    },
+    focusedInput: {
+        borderColor: colors.primary,
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 1,
+    },
+});
+export const assetFormModalStyles = createAssetFormModalStyles({
+    background: '#f8fafc',
+    surface: '#ffffff',
+    text: '#1f2937',
+    textSecondary: '#6b7280',
+    primary: '#3b82f6',
+    border: '#e5e7eb',
+    isDark: false,
 });
