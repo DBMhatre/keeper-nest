@@ -19,6 +19,7 @@ import { sendMail } from '../server/emailSender';
 import CustomModal from './CustomModal';
 import CustomDropdown from './CustomDropdown';
 import { useTheme } from '../contexts/ThemeContext';
+import { encrypt } from '../server/encrypt_decrypt_password';
 
 const EmployeeCreate = () => {
   const [name, setName] = useState('');
@@ -32,6 +33,7 @@ const EmployeeCreate = () => {
   const [alertType, setAlertType] = useState<'success' | 'error' | 'warning' | 'info'>('success');
   const [success, setSuccess] = useState(false);
   const navigation = useNavigation();
+  const [confirm, setConfirm] = useState(false);
 
   const { colors, isDark } = useTheme();
   const styles = createFormStyles({ ...colors, isDark });
@@ -179,11 +181,13 @@ const EmployeeCreate = () => {
           employeeId,
           name: name.trim(),
           email: email.trim(),
+          password: encrypt(password),
           gender,
           role: "employee",
           creatorMail: `${adminName} (${adminId})`
         }
       );
+      setConfirm(true);
       setSuccess(true);
 
       await sendMail({
@@ -194,7 +198,7 @@ const EmployeeCreate = () => {
     <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 20px rgba(79,70,229,0.15);">
       
       <!-- Header -->
-      <div style="background: linear-gradient(135deg, #4f46e5, #6366f1); color: #fff; padding: 30px 20px;">
+      <div style="background: linear-gradient(135deg, #3b82f6, #60a5fa); color: #fff; padding: 30px 20px;">
         <h1 style="margin: 0; font-size: 26px; letter-spacing: 0.5px;">Welcome to KeeperNest</h1>
       </div>
 
@@ -251,10 +255,7 @@ const EmployeeCreate = () => {
         `Employee ${name} created successfully!`,
         'success'
       );
-      setName('');
-      setEmail('');
-      setEmployeeId('');
-      setGender('No');
+      
     } catch (error: any) {
       console.log("Error: ", error);
       
@@ -275,14 +276,22 @@ const EmployeeCreate = () => {
         );
       }
       
-      // Reset success state on error
       setSuccess(false);
     } finally {
+      // setConfirm(false);
       setLoading(false);
     }
   };
+  const handleConfirmClose = () => {
+      setShowAlert(false);
+      setName('');
+      setEmail('');
+      setEmployeeId('');
+      setGender('No');
+      setSuccess(false);
+      navigation.navigate('EmployeeList' as any);
+  }
 
-  // Reset success when modal closes
   const handleModalClose = () => {
     setShowAlert(false);
     setSuccess(false);
@@ -415,7 +424,7 @@ const EmployeeCreate = () => {
         alertType={alertType}
         confirmText="Got It"
         showCancelButton={false}
-        onConfirmPressed={handleModalClose}
+        onConfirmPressed={confirm ? handleConfirmClose : handleModalClose}
         onCancelPressed={handleModalClose}
         confirmButtonColor={alertType === 'success' ? '#10b981' :
           alertType === 'error' ? '#ef4444' :

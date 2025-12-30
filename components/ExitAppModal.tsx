@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
     View,
     Text,
@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { useTheme } from '../contexts/ThemeContext';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import SystemNavigationBar from 'react-native-system-navigation-bar';
 
 const { width, height } = Dimensions.get('window');
 
@@ -34,7 +35,6 @@ const ExitAppModal: React.FC<ExitAppModalProps> = ({
     const { colors, isDark } = useTheme();
     const styles = createConfirmationModalStyles({ ...colors, isDark });
     
-    // Get button color for confirm button
     const confirmButtonColor = isDark ? '#dc2626' : '#ef4444';
     
     return (

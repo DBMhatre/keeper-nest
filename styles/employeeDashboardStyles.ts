@@ -35,18 +35,19 @@ export const createDashboardStyles = (colors) => StyleSheet.create({
     elevation: 4,
   },
   imageCircleContainer: {
-    width: 42,
-    height: 42,
-    borderRadius: 30,
-    borderWidth: 2,
-    borderColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-  },
+  width: 50, 
+  height: 42,
+  borderRadius: 8, 
+  justifyContent: 'center',
+  alignItems: 'center',
+  // backgroundColor: '#f3f4f6',
+  borderWidth: 1,
+  borderColor: '#3b82f6'
+},
+  
   circleImage: {
-    width: 44,
-    height: 39,
+    width: 41, 
+    height: 30,
   },
   headerLeft: {
     flexDirection: 'row',

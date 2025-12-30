@@ -14,17 +14,17 @@ export const createStyles = (colors) => StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.background, // CHANGED
+    backgroundColor: colors.background, 
   },
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: colors.textSecondary, // CHANGED
+    color: colors.textSecondary, 
     fontWeight: '500',
   },
 
   topHeader: {
-    backgroundColor: colors.surface, // CHANGED
+    backgroundColor: colors.surface,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -40,19 +40,19 @@ export const createStyles = (colors) => StyleSheet.create({
     elevation: 4,
   },
   imageCircleContainer: {
-    width: 42, 
-    height: 42,
-    borderRadius: 30, 
-    borderWidth: 2,
-    borderColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.surface, 
-  },
+  width: 50, 
+  height: 42,
+  borderRadius: 8, 
+  justifyContent: 'center',
+  alignItems: 'center',
+  // backgroundColor: '#f3f4f6',
+  borderWidth: 1,
+  borderColor: '#3b82f6'
+},
   
   circleImage: {
-    width: 44, 
-    height: 39,
+    width: 41, 
+    height: 30,
   },
   headerLeft: {
     flexDirection: 'row',
@@ -61,7 +61,7 @@ export const createStyles = (colors) => StyleSheet.create({
   appTitle: {
     fontSize: 24,
     fontWeight: '800',
-    color: colors.primary, // CHANGED
+    color: colors.primary, 
     marginLeft: 15,
     letterSpacing: 0.5,
   },
@@ -91,31 +91,30 @@ export const createStyles = (colors) => StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
     borderWidth: 1,
-    borderColor: colors.border, // CHANGED
+    borderColor: colors.border, 
   },
   welcomeContent: {
     flex: 1,
   },
   welcomeText: {
     fontSize: 16,
-    color: colors.textSecondary, // CHANGED
-    marginBottom: 4,
+    color: colors.textSecondary, 
   },
   userName: {
     fontSize: 20,
     fontWeight: '700',
-    color: colors.text, // CHANGED
+    color: colors.text, 
     marginBottom: 2,
   },
   userEmail: {
     fontSize: 14,
-    color: colors.textSecondary, // CHANGED
+    color: colors.textSecondary, 
   },
   welcomeIllustration: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: colors.surface, // KEEP ORIGINAL
+    backgroundColor: colors.surface, 
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
@@ -143,7 +142,6 @@ export const createStyles = (colors) => StyleSheet.create({
     fontWeight: '600',
   },
 
-  // Overview Section - ONLY BACKGROUNDS AND TEXT
 overviewContainer: {
   backgroundColor: 'transparent',
   paddingHorizontal: 15,
@@ -152,14 +150,12 @@ overviewContainer: {
 overviewTitle: {
   fontSize: 20,
   fontWeight: '700',
-  color: colors.text, // CHANGED
+  color: colors.text, 
   marginBottom: 20,
   textAlign: 'left',
 },
-
-// Stats Grid - ONLY BACKGROUND
 statsGrid: {
-  backgroundColor: colors.surface, // CHANGED
+  backgroundColor: colors.surface, 
   borderRadius: 20,
   padding: 6,
   paddingTop: 20,
@@ -169,10 +165,9 @@ statsGrid: {
   shadowRadius: 12,
   elevation: 5,
   borderWidth: 1,
-  borderColor: colors.border, // CHANGED
+  borderColor: colors.border, 
 },
 
-// Main Row Layout
 mainRow: {
   flexDirection: 'row',
   justifyContent: 'space-between',
@@ -180,7 +175,6 @@ mainRow: {
   gap: 8,
 },
 
-// Left Side - 2x2 Grid
 leftStats: {
   flex: 3,
 },
@@ -214,22 +208,21 @@ statContent: {
 statNumber: {
   fontSize: 18,
   fontWeight: '800',
-  color: colors.text, // CHANGED
+  color: colors.text, 
   marginBottom: 2,
 },
 statLabel: {
   fontSize: 10,
-  color: colors.textSecondary, // CHANGED
+  color: colors.textSecondary, 
   fontWeight: '500',
 },
 
-// Right Side - Employees
 employeeSection: {
   flex: 1,
   justifyContent: 'center',
   alignItems: 'center',
   borderLeftWidth: 1,
-  borderLeftColor: colors.border, // CHANGED
+  borderLeftColor: colors.border, 
   paddingLeft: 4,
 },
 employeeItem: {
@@ -254,12 +247,12 @@ employeeContent: {
 employeeNumber: {
   fontSize: 21,
   fontWeight: '800',
-  color: colors.text, // CHANGED
+  color: colors.text, 
   marginBottom: 4,
 },
 employeeLabel: {
   fontSize: 11,
-  color: colors.textSecondary, // CHANGED
+  color: colors.textSecondary, 
   fontWeight: '600',
   textAlign: 'center',
 },
@@ -271,7 +264,7 @@ employeeLabel: {
     marginTop: 10,
   },
   quickActionCard: {
-    backgroundColor: colors.surface, // CHANGED
+    backgroundColor: colors.surface, 
     borderRadius: 16,
     padding: 20,
     width: '48%',
@@ -283,7 +276,7 @@ employeeLabel: {
     shadowRadius: 6,
     elevation: 3,
     borderWidth: 1,
-    borderColor: colors.border, // CHANGED
+    borderColor: colors.border, 
   },
   actionIconContainer: {
     width: 60,
@@ -296,13 +289,13 @@ employeeLabel: {
   actionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.text, // CHANGED
+    color: colors.text, 
     textAlign: 'center',
     marginBottom: 4,
   },
   actionDescription: {
     fontSize: 12,
-    color: colors.textSecondary, // CHANGED
+    color: colors.textSecondary, 
     textAlign: 'center',
     lineHeight: 16,
   },
@@ -318,14 +311,14 @@ employeeLabel: {
     shadowRadius: 6,
     elevation: 3,
     borderWidth: 1,
-    borderColor: colors.border, // CHANGED
+    borderColor: colors.border, 
   },
   activityItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border, // CHANGED
+    borderBottomColor: colors.border, 
   },
   activityIcon: {
     width: 40,

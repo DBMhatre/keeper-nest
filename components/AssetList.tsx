@@ -33,8 +33,8 @@ export default function AssetList() {
     const [alertTitle, setAlertTitle] = useState('');
     const [alertMessage, setAlertMessage] = useState('');
     const [alertType, setAlertType] = useState<'success' | 'error' | 'warning' | 'info'>('success')
-    const [selectedStatus, setSelectedStatus] = useState(null);
-    const [selectedType, setSelectedType] = useState(null);
+    const [selectedStatus, setSelectedStatus] = useState({ label: 'All Status', value: 'all', icon: 'filter-variant', color: '#6b7280' });
+    const [selectedType, setSelectedType] = useState( { label: 'All Types', value: 'all', icon: 'package-variant', color: '#6b7280' });
     const [modalVisible, setModalVisible] = useState(false);
     const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
     const [input, setInput] = useState('');
@@ -50,11 +50,8 @@ export default function AssetList() {
 
     const { colors, isDark } = useTheme();
     const styles = createAssetListStyles({ ...colors, isDark });
-
-    // Extract params from route
     const { label, filter } = route.params || {};
 
-    // Initialize filter based on route params when component mounts
     useEffect(() => {
         if (filter) {
             if (filter === 'all') {
@@ -82,12 +79,10 @@ export default function AssetList() {
                 });
             }
         } else {
-            // Default to all status if no filter
             setSelectedStatus({ label: 'All Status', value: 'all', icon: 'filter-variant', color: '#6b7280' });
         }
     }, [filter, label]);
 
-    // Also update when route params change
     useFocusEffect(
         useCallback(() => {
             if (route.params?.filter) {
@@ -204,7 +199,7 @@ export default function AssetList() {
                 item.assetName?.toLowerCase().includes(text)
             );
         });
-
+        
         setFilteredAsset(result);
     }, [name, assets]);
 
@@ -375,12 +370,13 @@ export default function AssetList() {
                     <View style={styles.tableContainer}>
                         {filteredAsset.length === 0 ? (
                             <View style={styles.Emptycontainer}>
-                                <Text style={styles.Emptymessage}>Assets not found</Text>
+                                <Text style={styles.Emptymessage}>Assets not found for status {selectedStatus.value} and type {selectedType.value}</Text>
                             </View>
                         ) : (
                             <ScrollView
                                 horizontal
                                 showsHorizontalScrollIndicator={false}
+                                nestedScrollEnabled
                                 refreshControl={
                                     <RefreshControl
                                         refreshing={false}
@@ -528,7 +524,7 @@ export default function AssetList() {
                         {
                             filteredAsset.length === 0 && (
                                 <View style={styles.Emptycontainer}>
-                                    <Text style={styles.Emptymessage}>Assets not found</Text>
+                                    <Text style={styles.Emptymessage}>Assets not found for status {selectedStatus.value} and type {selectedType.value}</Text>
                                 </View>
                             )
                         }

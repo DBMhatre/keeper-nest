@@ -22,22 +22,25 @@ import * as Keychain from 'react-native-keychain';
 import CustomModal from '../components/CustomModal';
 import ExitAppModal from '../components/ExitAppModal';
 import { useTheme } from '../contexts/ThemeContext';
+import { sendMail } from '../server/emailSender';
+import ForgetPasswordModal from '../components/ForgetPasswordModal';
 
 export default function Login() {
   const navigation = useNavigation();
   const [showExitModal, setShowExitModal] = useState(false);
   const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-
+  const [forgetModal, setForgetModal] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
   const [alertTitle, setAlertTitle] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
   const [alertType, setAlertType] = useState<'success' | 'warning' | 'error' | 'info'>('info');
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const {colors, isDark } = useTheme();  
+  const { colors, isDark } = useTheme();
   const styles = createLoginStyles({ ...colors, isDark });
 
   useEffect(() => {
@@ -268,18 +271,28 @@ export default function Login() {
               </View>
             </View>
 
-            <View style={styles.rememberContainer}>
-              <TouchableOpacity
-                style={styles.rememberCheckbox}
-                onPress={() => setRememberMe(!rememberMe)}
-              >
-                <Icon
-                  name={rememberMe ? 'checkbox-marked' : 'checkbox-blank-outline'}
-                  size={24}
-                  color={rememberMe ? '#3b82f6' : '#94a3b8'}
-                />
-                <Text style={styles.rememberText}>Remember Me</Text>
-              </TouchableOpacity>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <View style={styles.rememberContainer}>
+                <TouchableOpacity
+                  style={styles.rememberCheckbox}
+                  onPress={() => setRememberMe(!rememberMe)}
+                >
+                  <Icon
+                    name={rememberMe ? 'checkbox-marked' : 'checkbox-blank-outline'}
+                    size={24}
+                    color={rememberMe ? '#3b82f6' : '#94a3b8'}
+                  />
+                  <Text style={styles.rememberText}>Remember Me</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={{ alignItems: 'flex-end', marginBottom: 20 }}>
+                <Text
+                  style={styles.linkText}
+                  onPress={() => setForgetModal(true)}
+                >
+                  Forgot Password?
+                </Text>
+              </View>
             </View>
 
             <TouchableOpacity
@@ -340,6 +353,11 @@ export default function Login() {
         message="Are you sure you want to exit the app?"
         confirmText="Exit"
         cancelText="Cancel"
+      />
+
+      <ForgetPasswordModal
+        visible={forgetModal}
+        onClose={() => setForgetModal(false)}
       />
     </SafeAreaView>
   );

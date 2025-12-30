@@ -21,6 +21,7 @@ import * as Keychain from 'react-native-keychain';
 import CustomModal from '../components/CustomModal';
 import user from '../assets/images/user.png';
 import { useTheme } from '../contexts/ThemeContext';
+import SystemNavigationBar from 'react-native-system-navigation-bar';
 export default function Profile() {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
@@ -33,7 +34,7 @@ export default function Profile() {
   const [signOutLoading, setSignOutLoading] = useState(false);
   const [alert, setAlert] = useState('success');
 
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const styles = getStyles(colors);
 
   const [showAlert, setShowAlert] = useState(false);
@@ -125,6 +126,14 @@ export default function Profile() {
       setShowAlert(true);
     }
   }
+
+  useEffect(() => {
+    if (isDark) {
+      SystemNavigationBar.setNavigationColor(colors.background, 'dark');
+    } else {
+      SystemNavigationBar.setNavigationColor('#FFFFFF', 'light');
+    }
+  }, [isDark, colors.background]);
 
   return (
     <View style={styles.container}>

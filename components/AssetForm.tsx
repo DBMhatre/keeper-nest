@@ -17,9 +17,10 @@ import { getFormStyles } from '../styles/assetFormStyles';
 import { Asset } from './asset';
 import { useNavigation } from '@react-navigation/native';
 import DatePicker from 'react-native-neat-date-picker';
-import CustomModal from './CustomModal'; 
+import CustomModal from './CustomModal';
 import CustomDropdown from './CustomDropdown';
 import { useTheme } from '../contexts/ThemeContext';
+import { set } from 'lodash';
 
 const DATABASE_ID = 'assetManagement';
 const COLLECTION_ID = 'assets';
@@ -39,6 +40,7 @@ const AssetForm = () => {
   const [alertType, setAlertType] = useState<'success' | 'error' | 'warning' | 'info'>('success');
   const [success, setSuccess] = useState(false); // Added success state
   const [focusedInput, setFocusedInput] = useState('');
+  const [confirm, setConfirm] = useState(false);
   const navigation = useNavigation();
 
   const { colors } = useTheme();
@@ -80,7 +82,7 @@ const AssetForm = () => {
       DATABASE_ID,
       COLLECTION_ID,
       [
-        Query.equal('assetId', assetId) 
+        Query.equal('assetId', assetId)
       ]
     );
 
@@ -115,19 +117,11 @@ const AssetForm = () => {
         ID.unique(),
         assetData
       );
-
+      setConfirm(true);
       console.log('Asset created:', response);
-      
-      // Set success before showing alert
+
       setSuccess(true);
       showAlertBox('Success', 'Asset added successfully!', 'success');
-
-      // Reset form AFTER success
-      setAssetName('');
-      setAssetType('');
-      setAssetId('');
-      setDescription('');
-      setPurchaseDate('');
     } catch (error: any) {
       console.error('Create Asset Error:', error);
       // Reset success on error
@@ -136,204 +130,215 @@ const AssetForm = () => {
       navigation.navigate('Login' as any);
     } finally {
       setLoading(false);
+      // setConfirm(false);
     }
   };
 
-  // Handle modal close
-  const handleModalClose = () => {
+  const handleConfirmClose = () => {
+    setAssetName('');
+    setAssetType('');
+    setAssetId('');
+    setDescription('');
+    setPurchaseDate('');
     setShowAlert(false);
     setSuccess(false);
-  };
 
-  const getInputStyle = (fieldName: string) => {
-    return focusedInput === fieldName ? styles.inputContainerFocused : null;
-  };
+    navigation.navigate('AssetList' as any);
+  }
+    // Handle modal close
+    const handleModalClose = () => {
+      setShowAlert(false);
+      setSuccess(false);
+    };
 
-  const formatDisplayDate = (dateString: string) => {
-    if (!dateString) return 'Select purchase date';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
+    const getInputStyle = (fieldName: string) => {
+      return focusedInput === fieldName ? styles.inputContainerFocused : null;
+    };
 
-  return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.surface }}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
-      >
-        <ScrollView
-          contentContainerStyle={{
-            flexGrow: 1,
-            paddingBottom: 20
-          }}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
+    const formatDisplayDate = (dateString: string) => {
+      if (!dateString) return 'Select purchase date';
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    };
+
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.surface }}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ flex: 1 }}
         >
-          {/* Header Section */}
-          <View style={styles.header}>
-            <View style={styles.headerContent}>
-              <View style={styles.titleContainer}>
-                <Icon name="plus-circle" size={26} color="#3b82f6" />
-                <Text style={styles.headerTitle}>Add New Asset</Text>
-              </View>
-              <Text style={styles.headerSubtitle}>
-                Please fill in the details of the new asset
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.formCard}>
-            <View style={styles.inputWrapper}>
-              <Text style={styles.inputLabel}>
-                Asset Name <Text style={styles.required}>*</Text>
-              </Text>
-              <View style={[styles.inputContainer, getInputStyle('assetName')]}>
-                <Icon name="laptop" size={20} color="#3b82f6" style={styles.icon} />
-                <TextInput
-                  placeholder="e.g., Dell Inspiron Laptop"
-                  placeholderTextColor="#9ca3af"
-                  style={styles.input}
-                  value={assetName}
-                  onChangeText={setAssetName}
-                  selectionColor="#3b82f6"
-                  cursorColor="#3b82f6"
-                />
-              </View>
-            </View>
-
-            {/* Asset Type */}
-            <View style={styles.inputWrapper}>
-              <Text style={styles.inputLabel}>
-                Asset Type <Text style={styles.required}>*</Text>
-              </Text>
-              <View style={styles.pickerContainer}>
-                <Icon name="shape-outline" size={20} color="#3b82f6" style={styles.icon} />
-                <CustomDropdown
-                  data={[
-                    { label: "Laptop", value: "Laptop" },
-                    { label: "Mouse", value: "Mouse" },
-                    { label: "Keyboard", value: "Keyboard" },
-                    { label: "Other", value: "Other" },
-                  ]}
-                  selectedValue={assetType}
-                  onValueChange={(value) => setAssetType(value)}
-                  placeholder="Select Asset Type"
-                  searchable={false} 
-                />
-              </View>
-            </View>
-
-            <View style={styles.inputWrapper}>
-              <Text style={styles.inputLabel}>
-                Asset ID <Text style={styles.required}>*</Text>
-              </Text>
-              <View style={[styles.inputContainer, getInputStyle('assetId')]}>
-                <Icon name="identifier" size={20} color="#3b82f6" style={styles.icon} />
-                <TextInput
-                  placeholder="e.g., ASSET-001"
-                  placeholderTextColor="#9ca3af"
-                  style={styles.input}
-                  value={assetId}
-                  onChangeText={setAssetId}
-                  selectionColor="#3b82f6"
-                  cursorColor="#3b82f6"
-                />
-              </View>
-            </View>
-
-            <View style={styles.inputWrapper}>
-              <Text style={styles.inputLabel}>
-                Purchase Date <Text style={styles.required}>*</Text>
-              </Text>
-              <TouchableOpacity
-                style={[styles.inputContainer, getInputStyle('purchaseDate')]}
-                onPress={openDatePicker}
-              >
-                <Icon name="calendar-today" size={20} color="#3b82f6" style={styles.icon} />
-                <Text style={[styles.input, { color: purchaseDate ? colors.text : '#9ca3af' }]}>
-                  {formatDisplayDate(purchaseDate)}
+          <ScrollView
+            contentContainerStyle={{
+              flexGrow: 1,
+              paddingBottom: 20
+            }}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            {/* Header Section */}
+            <View style={styles.header}>
+              <View style={styles.headerContent}>
+                <View style={styles.titleContainer}>
+                  <Icon name="plus-circle" size={26} color="#3b82f6" />
+                  <Text style={styles.headerTitle}>Add New Asset</Text>
+                </View>
+                <Text style={styles.headerSubtitle}>
+                  Please fill in the details of the new asset
                 </Text>
+              </View>
+            </View>
+
+            <View style={styles.formCard}>
+              <View style={styles.inputWrapper}>
+                <Text style={styles.inputLabel}>
+                  Asset Name <Text style={styles.required}>*</Text>
+                </Text>
+                <View style={[styles.inputContainer, getInputStyle('assetName')]}>
+                  <Icon name="laptop" size={20} color="#3b82f6" style={styles.icon} />
+                  <TextInput
+                    placeholder="e.g., Dell Inspiron Laptop"
+                    placeholderTextColor="#9ca3af"
+                    style={styles.input}
+                    value={assetName}
+                    onChangeText={setAssetName}
+                    selectionColor="#3b82f6"
+                    cursorColor="#3b82f6"
+                  />
+                </View>
+              </View>
+
+              {/* Asset Type */}
+              <View style={styles.inputWrapper}>
+                <Text style={styles.inputLabel}>
+                  Asset Type <Text style={styles.required}>*</Text>
+                </Text>
+                <View style={styles.pickerContainer}>
+                  <Icon name="shape-outline" size={20} color="#3b82f6" style={styles.icon} />
+                  <CustomDropdown
+                    data={[
+                      { label: "Laptop", value: "Laptop" },
+                      { label: "Mouse", value: "Mouse" },
+                      { label: "Keyboard", value: "Keyboard" },
+                      { label: "Other", value: "Other" },
+                    ]}
+                    selectedValue={assetType}
+                    onValueChange={(value) => setAssetType(value)}
+                    placeholder="Select Asset Type"
+                    searchable={false}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.inputWrapper}>
+                <Text style={styles.inputLabel}>
+                  Asset ID <Text style={styles.required}>*</Text>
+                </Text>
+                <View style={[styles.inputContainer, getInputStyle('assetId')]}>
+                  <Icon name="identifier" size={20} color="#3b82f6" style={styles.icon} />
+                  <TextInput
+                    placeholder="e.g., ASSET-001"
+                    placeholderTextColor="#9ca3af"
+                    style={styles.input}
+                    value={assetId}
+                    onChangeText={setAssetId}
+                    selectionColor="#3b82f6"
+                    cursorColor="#3b82f6"
+                  />
+                </View>
+              </View>
+
+              <View style={styles.inputWrapper}>
+                <Text style={styles.inputLabel}>
+                  Purchase Date <Text style={styles.required}>*</Text>
+                </Text>
+                <TouchableOpacity
+                  style={[styles.inputContainer, getInputStyle('purchaseDate')]}
+                  onPress={openDatePicker}
+                >
+                  <Icon name="calendar-today" size={20} color="#3b82f6" style={styles.icon} />
+                  <Text style={[styles.input, { color: purchaseDate ? colors.text : '#9ca3af' }]}>
+                    {formatDisplayDate(purchaseDate)}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Description */}
+              <View style={styles.inputWrapper}>
+                <Text style={styles.inputLabel}>Description</Text>
+                <View style={[styles.inputContainer, styles.textAreaContainer, getInputStyle('description')]}>
+                  <Icon name="file-document-outline" size={20} color="#3b82f6" style={[styles.icon, { marginTop: 12 }]} />
+                  <TextInput
+                    placeholder="Optional description or notes..."
+                    placeholderTextColor="#9ca3af"
+                    style={[styles.input, styles.textArea]}
+                    value={description}
+                    onChangeText={setDescription}
+                    multiline
+                    textAlignVertical="top"
+                    selectionColor="#3b82f6"
+                    cursorColor="#3b82f6"
+                  />
+                </View>
+              </View>
+
+              {/* Submit Button */}
+              <TouchableOpacity
+                style={[styles.button, loading && styles.buttonDisabled]}
+                disabled={loading}
+                onPress={handleCreateAsset}
+              >
+                {loading ? (
+                  <View style={styles.buttonContent}>
+                    <ActivityIndicator size="small" color="#fff" />
+                    <Text style={[styles.buttonText, { marginLeft: 10 }]}>Adding Asset...</Text>
+                  </View>
+                ) : (
+                  <View style={styles.buttonContent}>
+                    <Text style={styles.buttonText}>Add Asset</Text>
+                    <Icon name="check-circle" size={20} color="#fff" style={styles.buttonIcon} />
+                  </View>
+                )}
               </TouchableOpacity>
             </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
 
-            {/* Description */}
-            <View style={styles.inputWrapper}>
-              <Text style={styles.inputLabel}>Description</Text>
-              <View style={[styles.inputContainer, styles.textAreaContainer, getInputStyle('description')]}>
-                <Icon name="file-document-outline" size={20} color="#3b82f6" style={[styles.icon, { marginTop: 12 }]} />
-                <TextInput
-                  placeholder="Optional description or notes..."
-                  placeholderTextColor="#9ca3af"
-                  style={[styles.input, styles.textArea]}
-                  value={description}
-                  onChangeText={setDescription}
-                  multiline
-                  textAlignVertical="top"
-                  selectionColor="#3b82f6"
-                  cursorColor="#3b82f6"
-                />
-              </View>
-            </View>
+        {/* Date Picker - Exactly like the example */}
+        <DatePicker
+          isVisible={showDatePicker}
+          mode={'single'}
+          onCancel={onCancel}
+          onConfirm={onConfirm}
+          colorOptions={{
+            headerColor: '#3b82f6',
+            headerTextColor: '#ffffff',
+            changeYearModalColor: '#3b82f6',
+            changeYearModalTextColor: '#ffffff',
+            selectedDateBackgroundColor: '#3b82f6',
+            confirmButtonColor: '#3b82f6',
+          }}
+        />
 
-            {/* Submit Button */}
-            <TouchableOpacity
-              style={[styles.button, loading && styles.buttonDisabled]}
-              disabled={loading}
-              onPress={handleCreateAsset}
-            >
-              {loading ? (
-                <View style={styles.buttonContent}>
-                  <ActivityIndicator size="small" color="#fff" />
-                  <Text style={[styles.buttonText, { marginLeft: 10 }]}>Adding Asset...</Text>
-                </View>
-              ) : (
-                <View style={styles.buttonContent}>
-                  <Text style={styles.buttonText}>Add Asset</Text>
-                  <Icon name="check-circle" size={20} color="#fff" style={styles.buttonIcon} />
-                </View>
-              )}
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-
-      {/* Date Picker - Exactly like the example */}
-      <DatePicker
-        isVisible={showDatePicker}
-        mode={'single'}
-        onCancel={onCancel}
-        onConfirm={onConfirm}
-        colorOptions={{
-          headerColor: '#3b82f6',
-          headerTextColor: '#ffffff',
-          changeYearModalColor: '#3b82f6',
-          changeYearModalTextColor: '#ffffff',
-          selectedDateBackgroundColor: '#3b82f6',
-          confirmButtonColor: '#3b82f6',
-        }}
-      />
-
-      {/* CustomModal with success tick */}
-      <CustomModal
-        show={showAlert}
-        title={alertTitle}
-        message={alertMessage}
-        alertType={alertType}
-        confirmText="Got It"
-        showCancelButton={false}
-        onConfirmPressed={handleModalClose}
-        onCancelPressed={handleModalClose}
-        confirmButtonColor={alertType === 'success' ? '#10b981' :
+        <CustomModal
+          show={showAlert}
+          title={alertTitle}
+          message={alertMessage}
+          alertType={alertType}
+          confirmText="Got It"
+          showCancelButton={false}
+          onConfirmPressed={confirm ? handleConfirmClose : handleModalClose}
+          onCancelPressed={handleModalClose}
+          confirmButtonColor={alertType === 'success' ? '#10b981' :
           alertType === 'error' ? '#ef4444' :
-            alertType === 'warning' ? '#f59e0b' : '#3b82f6'}
-        showSuccessTick={success && alertType === 'success'}
-      />
-    </SafeAreaView>
-  );
-};
+          alertType === 'warning' ? '#f59e0b' : '#3b82f6'}
+          showSuccessTick={success && alertType === 'success'}
+        />
+      </SafeAreaView>
+    );
+  };
 
-export default AssetForm;
+  export default AssetForm;

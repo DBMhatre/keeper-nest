@@ -1,11 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { 
-  View, 
-  Image, 
-  StyleSheet, 
-  Text, 
-  Animated, 
-  Easing 
+import {
+  View,
+  Image,
+  StyleSheet,
+  Text,
+  Animated,
+  Easing
 } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { account, databases } from '../server/appwrite';
@@ -23,19 +23,26 @@ import AssetList from '../components/AssetList';
 import EmployeeList from '../components/EmployeeList';
 import EmployeeDetails from '../components/EmployeeDetails';
 import AssetDetails from '../components/AssetDetails';
-// import AssetEmployeeDetails from '../components/AssetEmployeeDetails';
 import EmployeeAssetDetails from '../components/employee/AssetDetails';
 import { useTheme } from '../contexts/ThemeContext';
+import SystemNavigationBar from 'react-native-system-navigation-bar';
 const Stack = createNativeStackNavigator();
 
 export default function StackNavigation() {
   const [initialRoute, setInitialRoute] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  
   const rotateAnim = useRef(new Animated.Value(0)).current;
-  const {colors, isDark, toggleTheme} = useTheme();
-  // useNavigationBarColor(colors.surface, isDark);
+  const { colors, isDark, toggleTheme } = useTheme();
+
+  useEffect(() => {
+    if (isDark) {
+      SystemNavigationBar.setNavigationColor(colors.background, 'dark');
+    } else {
+      SystemNavigationBar.setNavigationColor('#FFFFFF', 'light');
+    }
+  }, [isDark, colors.background]);
+
   const styles = createLoadingStyles(colors);
   useEffect(() => {
     Animated.loop(
@@ -46,13 +53,13 @@ export default function StackNavigation() {
         useNativeDriver: true,
       })
     ).start();
-    
+
     const checkSession = async () => {
       try {
         try {
           const user = await account.get();
           console.log('User session found:', user.email);
-        
+
           const response = await databases.listDocuments(
             'user_info',
             'user_info',
@@ -88,7 +95,7 @@ export default function StackNavigation() {
         } catch (err) {
           console.log('No valid session found, redirecting to Login:', err.message);
         }
-        
+
         setInitialRoute('Login');
       } catch (error) {
         console.log('Unexpected error in checkSession:', error);
@@ -107,7 +114,7 @@ export default function StackNavigation() {
     return (
       <View style={styles.loadingContainer}>
         <View style={styles.imageContainer}>
-          <Animated.View 
+          <Animated.View
             style={[
               styles.continuousLoader,
               {
@@ -124,7 +131,7 @@ export default function StackNavigation() {
           >
             <View style={styles.circularPath} />
           </Animated.View>
-          
+
           <Image
             source={sticker}
             style={styles.logo}
@@ -150,7 +157,6 @@ export default function StackNavigation() {
       <Stack.Screen name="EmployeeTabs" component={EmployeeTabs} options={{ headerShown: false }} />
       <Stack.Screen name="EmployeeDetails" component={EmployeeDetails} options={{ headerShown: false }} />
       <Stack.Screen name="AssetDetails" component={AssetDetails} options={{ headerShown: false }} />
-      {/* <Stack.Screen name="AssetEmployeeDetails" component={AssetEmployeeDetails} options={{ headerShown: false }} /> */}
       <Stack.Screen name="EmployeeAssetDetails" component={EmployeeAssetDetails} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
@@ -184,7 +190,7 @@ const createLoadingStyles = (colors) => StyleSheet.create({
     alignItems: 'center',
   },
   circularPath: {
-    width: 180, 
+    width: 180,
     height: 180,
     borderRadius: 90,
     borderWidth: 3,
@@ -201,7 +207,6 @@ const createLoadingStyles = (colors) => StyleSheet.create({
   },
 });
 
-// For backward compatibility
 const loadingStyles = createLoadingStyles({
   background: '#f8fafc',
   primary: '#3b82f6',

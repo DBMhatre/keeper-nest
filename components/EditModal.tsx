@@ -11,6 +11,7 @@ import {
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '../contexts/ThemeContext';
 import CustomDropdown from './CustomDropdown';
+import SystemNavigationBar from 'react-native-system-navigation-bar';
 
 interface EditModalProps {
   visible: boolean;

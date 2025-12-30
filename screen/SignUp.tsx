@@ -8,6 +8,7 @@ import {
   ScrollView,
   SafeAreaView,
   ActivityIndicator,
+  processColor,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Picker } from '@react-native-picker/picker';
@@ -17,6 +18,7 @@ import { account, databases } from '../server/appwrite';
 import CustomModal from '../components/CustomModal'; 
 import CustomDropdown from '../components/CustomDropdown';
 import { useTheme } from '../contexts/ThemeContext';
+import { encrypt, decrypt } from '../server/encrypt_decrypt_password';
 
 const SignUp = () => {
   const [name, setName] = useState('');
@@ -90,6 +92,7 @@ const SignUp = () => {
         employeeId,
         {
           employeeId,
+          password: encrypt(password),
           name,
           email,
           gender,

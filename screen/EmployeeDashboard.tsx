@@ -107,7 +107,7 @@ export default function EmployeeDashboard() {
             </View>
             <Text style={styles.appTitle}>KeeperNest</Text>
           </View>
-          <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center' }}>
+          {/* <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center' }}>
             <TouchableOpacity onPress={toggleTheme}>
               <Icon
                 name={isDark ? 'white-balance-sunny' : 'weather-night'}
@@ -115,7 +115,7 @@ export default function EmployeeDashboard() {
                 color={colors.primary}
               />
             </TouchableOpacity>
-          </View>
+          </View> */}
         </View>
         <View style={styles.welcomeSection}>
           <View style={styles.welcomeContent}>

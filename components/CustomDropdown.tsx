@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useTheme } from '../contexts/ThemeContext';
+import SystemNavigationBar from 'react-native-system-navigation-bar';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -49,6 +50,14 @@ export default function CustomDropdown({
 
   const { colors, isDark } = useTheme();
   const styles = createDropdownStyles({ ...colors, isDark });
+
+  useEffect(() => {
+    if (isDark) {
+      SystemNavigationBar.setNavigationColor(colors.background, 'dark');
+    } else {
+      SystemNavigationBar.setNavigationColor('#FFFFFF', 'light');
+    }
+  }, [isDark, colors.background]);
 
   const selectedItem = data.find(item => item.value === selectedValue);
   const filteredData = searchable

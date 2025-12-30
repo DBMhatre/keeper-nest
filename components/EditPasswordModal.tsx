@@ -10,30 +10,32 @@ import {
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { account } from '../server/appwrite';
 import { useTheme } from '../contexts/ThemeContext';
+import { databases } from '../server/appwrite';
+import { encrypt } from '../server/encrypt_decrypt_password';
+import { Query } from 'appwrite';
 
 interface ChangePasswordModalProps {
   visible: boolean;
   onClose: () => void;
   onAlert?: (title: string, message: string) => void;
-  // Remove setAlert from props
 }
 
 export default function EditPasswordModal({
   visible,
   onClose,
-  onAlert, // Only keep onAlert
+  onAlert,
 }: ChangePasswordModalProps) {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  
+
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const {colors, isDark } = useTheme();  
+  const { colors, isDark } = useTheme();
   const styles = createPasswordModalStyles({ ...colors, isDark });
-  
+
   const handleChangePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
       onAlert && onAlert('Error', 'Please fill in all fields');
@@ -54,13 +56,23 @@ export default function EditPasswordModal({
 
     try {
       await account.updatePassword(newPassword, currentPassword);
+      const user = await account.get();
+
+      await databases.updateDocument(
+        'user_info',         
+        'user_info',         
+        user.$id,         
+        {                    
+          password: encrypt(newPassword),
+        }
+      );
       onAlert && onAlert('Success', 'Password changed successfully');
       resetForm();
       onClose();
     } catch (error: any) {
       console.log('Password change error:', error);
       onAlert && onAlert('Error', error.message || 'Failed to change password. Please check your current password.');
-      
+
     } finally {
       setLoading(false);
     }
@@ -104,19 +116,19 @@ export default function EditPasswordModal({
                 autoCapitalize="none"
                 autoCorrect={false}
               />
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.eyeButton}
                 onPress={() => setShowCurrentPassword(!showCurrentPassword)}
               >
-                <Icon 
-                  name={showCurrentPassword ? "eye-off" : "eye"} 
-                  size={22} 
-                  color="#666" 
+                <Icon
+                  name={showCurrentPassword ? "eye-off" : "eye"}
+                  size={22}
+                  color="#666"
                 />
               </TouchableOpacity>
             </View>
           </View>
-          
+
           <View style={styles.inputContainer}>
             <View style={styles.passwordInputWrapper}>
               <TextInput
@@ -130,14 +142,14 @@ export default function EditPasswordModal({
                 autoCapitalize="none"
                 autoCorrect={false}
               />
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.eyeButton}
                 onPress={() => setShowNewPassword(!showNewPassword)}
               >
-                <Icon 
-                  name={showNewPassword ? "eye-off" : "eye"} 
-                  size={22} 
-                  color="#666" 
+                <Icon
+                  name={showNewPassword ? "eye-off" : "eye"}
+                  size={22}
+                  color="#666"
                 />
               </TouchableOpacity>
             </View>
@@ -156,14 +168,14 @@ export default function EditPasswordModal({
                 autoCapitalize="none"
                 autoCorrect={false}
               />
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.eyeButton}
                 onPress={() => setShowConfirmPassword(!showConfirmPassword)}
               >
-                <Icon 
-                  name={showConfirmPassword ? "eye-off" : "eye"} 
-                  size={22} 
-                  color="#666" 
+                <Icon
+                  name={showConfirmPassword ? "eye-off" : "eye"}
+                  size={22}
+                  color="#666"
                 />
               </TouchableOpacity>
             </View>
@@ -173,8 +185,8 @@ export default function EditPasswordModal({
             Password must be at least 8 characters long
           </Text>
 
-          <TouchableOpacity 
-            style={[styles.saveButton, loading && styles.disabledButton]} 
+          <TouchableOpacity
+            style={[styles.saveButton, loading && styles.disabledButton]}
             onPress={handleChangePassword}
             disabled={loading}
           >
@@ -220,10 +232,10 @@ export const createPasswordModalStyles = (colors) => StyleSheet.create({
     borderBottomColor: colors.border,
     paddingBottom: 10,
   },
-  modalTitle: { 
-    fontSize: 20, 
-    fontWeight: '700', 
-    color: colors.primary 
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.primary
   },
   inputContainer: {
     marginBottom: 16,

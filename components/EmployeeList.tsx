@@ -168,7 +168,7 @@ export default function EmployeeList() {
     }
   }, [searchQuery, filteredEmployees.length, totalEmployees, pageSize]);
 
-  const onRefresh = () => {
+  const onRefresh = async () => {
     refetch();
   };
 
@@ -303,7 +303,7 @@ export default function EmployeeList() {
             contentContainerStyle={styles.listContent}
             refreshControl={
               <RefreshControl
-                refreshing={isRefetching}
+                refreshing={false}
                 onRefresh={onRefresh}
                 colors={[colors.primary]}
                 tintColor={colors.primary}
