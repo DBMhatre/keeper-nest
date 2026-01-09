@@ -274,6 +274,7 @@ export default function Profile() {
         confirmButtonColor={alertType === 'success' ? '#10b981' :
           alertType === 'error' ? '#ef4444' :
             alertType === 'warning' ? '#f59e0b' : '#3b82f6'}
+        // showSuccessTick={true}
       />
 
       <CustomModal

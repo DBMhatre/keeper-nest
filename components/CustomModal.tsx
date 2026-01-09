@@ -22,16 +22,16 @@ const CustomModal: React.FC<CustomModalProps> = ({
   message = '',
   confirmText = 'OK',
   cancelText = 'Cancel',
-  confirmButtonColor = '#10b981', 
+  confirmButtonColor = '#10b981',
   showCancelButton = false,
   onConfirmPressed,
   onCancelPressed,
-  showSuccessTick = false, 
+  showSuccessTick = false,
 }) => {
 
   const { colors, isDark } = useTheme();
   const styles = createModalStyles({ ...colors, isDark });
-  
+
   return (
     <Modal visible={show} transparent animationType="fade">
       <View style={styles.overlay}>
@@ -40,10 +40,10 @@ const CustomModal: React.FC<CustomModalProps> = ({
           {showSuccessTick && (
             <View style={styles.animationContainer}>
               <LottieView
-                source={require('../assets/animations/success-tick.json')}
+                source={isDark ? require('../assets/animations/success-tick-dark.json') : require('../assets/animations/success-tick.json')}
                 autoPlay
                 loop={false}
-                style={styles.tickAnimation}
+                style={[styles.tickAnimation, { backgroundColor: 'transparent' }]}
                 resizeMode="cover"
               />
             </View>
@@ -52,15 +52,15 @@ const CustomModal: React.FC<CustomModalProps> = ({
           <Text style={styles.title}>{title}</Text>
 
           {message ? <Text style={styles.message}>{message}</Text> : null}
-          
+
           <View style={styles.buttons}>
             {showCancelButton && (
               <TouchableOpacity style={styles.cancelBtn} onPress={onCancelPressed}>
                 <Text style={styles.cancelText}>{cancelText}</Text>
               </TouchableOpacity>
             )}
-            <TouchableOpacity 
-              style={[styles.confirmBtn, { backgroundColor: confirmButtonColor }]} 
+            <TouchableOpacity
+              style={[styles.confirmBtn, { backgroundColor: confirmButtonColor }]}
               onPress={onConfirmPressed}
             >
               <Text style={styles.confirmText}>{confirmText}</Text>
@@ -80,7 +80,7 @@ export const createModalStyles = (colors) => StyleSheet.create({
     padding: 20,
   },
   container: {
-    backgroundColor: colors.background,
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 20,
     margin: 20,
@@ -98,7 +98,8 @@ export const createModalStyles = (colors) => StyleSheet.create({
   },
   tickAnimation: {
     width: 80,
-    height: 80,
+    height: 40,
+    marginVertical: 10
   },
   title: {
     fontSize: 18,

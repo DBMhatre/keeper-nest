@@ -9,7 +9,8 @@ import {
 } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { account, databases } from '../server/appwrite';
-import sticker from '../assets/images/logo_app.png'
+import sticker from '../assets/images/logo_app.png';
+import LottieView from 'lottie-react-native';
 
 import SignUp from '../screen/SignUp';
 import Login from '../screen/Login';
@@ -26,13 +27,13 @@ import AssetDetails from '../components/AssetDetails';
 import EmployeeAssetDetails from '../components/employee/AssetDetails';
 import { useTheme } from '../contexts/ThemeContext';
 import SystemNavigationBar from 'react-native-system-navigation-bar';
+
 const Stack = createNativeStackNavigator();
 
 export default function StackNavigation() {
   const [initialRoute, setInitialRoute] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const rotateAnim = useRef(new Animated.Value(0)).current;
   const { colors, isDark, toggleTheme } = useTheme();
 
   useEffect(() => {
@@ -43,17 +44,7 @@ export default function StackNavigation() {
     }
   }, [isDark, colors.background]);
 
-  const styles = createLoadingStyles(colors);
   useEffect(() => {
-    Animated.loop(
-      Animated.timing(rotateAnim, {
-        toValue: 1,
-        duration: 1500,
-        easing: Easing.linear,
-        useNativeDriver: true,
-      })
-    ).start();
-
     const checkSession = async () => {
       try {
         try {
@@ -112,32 +103,14 @@ export default function StackNavigation() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <View style={styles.imageContainer}>
-          <Animated.View
-            style={[
-              styles.continuousLoader,
-              {
-                transform: [
-                  {
-                    rotate: rotateAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: ['0deg', '360deg']
-                    })
-                  }
-                ]
-              }
-            ]}
-          >
-            <View style={styles.circularPath} />
-          </Animated.View>
-
-          <Image
-            source={sticker}
-            style={styles.logo}
-          />
-        </View>
-        <Text style={styles.loadingText}>KeeperNest</Text>
+      <View style={[styles.loadingContainer, { backgroundColor: isDark ? '#1c232cff' : '#FFF' }]}>
+        <LottieView
+          source={isDark ? require('../assets/animations/loading_animation_dark.json') : require('../assets/animations/loading_animation.json')}
+          autoPlay
+          loop
+          style={styles.lottieAnimation}
+          speed={1.2}
+        />
       </View>
     );
   }
@@ -162,52 +135,32 @@ export default function StackNavigation() {
   );
 }
 
-const createLoadingStyles = (colors) => StyleSheet.create({
+const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.background,
   },
-  imageContainer: {
-    position: 'relative',
-    width: 200,
-    height: 200,
-    justifyContent: 'center',
+  lottieAnimation: {
+    width: 300,
+    height: 300,
+    position: 'absolute',
+    backgroundColor: 'transparent',
+  },
+  logoContainer: {
     alignItems: 'center',
-    marginBottom: 30,
+    marginTop: 30,
   },
   logo: {
     width: 120,
     height: 120,
     resizeMode: 'contain',
   },
-  continuousLoader: {
-    position: 'absolute',
-    width: 200,
-    height: 200,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  circularPath: {
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    borderWidth: 3,
-    borderColor: colors.primary,
-    borderTopColor: 'transparent',
-    borderRightColor: 'transparent',
-    borderBottomColor: 'transparent',
-  },
   loadingText: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: colors.primary,
+    color: '#3b82f6',
     letterSpacing: 1,
+    marginTop: 10,
   },
-});
-
-const loadingStyles = createLoadingStyles({
-  background: '#f8fafc',
-  primary: '#3b82f6',
 });

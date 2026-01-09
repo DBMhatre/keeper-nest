@@ -377,15 +377,15 @@ export default function AssetList() {
                                 horizontal
                                 showsHorizontalScrollIndicator={false}
                                 nestedScrollEnabled
-                                refreshControl={
-                                    <RefreshControl
-                                        refreshing={false}
-                                        onRefresh={onRefresh}
-                                        colors={[colors.primary]}
-                                        tintColor={colors.primary}
-                                        progressBackgroundColor={colors.background}
-                                    />
-                                }
+                                // refreshControl={
+                                //     <RefreshControl
+                                //         refreshing={false}
+                                //         onRefresh={onRefresh}
+                                //         colors={[colors.primary]}
+                                //         tintColor={colors.primary}
+                                //         progressBackgroundColor={colors.background}
+                                //     />
+                                // }
                             >
                                 <View style={styles.tableWrapper}>
                                     <View style={styles.tableHeader}>
