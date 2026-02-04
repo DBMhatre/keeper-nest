@@ -209,11 +209,33 @@ export default function AssetDetails() {
         }
     };
 
+    const handleStatusUpdate = async (newStatus: string) => {
+        if (!asset) return;
+
+        try {
+            await databases.updateDocument(
+                'assetManagement',
+                'assets',
+                asset.$id,
+                { status: newStatus }
+            );
+
+            queryClient.invalidateQueries({ queryKey: ['asset', assetId] });
+            queryClient.invalidateQueries({ queryKey: ['available-assets'] });
+            queryClient.invalidateQueries({ queryKey: ['assigned-assets'] });
+
+            showAlertBox('Success', `Asset status updated to ${newStatus}`, 'success');
+        } catch (error) {
+            console.error('Error updating asset status:', error);
+            showAlertBox('Error', 'Failed to update asset status', 'error');
+        }
+    };
+
     const handleMaintenance = async () => {
         if (!asset) return;
 
         try {
-            if (asset.status === 'Assigned') {
+            if (asset.status === 'Assigned' || asset.status === 'Assigned-O') {
                 showAlertBox(
                     'Cannot Mark for Maintenance',
                     'This asset is currently assigned to an employee. Please unassign it first before marking for maintenance.',
@@ -222,8 +244,8 @@ export default function AssetDetails() {
                 return;
             }
 
-            const newStatus = asset.status === 'Maintainance' ? 'Available' : 'Maintainance';
-            const successMessage = asset.status === 'Maintainance'
+            const newStatus = (asset.status === 'Maintainance' || asset.status === 'Damaged') ? 'Available' : 'Maintainance';
+            const successMessage = (asset.status === 'Maintainance' || asset.status === 'Damaged')
                 ? 'Asset removed from Maintenance'
                 : 'Asset marked for maintenance';
 
@@ -320,7 +342,9 @@ export default function AssetDetails() {
     const getStatusColor = (status: string) => {
         switch (status) {
             case "Available": return "#10b981";
+            case "Available-O": return "#10b981";
             case "Assigned": return "#3b82f6";
+            case "Assigned-O": return "#3b82f6";
             case "Maintenance": return "#f59e0b";
             case "Damaged": return "#ef4444";
             default: return "#6b7280";
@@ -557,14 +581,75 @@ export default function AssetDetails() {
                             onPress={handleMaintenance}
                         >
                             <Icon
-                                name={asset.status === 'Maintainance' ? "check-circle" : "wrench"}
+                                name={(asset.status === 'Maintainance' || asset.status === 'Damaged') ? "check-circle" : "wrench"}
                                 size={22}
                                 color="#f59e0b"
                             />
                             <Text style={styles.maintenanceButtonText}>
-                                {asset.status === 'Maintainance' ? 'Mark as Available' : 'Send to Maintenance'}
+                                {(asset.status === 'Maintainance' || asset.status === 'Damaged') ? 'Mark as Available' : 'Send to Maintenance'}
                             </Text>
                         </TouchableOpacity>
+
+                        {/* Damaged Button */}
+                        <TouchableOpacity
+                            style={[
+                                styles.maintenanceButton,
+                                {
+                                    backgroundColor: '#fee2e2',
+                                    marginTop: 10,
+                                    borderColor: '#ef4444',
+                                    borderWidth: 1
+                                }
+                            ]}
+                            onPress={() => handleStatusUpdate('Damaged')}
+                        >
+                            <Icon name="alert-circle" size={22} color="#ef4444" />
+                            <Text style={[styles.maintenanceButtonText, { color: '#ef4444' }]}>
+                                Mark as Damaged
+                            </Text>
+                        </TouchableOpacity>
+
+                        {/* Available / Available-O Toggle */}
+                        {(asset.status === 'Available' || asset.status === 'Available-O') && (
+                            <TouchableOpacity
+                                style={[
+                                    styles.maintenanceButton,
+                                    {
+                                        backgroundColor: '#d1fae5',
+                                        marginTop: 10,
+                                        borderColor: '#10b981',
+                                        borderWidth: 1
+                                    }
+                                ]}
+                                onPress={() => handleStatusUpdate(asset.status === 'Available' ? 'Available-O' : 'Available')}
+                            >
+                                <Icon name="sync" size={22} color="#10b981" />
+                                <Text style={[styles.maintenanceButtonText, { color: '#10b981' }]}>
+                                    Switch to {asset.status === 'Available' ? 'Available-O' : 'Available'}
+                                </Text>
+                            </TouchableOpacity>
+                        )}
+
+                        {/* Assigned / Assigned-O Toggle */}
+                        {(asset.status === 'Assigned' || asset.status === 'Assigned-O') && (
+                            <TouchableOpacity
+                                style={[
+                                    styles.maintenanceButton,
+                                    {
+                                        backgroundColor: '#dbeafe',
+                                        marginTop: 10,
+                                        borderColor: '#3b82f6',
+                                        borderWidth: 1
+                                    }
+                                ]}
+                                onPress={() => handleStatusUpdate(asset.status === 'Assigned' ? 'Assigned-O' : 'Assigned')}
+                            >
+                                <Icon name="sync" size={22} color="#3b82f6" />
+                                <Text style={[styles.maintenanceButtonText, { color: '#3b82f6' }]}>
+                                    Switch to {asset.status === 'Assigned' ? 'Assigned-O' : 'Assigned'}
+                                </Text>
+                            </TouchableOpacity>
+                        )}
                     </View>
 
                     <View style={styles.actionButtons}>

@@ -13,13 +13,13 @@ import {
 import { account, databases } from '../server/appwrite';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { createStyles } from '../styles/adminDashboardStyles'; 
+import { createStyles } from '../styles/adminDashboardStyles';
 import { Query } from 'appwrite';
 import sticker from '../assets/images/logo_app.png';
-import { useTheme } from '../contexts/ThemeContext'; 
+import { useTheme } from '../contexts/ThemeContext';
 
 export default function AdminDashboard() {
-  const { colors, isDark, toggleTheme } = useTheme(); 
+  const { colors, isDark, toggleTheme } = useTheme();
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(true);
@@ -52,9 +52,9 @@ export default function AdminDashboard() {
       );
 
       const assets = assetsResponse.documents;
-      const availableAssets = assets.filter(asset => asset.status === 'Available').length;
-      const assignedAssets = assets.filter(asset => asset.status === 'Assigned').length;
-      const maintainanceAssets = assets.filter(asset => asset.status === 'Maintainance').length;
+      const availableAssets = assets.filter(asset => asset.status === 'Available' || asset.status === 'Available-O').length;
+      const assignedAssets = assets.filter(asset => asset.status === 'Assigned' || asset.status === 'Assigned-O').length;
+      const maintainanceAssets = assets.filter(asset => asset.status === 'Maintainance' || asset.status === 'Damaged').length;
 
       setStats({
         totalEmployees: employeesResponse.total,
@@ -92,7 +92,7 @@ export default function AdminDashboard() {
       onRefresh();
     }, [])
   );
-  const styles = createStyles(colors); 
+  const styles = createStyles(colors);
 
   const QuickAction = ({ title, icon, color, onPress, description }) => (
     <TouchableOpacity style={styles.quickActionCard} onPress={onPress} activeOpacity={0.8}>
@@ -189,7 +189,7 @@ export default function AdminDashboard() {
                   </TouchableOpacity>
 
                   <TouchableOpacity style={styles.statItem} activeOpacity={0.8} onPress={() => navigation.navigate('AssetList' as never, { filter: 'assigned', label: 'Assigned' } as never)}>
-                    <View style={[styles.statIconWrapper, isDark ? {backgroundColor: '#d97706'} : {backgroundColor: '#f59e0b'}]}>
+                    <View style={[styles.statIconWrapper, isDark ? { backgroundColor: '#d97706' } : { backgroundColor: '#f59e0b' }]}>
                       <Icon name="package-variant-closed" size={15} color="#fff" />
                     </View>
                     <View style={styles.statContent}>

@@ -34,7 +34,7 @@ export default function AssetList() {
     const [alertMessage, setAlertMessage] = useState('');
     const [alertType, setAlertType] = useState<'success' | 'error' | 'warning' | 'info'>('success')
     const [selectedStatus, setSelectedStatus] = useState({ label: 'All Status', value: 'all', icon: 'filter-variant', color: '#6b7280' });
-    const [selectedType, setSelectedType] = useState( { label: 'All Types', value: 'all', icon: 'package-variant', color: '#6b7280' });
+    const [selectedType, setSelectedType] = useState({ label: 'All Types', value: 'all', icon: 'package-variant', color: '#6b7280' });
     const [modalVisible, setModalVisible] = useState(false);
     const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
     const [input, setInput] = useState('');
@@ -199,7 +199,7 @@ export default function AssetList() {
                 item.assetName?.toLowerCase().includes(text)
             );
         });
-        
+
         setFilteredAsset(result);
     }, [name, assets]);
 
@@ -207,9 +207,21 @@ export default function AssetList() {
         let result = [...assets];
 
         if (selectedStatus && selectedStatus.value !== 'all') {
-            result = result.filter((item: any) =>
-                item.status?.toLowerCase() === selectedStatus.value.toLowerCase()
-            );
+            result = result.filter((item: any) => {
+                const status = item.status?.toLowerCase();
+                const filter = selectedStatus.value.toLowerCase();
+
+                if (filter === 'available') {
+                    return status === 'available' || status === 'available-o';
+                }
+                if (filter === 'assigned') {
+                    return status === 'assigned' || status === 'assigned-o';
+                }
+                if (filter === 'maintainance') {
+                    return status === 'maintainance' || status === 'damaged';
+                }
+                return status === filter;
+            });
         }
         if (selectedType && selectedType.value !== 'all') {
             result = result.filter((item: any) =>
@@ -251,7 +263,9 @@ export default function AssetList() {
     const getStatusColor = (status: any) => {
         switch (status) {
             case "Available": return "#10b981";
+            case "Available-O": return "#10b981";
             case "Assigned": return "#3b82f6";
+            case "Assigned-O": return "#3b82f6";
             case "Maintenance": return "#f59e0b";
             case "Damaged": return "#ef4444";
             default: return "#6b7280";
@@ -377,15 +391,15 @@ export default function AssetList() {
                                 horizontal
                                 showsHorizontalScrollIndicator={false}
                                 nestedScrollEnabled
-                                // refreshControl={
-                                //     <RefreshControl
-                                //         refreshing={false}
-                                //         onRefresh={onRefresh}
-                                //         colors={[colors.primary]}
-                                //         tintColor={colors.primary}
-                                //         progressBackgroundColor={colors.background}
-                                //     />
-                                // }
+                            // refreshControl={
+                            //     <RefreshControl
+                            //         refreshing={false}
+                            //         onRefresh={onRefresh}
+                            //         colors={[colors.primary]}
+                            //         tintColor={colors.primary}
+                            //         progressBackgroundColor={colors.background}
+                            //     />
+                            // }
                             >
                                 <View style={styles.tableWrapper}>
                                     <View style={styles.tableHeader}>

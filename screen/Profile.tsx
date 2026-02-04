@@ -96,18 +96,18 @@ export default function Profile() {
       const dbId = "user_info";
       const collectionId = "user_info";
 
-      const response = await databases.listDocuments(
-        dbId,
-        collectionId,
-        [Query.equal("employeeId", user.$id)]
-      );
+      // const response = await databases.listDocuments(
+      //   dbId,
+      //   collectionId,
+      //   [Query.equal("employeeId", user.$id)]
+      // );
 
-      const userDoc = response.documents[0];
+      // const userDoc = response.documents[0];
 
       await databases.updateDocument(
         dbId,
         collectionId,
-        userDoc.$id,
+        user.$id,
         { gender: gender, name: name }
       );
 
