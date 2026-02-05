@@ -395,7 +395,11 @@ export default function AssetDetails() {
                         <Text style={styles.assetName} numberOfLines={2}>{asset.assetName}</Text>
                         <View style={styles.assetMeta}>
                             <Text style={styles.assetId} numberOfLines={1}>#{asset.assetId}</Text>
-                            <Text style={styles.assetType} numberOfLines={1}>{asset.assetType}</Text>
+                            <Text style={styles.assetType} numberOfLines={1}>
+                                {asset.assetType === 'Laptop' && asset.osType
+                                    ? `${asset.assetType} (${asset.osType})`
+                                    : asset.assetType}
+                            </Text>
                         </View>
                     </View>
                 </View>

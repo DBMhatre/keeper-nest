@@ -77,12 +77,12 @@ export const createAssetFormModalStyles = (colors) => StyleSheet.create({
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: colors.background,
+        backgroundColor: colors.surface,
         borderRadius: 10,
         borderWidth: 1,
         borderColor: colors.border,
         paddingHorizontal: 16,
-        paddingVertical: 14,
+        paddingVertical: 4,
     },
     icon: {
         marginRight: 12,

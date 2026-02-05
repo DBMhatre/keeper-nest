@@ -196,7 +196,8 @@ export default function AssetList() {
 
         const result = assets.filter((item: any) => {
             return (
-                item.assetName?.toLowerCase().includes(text)
+                item.assetName?.toLowerCase().includes(text) ||
+                item.osType?.toLowerCase().includes(text)
             );
         });
 
@@ -453,7 +454,11 @@ export default function AssetList() {
                                                 </View>
 
                                                 <View style={[styles.cell, styles.typeCell]}>
-                                                    <Text style={styles.typeText} numberOfLines={2}>{item.assetType}</Text>
+                                                    <Text style={styles.typeText} numberOfLines={2}>
+                                                        {item.assetType === 'Laptop' && item.osType
+                                                            ? `${item.assetType} (${item.osType})`
+                                                            : item.assetType}
+                                                    </Text>
                                                 </View>
 
                                                 <View style={[styles.cell, styles.notesCell]}>
@@ -572,7 +577,11 @@ export default function AssetList() {
                                         <View style={styles.cardInfoRow}>
                                             <View style={styles.infoContent}>
                                                 <Text style={styles.infoLabel}>Asset Type: </Text>
-                                                <Text style={styles.cardInfoText}>{item.assetType}</Text>
+                                                <Text style={styles.cardInfoText}>
+                                                    {item.assetType === 'Laptop' && item.osType
+                                                        ? `${item.assetType} (${item.osType})`
+                                                        : item.assetType}
+                                                </Text>
                                             </View>
                                         </View>
 
