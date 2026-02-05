@@ -71,11 +71,24 @@ export default function UpdateModal({ asset, visible, onClose }) {
         try {
             setLoading(true);
 
+            const newHistoryEntry = JSON.stringify({
+                updation: "Asset details updated",
+                date: new Date().toISOString(),
+            });
+
+            const currentHistory = asset.historyQueue || [];
+            const updatedHistory = [newHistoryEntry, ...currentHistory];
+
+            if (updatedHistory.length > 15) {
+                updatedHistory.splice(15);
+            }
+
             const updateData = {
                 assetName: assetName.trim(),
                 assetId: assetId.trim(),
                 description: description.trim(),
-                ...(asset.assetType === 'Laptop' && { osType: osType.trim() })
+                ...(asset.assetType === 'Laptop' && { osType: osType.trim() }),
+                historyQueue: updatedHistory
             };
 
             await databases.updateDocument(
@@ -167,7 +180,6 @@ export default function UpdateModal({ asset, visible, onClose }) {
                             </View>
                         </View>
 
-                        {/* OS Type - Conditional for Laptop */}
                         {asset?.assetType === 'Laptop' && (
                             <View style={styles.inputWrapper}>
                                 <Text style={styles.inputLabel}>

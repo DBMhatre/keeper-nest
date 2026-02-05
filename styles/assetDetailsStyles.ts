@@ -165,6 +165,7 @@ export const createAssetDetailsStyles = (colors) => StyleSheet.create({
     borderColor: colors.border,
     borderRadius: 8,
     overflow: 'hidden',
+    minWidth: width - 32,
   },
   tableHeader: {
     flexDirection: 'row',
@@ -199,6 +200,7 @@ export const createAssetDetailsStyles = (colors) => StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
     backgroundColor: colors.surface,
+    minHeight: 50,
   },
   tableCell: {
     justifyContent: 'center',
@@ -299,11 +301,11 @@ export const createAssetDetailsStyles = (colors) => StyleSheet.create({
     flex: 2,
   },
   columnEmployee: {
-    flex: 1.5,
+    width: 200,
     paddingRight: 10,
   },
   columnDate: {
-    flex: 1.2,
+    width: 120,
   },
   columnStatus: {
     flex: 1,
@@ -313,6 +315,7 @@ export const createAssetDetailsStyles = (colors) => StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
     color: colors.text,
+    flexWrap: 'wrap',
   },
   employeeId: {
     fontSize: 13,
@@ -562,7 +565,7 @@ export const createAssetDetailsStyles = (colors) => StyleSheet.create({
     marginVertical: 3,
     marginTop: 10,
   },
-    
+
   maintenanceButtonText: {
     fontSize: 14,
     fontWeight: '600',

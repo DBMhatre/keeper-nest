@@ -106,6 +106,11 @@ const AssetForm = () => {
     const expiredAt = new Date(currentYear, 11, 31);
 
     try {
+      const newHistoryEntry = JSON.stringify({
+        updation: "Created",
+        date: new Date().toISOString(),
+      });
+
       const assetData: Asset = {
         assetName,
         assetType,
@@ -114,7 +119,8 @@ const AssetForm = () => {
         description,
         purchaseDate: new Date(purchaseDate).toISOString(),
         expiredAt: expiredAt.toISOString(),
-        ...(assetType === 'Laptop' && { osType })
+        ...(assetType === 'Laptop' && { osType }),
+        historyQueue: [newHistoryEntry]
       };
 
       const response = await databases.createDocument(

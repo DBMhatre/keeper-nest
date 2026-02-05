@@ -173,16 +173,15 @@ export default function AssetDetails() {
 
         try {
             const newHistoryEntry = JSON.stringify({
-                historyId: ID.unique(),
-                employeeId: assignedEmployee,
-                assignDate: new Date().toISOString(),
+                updation: `Assigned to ${assignedEmployee}`,
+                date: new Date().toISOString(),
             });
 
             const currentHistory = asset.historyQueue || [];
             const updatedHistory = [newHistoryEntry, ...currentHistory];
 
-            if (updatedHistory.length > 5) {
-                updatedHistory.pop();
+            if (updatedHistory.length > 15) {
+                updatedHistory.splice(15);
             }
 
             await databases.updateDocument(
@@ -213,11 +212,35 @@ export default function AssetDetails() {
         if (!asset) return;
 
         try {
+            let historyMessage = '';
+            if (newStatus === 'Damaged') {
+                historyMessage = 'Currently under damage';
+            } else if (newStatus === 'Available' || newStatus === 'Available-O') {
+                historyMessage = 'Currently available to assign';
+            } else {
+                historyMessage = `Status updated to ${newStatus}`;
+            }
+
+            const newHistoryEntry = JSON.stringify({
+                updation: historyMessage,
+                date: new Date().toISOString(),
+            });
+
+            const currentHistory = asset.historyQueue || [];
+            const updatedHistory = [newHistoryEntry, ...currentHistory];
+
+            if (updatedHistory.length > 15) {
+                updatedHistory.splice(15);
+            }
+
             await databases.updateDocument(
                 'assetManagement',
                 'assets',
                 asset.$id,
-                { status: newStatus }
+                {
+                    status: newStatus,
+                    historyQueue: updatedHistory
+                }
             );
 
             queryClient.invalidateQueries({ queryKey: ['asset', assetId] });
@@ -249,11 +272,30 @@ export default function AssetDetails() {
                 ? 'Asset removed from Maintenance'
                 : 'Asset marked for maintenance';
 
+            const historyMessage = newStatus === 'Maintainance'
+                ? 'Currently under maintenance'
+                : 'Currently available to assign';
+
+            const newHistoryEntry = JSON.stringify({
+                updation: historyMessage,
+                date: new Date().toISOString(),
+            });
+
+            const currentHistory = asset.historyQueue || [];
+            const updatedHistory = [newHistoryEntry, ...currentHistory];
+
+            if (updatedHistory.length > 15) {
+                updatedHistory.splice(15);
+            }
+
             await databases.updateDocument(
                 'assetManagement',
                 'assets',
                 asset.$id,
-                { status: newStatus }
+                {
+                    status: newStatus,
+                    historyQueue: updatedHistory
+                }
             );
 
             queryClient.invalidateQueries({ queryKey: ['asset', assetId] });
@@ -541,41 +583,46 @@ export default function AssetDetails() {
 
                 <View style={styles.formCard}>
                     <View style={styles.sectionHeader}>
-                        <Text style={styles.sectionTitle}>Assignment History</Text>
-                        <Text style={styles.assetsCount}>(Last 5)</Text>
+                        <Text style={styles.sectionTitle}>Asset History</Text>
+                        <Text style={styles.assetsCount}>(Last 15)</Text>
                     </View>
 
                     {assignmentHistory.length === 0 ? (
                         <View style={styles.emptyState}>
                             <Icon name="history" size={32} color="#d1d5db" />
-                            <Text style={styles.emptyText}>No assignment history</Text>
+                            <Text style={styles.emptyText}>No history available</Text>
                         </View>
                     ) : (
-                        <View style={styles.tableContainer}>
-                            <View style={styles.tableHeader}>
-                                <Text style={[styles.tableHeaderText, styles.columnEmployee]}>Employee</Text>
-                                <Text style={[styles.tableHeaderText, styles.columnDate]}>Assignment Date</Text>
-                            </View>
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={true}
+                        >
+                            <View style={styles.tableContainer}>
+                                <View style={styles.tableHeader}>
+                                    <Text style={[styles.tableHeaderText, styles.columnEmployee]}>Updation status</Text>
+                                    <Text style={[styles.tableHeaderText, styles.columnDate]}>Date</Text>
+                                </View>
 
-                            <ScrollView
-                                style={styles.tableBody}
-                                showsVerticalScrollIndicator={true}
-                                nestedScrollEnabled={true}
-                            >
-                                {assignmentHistory.map((record, index) => (
-                                    <View key={record.historyId || index} style={styles.tableRow}>
-                                        <View style={[styles.tableCell, styles.columnEmployee]}>
-                                            <Text style={styles.employeeName} numberOfLines={2}>{record.employeeId}</Text>
+                                <ScrollView
+                                    style={styles.tableBody}
+                                    showsVerticalScrollIndicator={true}
+                                    nestedScrollEnabled={true}
+                                >
+                                    {assignmentHistory.map((record, index) => (
+                                        <View key={index} style={styles.tableRow}>
+                                            <View style={[styles.tableCell, styles.columnEmployee]}>
+                                                <Text style={styles.employeeName}>{record.updation || 'Unknown'}</Text>
+                                            </View>
+                                            <View style={[styles.tableCell, styles.columnDate]}>
+                                                <Text style={styles.historyDate}>
+                                                    {record.date ? new Date(record.date).toLocaleDateString() : 'N/A'}
+                                                </Text>
+                                            </View>
                                         </View>
-                                        <View style={[styles.tableCell, styles.columnDate]}>
-                                            <Text style={styles.historyDate}>
-                                                {record.assignDate ? new Date(record.assignDate).toLocaleDateString() : 'N/A'}
-                                            </Text>
-                                        </View>
-                                    </View>
-                                ))}
-                            </ScrollView>
-                        </View>
+                                    ))}
+                                </ScrollView>
+                            </View>
+                        </ScrollView>
                     )}
                 </View>
                 <View>

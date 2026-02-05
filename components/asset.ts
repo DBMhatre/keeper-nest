@@ -7,4 +7,5 @@ export interface Asset {
   description?: string;
   expiredAt: string;
   osType?: string;
+  historyQueue?: string[];
 }
