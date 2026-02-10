@@ -2,7 +2,7 @@ import { StyleSheet, Dimensions } from "react-native";
 
 const { width, height } = Dimensions.get('window');
 
-export const createAssetListStyles = (colors) => StyleSheet.create({
+export const createAssetListStyles = (colors: any) => StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: colors.surface,
@@ -30,6 +30,23 @@ export const createAssetListStyles = (colors) => StyleSheet.create({
         alignItems: 'center',
         marginBottom: 4,
         marginLeft: 2,
+    },
+    fab: {
+        position: 'absolute',
+        bottom: 24,
+        right: 24,
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: colors.primary,
+        justifyContent: 'center',
+        alignItems: 'center',
+        elevation: 8,
+        shadowColor: colors.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        zIndex: 1000,
     },
     headerTitle: {
         fontSize: 24,
@@ -480,11 +497,6 @@ export const createAssetListStyles = (colors) => StyleSheet.create({
         borderRadius: 8,
         borderWidth: 1,
         borderColor: colors.border,
-    },
-    dateText: {
-        fontSize: 13,
-        fontWeight: '500',
-        color: colors.text,
     },
     descriptionContainer: {
         backgroundColor: colors.background,

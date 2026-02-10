@@ -20,6 +20,7 @@ import { useQuery } from '@tanstack/react-query';
 import { debounce } from 'lodash';
 import { useTheme } from '../contexts/ThemeContext';
 import { createAssetListStyles } from '../styles/assetListStyles';
+import ManageAssetTypesModal from './ManageAssetTypesModal';
 
 export default function AssetList() {
     const pageSize = 5;
@@ -36,6 +37,7 @@ export default function AssetList() {
     const [selectedStatus, setSelectedStatus] = useState({ label: 'All Status', value: 'all', icon: 'filter-variant', color: '#6b7280' });
     const [selectedType, setSelectedType] = useState({ label: 'All Types', value: 'all', icon: 'package-variant', color: '#6b7280' });
     const [modalVisible, setModalVisible] = useState(false);
+    const [manageTypesVisible, setManageTypesVisible] = useState(false);
     const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
     const [input, setInput] = useState('');
     const [fetchCount, setFetchCount] = useState(0);
@@ -177,13 +179,31 @@ export default function AssetList() {
         { label: 'Maintenance', value: 'maintainance', icon: 'tools', color: '#f59e0b' },
     ];
 
-    const typeOptions = [
+    const { data: assetTypes = [] } = useQuery({
+        queryKey: ['asset-types'],
+        queryFn: async () => {
+            try {
+                const response = await databases.listDocuments(
+                    'assetManagement',
+                    'asset-type'
+                );
+                return response.documents.map(doc => ({
+                    label: doc.assetType,
+                    value: doc.assetType.toLowerCase(),
+                    icon: getAssetIcon(doc.assetType),
+                    color: getAssetColor(doc.assetType)
+                }));
+            } catch (error) {
+                console.error('Error fetching asset types:', error);
+                return [];
+            }
+        }
+    });
+
+    const typeOptions = useMemo(() => [
         { label: 'All Types', value: 'all', icon: 'package-variant', color: '#6b7280' },
-        { label: 'Laptop', value: 'laptop', icon: 'laptop', color: '#3b82f6' },
-        { label: 'Keyboard', value: 'keyboard', icon: 'keyboard', color: '#8b5cf6' },
-        { label: 'Mouse', value: 'mouse', icon: 'mouse', color: '#f59e0b' },
-        { label: 'Other', value: 'other', icon: 'package-variant', color: '#6b7280' }
-    ];
+        ...assetTypes
+    ], [assetTypes]);
 
     useFocusEffect(
         useCallback(() => {
@@ -392,15 +412,6 @@ export default function AssetList() {
                                 horizontal
                                 showsHorizontalScrollIndicator={false}
                                 nestedScrollEnabled
-                            // refreshControl={
-                            //     <RefreshControl
-                            //         refreshing={false}
-                            //         onRefresh={onRefresh}
-                            //         colors={[colors.primary]}
-                            //         tintColor={colors.primary}
-                            //         progressBackgroundColor={colors.background}
-                            //     />
-                            // }
                             >
                                 <View style={styles.tableWrapper}>
                                     <View style={styles.tableHeader}>
@@ -427,10 +438,10 @@ export default function AssetList() {
                                         </View>
                                     </View>
 
-                                    <ScrollView style={styles.tableBody}>
+                                    <View style={styles.tableBody}>
                                         {filteredAsset.map((item) => (
                                             <TouchableOpacity
-                                                key={item.$id}
+                                                key={item.$id || item.assetId}
                                                 style={styles.tableRow}
                                                 onPress={() => navigation.navigate('AssetDetails', { assetId: item.assetId })}
                                             >
@@ -508,7 +519,7 @@ export default function AssetList() {
                                                 </View>
                                             </TouchableOpacity>
                                         ))}
-                                    </ScrollView>
+                                    </View>
                                 </View>
                             </ScrollView>
                         )}
@@ -550,7 +561,7 @@ export default function AssetList() {
                         <View style={styles.grid}>
                             {filteredAsset.map((item) => (
                                 <TouchableOpacity
-                                    key={item.$id}
+                                    key={item.$id || item.assetId}
                                     style={styles.gridCard}
                                     onPress={() => navigation.navigate('AssetDetails', { assetId: item.assetId })}
                                     activeOpacity={0.9}
@@ -644,6 +655,20 @@ export default function AssetList() {
                     modalConfig.type === 'error' ? '#ef4444' :
                         modalConfig.type === 'warning' ? '#f59e0b' : '#3b82f6'}
             />
+
+            <ManageAssetTypesModal
+                visible={manageTypesVisible}
+                assets={filteredAsset}
+                onClose={() => setManageTypesVisible(false)}
+            />
+
+            <TouchableOpacity
+                style={styles.fab}
+                onPress={() => setManageTypesVisible(true)}
+                activeOpacity={0.8}
+            >
+                <Icon name="cog" size={28} color="#fff" />
+            </TouchableOpacity>
         </View>
     );
 }

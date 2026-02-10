@@ -9,6 +9,7 @@ import {
   SafeAreaView,
   Platform,
   KeyboardAvoidingView,
+  Modal,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { ID, Query } from 'appwrite';
@@ -16,11 +17,12 @@ import { account, databases } from '../server/appwrite';
 import { getFormStyles } from '../styles/assetFormStyles';
 import { Asset } from './asset';
 import { useNavigation } from '@react-navigation/native';
+import { useTheme } from '../contexts/ThemeContext';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { set } from 'lodash';
 import DatePicker from 'react-native-neat-date-picker';
 import CustomModal from './CustomModal';
 import CustomDropdown from './CustomDropdown';
-import { useTheme } from '../contexts/ThemeContext';
-import { set } from 'lodash';
 
 const DATABASE_ID = 'assetManagement';
 const COLLECTION_ID = 'assets';
@@ -42,7 +44,11 @@ const AssetForm = () => {
   const [success, setSuccess] = useState(false); // Added success state
   const [focusedInput, setFocusedInput] = useState('');
   const [confirm, setConfirm] = useState(false);
+  const [newTypeModalVisible, setNewTypeModalVisible] = useState(false);
+  const [newAssetType, setNewAssetType] = useState('');
+  const [addingType, setAddingType] = useState(false);
   const navigation = useNavigation();
+  const queryClient = useQueryClient();
 
   const { colors } = useTheme();
   const styles = getFormStyles(colors);
@@ -66,12 +72,59 @@ const AssetForm = () => {
     setPurchaseDate(output.dateString ?? '');
   };
 
+  const { data: assetTypes = [], isLoading: isLoadingTypes } = useQuery({
+    queryKey: ['asset-types'],
+    queryFn: async () => {
+      try {
+        const response = await databases.listDocuments(
+          DATABASE_ID,
+          'asset-type'
+        );
+        return response.documents.map(doc => ({
+          label: doc.assetType,
+          value: doc.assetType,
+        }));
+      } catch (error) {
+        console.error('Error fetching asset types:', error);
+        return [];
+      }
+    }
+  });
+
+  const handleCreateAssetType = async () => {
+    if (!newAssetType.trim()) return;
+    if (assetTypes.some(type => type.value === newAssetType.trim())) {
+      showAlertBox('Error', 'Asset type already exists.', 'error');
+      return;
+    }
+
+    try {
+      setAddingType(true);
+      await databases.createDocument(
+        DATABASE_ID,
+        'asset-type',
+        ID.unique(),
+        { assetType: newAssetType.trim() }
+      );
+      queryClient.invalidateQueries({ queryKey: ['asset-types'] });
+      setNewTypeModalVisible(false);
+      setNewAssetType('');
+      // showAlertBox('Success', 'Asset type added successfully!', 'success');
+    } catch (error: any) {
+      console.error('Create Type Error:', error);
+      showAlertBox('Error', error?.message || 'Failed to add asset type.', 'error');
+    } finally {
+      setAddingType(false);
+    }
+  };
+
   const handleCreateAsset = async () => {
     try {
       const user = await account.get();
     } catch (error) {
       console.log("Error: ", error);
       navigation.navigate('Login' as any);
+      return;
     }
     if (!assetName || !assetType || !assetId || !status || !purchaseDate) {
       return showAlertBox('Missing Fields', 'Please fill all required fields.', 'error');
@@ -204,7 +257,6 @@ const AssetForm = () => {
               </Text>
             </View>
           </View>
-
           <View style={styles.formCard}>
             <View style={styles.inputWrapper}>
               <Text style={styles.inputLabel}>
@@ -232,12 +284,7 @@ const AssetForm = () => {
               <View style={styles.pickerContainer}>
                 <Icon name="shape-outline" size={20} color="#3b82f6" style={styles.icon} />
                 <CustomDropdown
-                  data={[
-                    { label: "Laptop", value: "Laptop" },
-                    { label: "Mouse", value: "Mouse" },
-                    { label: "Keyboard", value: "Keyboard" },
-                    { label: "Other", value: "Other" },
-                  ]}
+                  data={assetTypes}
                   selectedValue={assetType}
                   onValueChange={(value) => {
                     setAssetType(value);
@@ -246,7 +293,12 @@ const AssetForm = () => {
                     }
                   }}
                   placeholder="Select Asset Type"
-                  searchable={false}
+                  searchable={true}
+                  buttonText="Add New Type"
+                  buttonIcon="plus"
+                  buttonType="both"
+                  onClickButton={() => setNewTypeModalVisible(true)}
+                  // onRefresh={() => queryClient.invalidateQueries({ queryKey: ['asset-types'] })}
                 />
               </View>
             </View>
@@ -375,6 +427,63 @@ const AssetForm = () => {
             alertType === 'warning' ? '#f59e0b' : '#3b82f6'}
         showSuccessTick={success && alertType === 'success'}
       />
+
+      <Modal
+        visible={newTypeModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setNewTypeModalVisible(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 }}>
+          <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 20, borderWidth: 1, borderColor: colors.border }}>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: colors.text, marginBottom: 16 }}>Add New Asset Type</Text>
+            <TextInput
+              placeholder="e.g., Monitor, UPS"
+              placeholderTextColor="#9ca3af"
+              style={{
+                borderWidth: 1.5,
+                borderColor: colors.border,
+                borderRadius: 8,
+                padding: 12,
+                color: colors.text,
+                marginBottom: 20
+              }}
+              cursorColor='#3b82f6'
+              value={newAssetType}
+              onChangeText={setNewAssetType}
+              autoFocus
+            />
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 12 }}>
+              <TouchableOpacity
+                onPress={() => {
+                  setNewTypeModalVisible(false);
+                  setNewAssetType('');
+                }}
+                style={{ paddingHorizontal: 16, paddingVertical: 10 }}
+              >
+                <Text style={{ color: colors.textSecondary, fontWeight: '600' }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleCreateAssetType}
+                disabled={addingType || !newAssetType.trim()}
+                style={{
+                  backgroundColor: colors.primary,
+                  paddingHorizontal: 20,
+                  paddingVertical: 10,
+                  borderRadius: 8,
+                  opacity: addingType || !newAssetType.trim() ? 0.6 : 1
+                }}
+              >
+                {addingType ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={{ color: '#fff', fontWeight: '600' }}>Add Type</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };

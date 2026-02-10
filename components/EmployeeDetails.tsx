@@ -146,15 +146,14 @@ export default function EmployeeDetails() {
       }
 
       const newHistoryEntry = JSON.stringify({
-        historyId: ID.unique(),
-        employeeId: employeeId,
-        assignDate: new Date().toISOString(),
+        updation: `Assigned to ${name} (${employeeId})`,
+        date: new Date().toISOString(),
       });
 
       const currentHistory = assetDoc.historyQueue || [];
       const updatedHistory = [newHistoryEntry, ...currentHistory];
-      if (updatedHistory.length > 5) {
-        updatedHistory.pop();
+      if (updatedHistory.length > 15) {
+        updatedHistory.splice(15);
       }
 
       await databases.updateDocument(
@@ -184,13 +183,28 @@ export default function EmployeeDetails() {
 
   const handleUnassignAsset = async (assetId: string) => {
     try {
+      const assetDoc = assignedAssets.find(a => a.$id === assetId);
+      if (!assetDoc) return;
+
+      const newHistoryEntry = JSON.stringify({
+        updation: `Available to assign (Unassigned)`,
+        date: new Date().toISOString(),
+      });
+
+      const currentHistory = assetDoc.historyQueue || [];
+      const updatedHistory = [newHistoryEntry, ...currentHistory];
+      if (updatedHistory.length > 15) {
+        updatedHistory.splice(15);
+      }
+
       await databases.updateDocument(
         'assetManagement',
         'assets',
         assetId,
         {
           status: 'Available',
-          assignedTo: 'unassigned'
+          assignedTo: 'unassigned',
+          historyQueue: updatedHistory
         }
       );
 

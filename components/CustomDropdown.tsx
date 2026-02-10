@@ -30,7 +30,11 @@ interface CustomDropdownProps {
   searchable?: boolean;
   disabled?: boolean;
   maxHeight?: number;
+  onClickButton?: () => void;
   onRefresh?: () => Promise<void> | void;
+  buttonIcon?: string; // Optional: icon for the button
+  buttonText?: string; // Optional: text for the button
+  buttonType?: 'icon' | 'text' | 'both'; // Type of button to show
 }
 
 export default function CustomDropdown({
@@ -42,6 +46,10 @@ export default function CustomDropdown({
   disabled = false,
   maxHeight = SCREEN_HEIGHT * 0.4,
   onRefresh,
+  onClickButton,
+  buttonIcon = 'plus',
+  buttonText = 'Add',
+  buttonType = 'both',
 }: CustomDropdownProps) {
   const [modalVisible, setModalVisible] = useState(false);
   const [searchText, setSearchText] = useState('');
@@ -82,6 +90,14 @@ export default function CustomDropdown({
       console.error('Error refreshing dropdown:', error);
     } finally {
       setRefreshing(false);
+    }
+  };
+
+  const handleButtonClick = () => {
+    if (onClickButton) {
+      onClickButton();
+      setModalVisible(false);
+      setSearchText('');
     }
   };
 
@@ -162,15 +178,50 @@ export default function CustomDropdown({
               <View style={styles.headerLeft}>
                 <Text style={styles.modalTitle}>{placeholder}</Text>
               </View>
-              <TouchableOpacity
-                onPress={() => {
-                  setModalVisible(false);
-                  setSearchText('');
-                }}
-                style={styles.closeButton}
-              >
-                <Icon name="close" size={24} color="#6b7280" />
-              </TouchableOpacity>
+
+              <View style={styles.headerRight}>
+                {/* Optional refresh button */}
+                {onRefresh && (
+                  <TouchableOpacity
+                    onPress={handleRefresh}
+                    style={styles.refreshButton}
+                    disabled={refreshing}
+                  >
+                    <Icon
+                      name="refresh"
+                      size={22}
+                      color={refreshing ? colors.primary : colors.textSecondary}
+                      style={refreshing && styles.refreshingIcon}
+                    />
+                  </TouchableOpacity>
+                )}
+
+                {/* Action button
+                {onClickButton && (
+                  <TouchableOpacity
+                    onPress={handleButtonClick}
+                    style={styles.actionButton}
+                  >
+                    {(buttonType === 'icon' || buttonType === 'both') && (
+                      <Icon name={buttonIcon} size={22} color={colors.primary} />
+                    )}
+                    {(buttonType === 'text' || buttonType === 'both') && (
+                      <Text style={styles.actionButtonText}>{buttonText}</Text>
+                    )}
+                  </TouchableOpacity>
+                )} */}
+
+                {/* Close button */}
+                <TouchableOpacity
+                  onPress={() => {
+                    setModalVisible(false);
+                    setSearchText('');
+                  }}
+                  style={styles.closeButton}
+                >
+                  <Icon name="close" size={24} color="#6b7280" />
+                </TouchableOpacity>
+              </View>
             </View>
 
             {searchable && (
@@ -199,21 +250,31 @@ export default function CustomDropdown({
 
             {filteredData.length === 0 ? (
               <View style={styles.emptyContainer}>
+                {/* <Icon name="folder-search-outline" size={48} color={colors.textSecondary} /> */}
                 <Text style={styles.emptyText}>No options found</Text>
                 <Text style={styles.emptySubtext}>
                   {searchText ? 'Try a different search term' : 'No options available'}
                 </Text>
+
+                {/* Show action button in empty state if provided */}
+                {onClickButton && (
+                  <TouchableOpacity
+                    onPress={handleButtonClick}
+                    style={styles.emptyStateButton}
+                  >
+                    <Icon name={buttonIcon} size={20} color="#ffffff" />
+                    <Text style={styles.emptyStateButtonText}>
+                      {buttonText}
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
             ) : (
               <FlatList
                 data={filteredData}
                 renderItem={renderItem}
                 keyExtractor={(item) => item.value}
-                style={styles.listContainer}
-                contentContainerStyle={styles.listContent}
-                showsVerticalScrollIndicator={true}
-                nestedScrollEnabled={true}
-                maxHeight={maxHeight}
+                style={[styles.listContainer, { maxHeight }]}
                 initialNumToRender={15}
                 windowSize={5}
                 getItemLayout={(data, index) => ({
@@ -231,6 +292,19 @@ export default function CustomDropdown({
                       progressBackgroundColor={colors.background}
                     />
                   ) : undefined
+                }
+                ListFooterComponent={
+                  onClickButton ? (
+                    <TouchableOpacity
+                      onPress={handleButtonClick}
+                      style={styles.footerButton}
+                    >
+                      <Icon name={buttonIcon} size={20} color={colors.primary} />
+                      <Text style={styles.footerButtonText}>
+                        {buttonText}
+                      </Text>
+                    </TouchableOpacity>
+                  ) : null
                 }
               />
             )}
@@ -298,6 +372,10 @@ const createDropdownStyles = (colors) => StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   modalTitle: {
     fontSize: 18,
     fontWeight: '600',
@@ -305,10 +383,25 @@ const createDropdownStyles = (colors) => StyleSheet.create({
   },
   refreshButton: {
     padding: 6,
-    marginLeft: 12,
+    marginRight: 8,
   },
   refreshingIcon: {
     transform: [{ rotate: '45deg' }],
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginRight: 8,
+    borderRadius: 6,
+    backgroundColor: colors.isDark ? 'rgba(59, 130, 246, 0.1)' : 'rgba(59, 130, 246, 0.08)',
+  },
+  actionButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.primary,
+    marginLeft: 4,
   },
   closeButton: {
     padding: 4,
@@ -338,19 +431,6 @@ const createDropdownStyles = (colors) => StyleSheet.create({
   },
   listContent: {
     paddingBottom: 16,
-  },
-  listHeader: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  listHeaderText: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
   dropdownItem: {
     flexDirection: 'row',
@@ -390,6 +470,37 @@ const createDropdownStyles = (colors) => StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 4,
     textAlign: 'center',
+  },
+  emptyStateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginTop: 16,
+  },
+  emptyStateButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  footerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    marginTop: 8,
+  },
+  footerButtonText: {
+    color: colors.primary,
+    fontSize: 16,
+    fontWeight: '500',
+    marginLeft: 8,
   },
 });
 
