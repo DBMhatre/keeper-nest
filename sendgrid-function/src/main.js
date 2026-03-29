@@ -1,4 +1,4 @@
-import sgMail from "@sendgrid/mail";
+import nodemailer from 'nodemailer';
 
 export default async ({ req, res, log }) => {
   try {
@@ -9,24 +9,42 @@ export default async ({ req, res, log }) => {
       return res.json({ success: false, error: "Missing required fields" });
     }
 
-    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+    const GMAIL_USER = process.env.GMAIL_MAIL;
+    const GMAIL_PASSWORD = process.env.GMAIL_PASSWORD;
+    const EMAIL_FROM = process.env.EMAIL_FROM || GMAIL_USER;
+
+    if (!GMAIL_USER || !GMAIL_PASSWORD) {
+      log("Missing Gmail credentials in environment variables");
+      return res.json({ 
+        success: false, 
+        error: "Email service not configured" 
+      });
+    }
+
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: GMAIL_USER,
+        pass: GMAIL_PASSWORD
+      }
+    });
 
     const msg = {
       to,
-      from: process.env.EMAIL_FROM,
+      from: EMAIL_FROM,
       subject,
-      text,
+      text: text || (html ? html.replace(/<[^>]*>/g, '') : ''),
       html,
     };
 
-    await sgMail.send(msg);
+    await transporter.sendMail(msg);
 
     return res.json({
       success: true,
       message: `Email sent successfully to ${to}`
     });
   } catch (error) {
-    log(error);
+    log(`❌ Error: ${error.message}`);
     return res.json({ success: false, error: error.message });
   }
 };

@@ -8,43 +8,159 @@ import {
     ScrollView,
     RefreshControl
 } from 'react-native';
-import React, { useEffect, useState } from 'react';
-import { databases } from '../server/appwrite';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { account, databases } from '../server/appwrite';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Query } from 'appwrite';
 import EmptyComponent from './EmptyComponent';
-import { useNavigation } from '@react-navigation/native';
-import AwesomeAlert from 'react-native-awesome-alerts';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { Dropdown, TwoDropdowns } from './Dropdown';
 import CustomModal from './CustomModal';
+import { useQuery } from '@tanstack/react-query';
+import { debounce } from 'lodash';
+import { useTheme } from '../contexts/ThemeContext';
+import { createAssetListStyles } from '../styles/assetListStyles';
+import ManageAssetTypesModal from './ManageAssetTypesModal';
 
 export default function AssetList() {
     const pageSize = 5;
     const [page, setPage] = useState(1);
-    const [assets, setAssets] = useState([]);
-    const [loading, setLoading] = useState(true);
     const [totalPages, setTotalPages] = useState(1);
     const [name, setName] = useState('');
     const [filteredAsset, setFilteredAsset] = useState([]);
     const navigation = useNavigation();
+    const route = useRoute(); // Get route object
     const [showAlert, setShowAlert] = useState(false);
     const [alertTitle, setAlertTitle] = useState('');
     const [alertMessage, setAlertMessage] = useState('');
-    const [alertType, setAlertType] = useState<'success' | 'error'>('success')
-    const [refreshing, setRefreshing] = useState(false);
-    const [selectedStatus, setSelectedStatus] = useState(null);
-    const [selectedType, setSelectedType] = useState(null);
+    const [alertType, setAlertType] = useState<'success' | 'error' | 'warning' | 'info'>('success')
+    const [selectedStatus, setSelectedStatus] = useState({ label: 'All Status', value: 'all', icon: 'filter-variant', color: '#6b7280' });
+    const [selectedType, setSelectedType] = useState({ label: 'All Types', value: 'all', icon: 'package-variant', color: '#6b7280' });
     const [modalVisible, setModalVisible] = useState(false);
+    const [manageTypesVisible, setManageTypesVisible] = useState(false);
+    const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+    const [input, setInput] = useState('');
+    const [fetchCount, setFetchCount] = useState(0);
     const [modalConfig, setModalConfig] = useState({
         title: '',
         message: '',
-        type: 'info',
-        onConfirm: null,
+        type: 'info' as 'success' | 'error' | 'warning' | 'info',
+        onConfirm: null as (() => void) | null,
         confirmText: 'OK',
         showCancel: false,
     });
 
-    const showModal = (title, message, type = 'info', onConfirm = null, confirmText = 'OK', showCancel = false) => {
+    const { colors, isDark } = useTheme();
+    const styles = createAssetListStyles({ ...colors, isDark });
+    const { label, filter } = route.params || {};
+
+    useEffect(() => {
+        if (filter) {
+            if (filter === 'all') {
+                setSelectedStatus({ label: 'All Status', value: 'all', icon: 'filter-variant', color: '#6b7280' });
+            } else if (filter === 'assigned') {
+                setSelectedStatus({
+                    label: label || 'Assigned',
+                    value: 'assigned',
+                    icon: 'account-check',
+                    color: '#3b82f6'
+                });
+            } else if (filter === 'available') {
+                setSelectedStatus({
+                    label: 'Available',
+                    value: 'available',
+                    icon: 'check-circle',
+                    color: '#10b981'
+                });
+            } else if (filter === 'maintainance') {
+                setSelectedStatus({
+                    label: 'Maintenance',
+                    value: 'maintainance',
+                    icon: 'tools',
+                    color: '#f59e0b'
+                });
+            }
+        } else {
+            setSelectedStatus({ label: 'All Status', value: 'all', icon: 'filter-variant', color: '#6b7280' });
+        }
+    }, [filter, label]);
+
+    useFocusEffect(
+        useCallback(() => {
+            if (route.params?.filter) {
+                const { filter, label } = route.params;
+                if (filter === 'all') {
+                    setSelectedStatus({ label: 'All Status', value: 'all', icon: 'filter-variant', color: '#6b7280' });
+                } else if (filter === 'assigned') {
+                    setSelectedStatus({
+                        label: label || 'Assigned',
+                        value: 'assigned',
+                        icon: 'account-check',
+                        color: '#3b82f6'
+                    });
+                } else if (filter === 'available') {
+                    setSelectedStatus({
+                        label: 'Available',
+                        value: 'available',
+                        icon: 'check-circle',
+                        color: '#10b981'
+                    });
+                } else if (filter === 'maintainance') {
+                    setSelectedStatus({
+                        label: 'Maintenance',
+                        value: 'maintainance',
+                        icon: 'tools',
+                        color: '#f59e0b'
+                    });
+                }
+            }
+        }, [route.params])
+    );
+
+    const toggleViewMode = () => {
+        setViewMode(prevMode => prevMode === 'table' ? 'grid' : 'table');
+    };
+
+    const debouncedSearch = useMemo(
+        () => debounce((query: string) => {
+            setName(query);
+        }, 500),
+        []
+    );
+
+    const fetchAssets = useCallback(async () => {
+        try {
+            try {
+                const user = await account.get();
+            } catch (error) {
+                console.log("Error: ", error);
+                navigation.navigate('Login' as any);
+            }
+            const res = await databases.listDocuments(
+                "assetManagement",
+                "assets",
+            );
+            setFetchCount(prev => prev + 1);
+            console.log(`Fetch count: ${fetchCount + 1} `);
+            return res.documents;
+        } catch (error) {
+            console.log("Error: ", error);
+            navigation.navigate('Login' as any);
+            throw error;
+        }
+    }, [navigation]);
+
+    const {
+        data: assets = [],
+        isLoading,
+        refetch,
+        isRefetching
+    } = useQuery({
+        queryKey: ['assets'],
+        queryFn: fetchAssets,
+    });
+
+    const showModal = (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info', onConfirm: (() => void) | null = null, confirmText: string = 'OK', showCancel: boolean = false) => {
         setModalConfig({
             title,
             message,
@@ -56,50 +172,52 @@ export default function AssetList() {
         setModalVisible(true);
     };
 
-
     const statusOptions = [
         { label: 'All Status', value: 'all', icon: 'filter-variant', color: '#6b7280' },
         { label: 'Available', value: 'available', icon: 'check-circle', color: '#10b981' },
         { label: 'Assigned', value: 'assigned', icon: 'account-check', color: '#3b82f6' },
-        { label: 'Maintenance', value: 'maintenance', icon: 'tools', color: '#f59e0b' },
+        { label: 'Maintenance', value: 'maintainance', icon: 'tools', color: '#f59e0b' },
     ];
 
-    const typeOptions = [
-        { label: 'All Types', value: 'all', icon: 'package-variant', color: '#6b7280' },
-        { label: 'Laptop', value: 'laptop', icon: 'laptop', color: '#3b82f6' },
-        { label: 'Keyboard', value: 'keyboard', icon: 'keyboard', color: '#8b5cf6' },
-        { label: 'Mouse', value: 'mouse', icon: 'mouse', color: '#f59e0b' },
-        { label: 'Other', value: 'other', icon: 'package-variant', color: '#6b7280' }
-    ];
-
-    const fetchAssets = async () => {
-        try {
-            setLoading(true);
-
-            const res = await databases.listDocuments(
-                "assetManagement",
-                "assets",
-            );
-
-            setAssets(res.documents as never);
-            setFilteredAsset(res.documents as never);
-        } catch (err) {
-            console.log("Error fetching assets:", err);
-        } finally {
-            setLoading(false);
+    const { data: assetTypes = [] } = useQuery({
+        queryKey: ['asset-types'],
+        queryFn: async () => {
+            try {
+                const response = await databases.listDocuments(
+                    'assetManagement',
+                    'asset-type'
+                );
+                return response.documents.map(doc => ({
+                    label: doc.assetType,
+                    value: doc.assetType.toLowerCase(),
+                    icon: getAssetIcon(doc.assetType),
+                    color: getAssetColor(doc.assetType)
+                }));
+            } catch (error) {
+                console.error('Error fetching asset types:', error);
+                return [];
+            }
         }
-    };
+    });
 
-    useEffect(() => {
-        fetchAssets();
-    }, []);
+    const typeOptions = useMemo(() => [
+        { label: 'All Types', value: 'all', icon: 'package-variant', color: '#6b7280' },
+        ...assetTypes
+    ], [assetTypes]);
+
+    useFocusEffect(
+        useCallback(() => {
+            refetch();
+        }, [refetch])
+    );
 
     useEffect(() => {
         const text = name.toLowerCase();
 
         const result = assets.filter((item: any) => {
             return (
-                item.assetName.toLowerCase().includes(text)
+                item.assetName?.toLowerCase().includes(text) ||
+                item.osType?.toLowerCase().includes(text)
             );
         });
 
@@ -109,31 +227,31 @@ export default function AssetList() {
     useEffect(() => {
         let result = [...assets];
 
-        if (selectedType && selectedType.value !== 'all') {
-            result = result.filter((item: any) =>
-                item.assetType.toLowerCase() === selectedType.value.toLowerCase()
-            );
-        }
-
-        setFilteredAsset(result);
-    }, [selectedType, assets]);
-
-    useEffect(() => {
-        let result = [...assets];
-
         if (selectedStatus && selectedStatus.value !== 'all') {
-            result = result.filter((item: any) =>
-                item.status.toLowerCase() === selectedStatus.value.toLowerCase()
-            );
+            result = result.filter((item: any) => {
+                const status = item.status?.toLowerCase();
+                const filter = selectedStatus.value.toLowerCase();
+
+                if (filter === 'available') {
+                    return status === 'available' || status === 'available-o';
+                }
+                if (filter === 'assigned') {
+                    return status === 'assigned' || status === 'assigned-o';
+                }
+                if (filter === 'maintainance') {
+                    return status === 'maintainance' || status === 'damaged';
+                }
+                return status === filter;
+            });
         }
         if (selectedType && selectedType.value !== 'all') {
             result = result.filter((item: any) =>
-                item.assetType.toLowerCase() === selectedType.value.toLowerCase()
+                item.assetType?.toLowerCase() === selectedType.value.toLowerCase()
             );
         }
 
         setFilteredAsset(result);
-    }, [selectedStatus, assets]);
+    }, [selectedStatus, selectedType, assets]);
 
     const handleStatusChange = (selectedOption) => {
         setSelectedStatus(selectedOption);
@@ -166,7 +284,9 @@ export default function AssetList() {
     const getStatusColor = (status: any) => {
         switch (status) {
             case "Available": return "#10b981";
+            case "Available-O": return "#10b981";
             case "Assigned": return "#3b82f6";
+            case "Assigned-O": return "#3b82f6";
             case "Maintenance": return "#f59e0b";
             case "Damaged": return "#ef4444";
             default: return "#6b7280";
@@ -174,15 +294,7 @@ export default function AssetList() {
     };
 
     const onRefresh = async () => {
-        setRefreshing(true);
-
-        try {
-            await fetchAssets(); // Your existing fetch function
-        } catch (error) {
-            console.error('Error refreshing assets:', error);
-        } finally {
-            setRefreshing(false);
-        }
+        refetch();
     };
 
     const handleRemoveAsset = async (assetId, assetName, currentStatus) => {
@@ -206,9 +318,9 @@ export default function AssetList() {
                         assetId
                     );
                     showModal('Success', `${assetName} removed successfully`, 'success');
-                    fetchAssets();
+                    refetch();
                 } catch (error) {
-                    console.error('Error removing asset:', error);
+                    console.log('Error removing asset:', error);
                     showModal('Error', 'Failed to remove asset', 'error');
                 }
             },
@@ -217,21 +329,17 @@ export default function AssetList() {
         );
     };
 
+    const handleSearch = (text: string) => {
+        setInput(text);
+        debouncedSearch(text);
+    }
+
     return (
-        <ScrollView style={styles.container} refreshControl={
-            <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                colors={['#3b82f6']}
-                tintColor="#3b82f6"
-                progressBackgroundColor="#ffffff"
-            />
-        }>
-            {/* Header Section - UNCHANGED */}
+        <View style={styles.container} >
             <View style={styles.header}>
                 <View style={styles.headerContent}>
                     <View style={styles.titleContainer}>
-                        <Icon name="package-variant" size={28} color="#3b82f6" />
+                        <Icon name="package-variant" size={26} color="#3b82f6" />
                         <Text style={styles.headerTitle}>Asset Inventory</Text>
                     </View>
                     <Text style={styles.headerSubtitle}>
@@ -239,21 +347,21 @@ export default function AssetList() {
                     </Text>
                 </View>
 
-                {/* Search Bar - UNCHANGED */}
                 <View style={styles.searchContainer}>
                     <Icon name="magnify" size={20} color="#6b7280" style={styles.searchIcon} />
                     <TextInput
-                        value={name}
-                        onChangeText={setName}
+                        value={input}
+                        onChangeText={handleSearch}
                         placeholder="Search assets by name..."
                         placeholderTextColor="#9ca3af"
                         style={styles.searchInput}
+                        cursorColor="#3b82f6"
+                        selectionColor="#3b82f6"
                     />
                 </View>
             </View>
 
             <View style={styles.dropcontainer}>
-
                 <View style={styles.dropdownsRow}>
                     <Dropdown
                         label="Status"
@@ -264,31 +372,48 @@ export default function AssetList() {
                     />
 
                     <Dropdown
-                        label="Asset Type"
+                        label="Type"
                         value={selectedType}
                         onValueChange={handleTypeChange}
                         options={typeOptions}
                         style={styles.dropdown}
                     />
+
+                    <TouchableOpacity
+                        style={[
+                            styles.viewToggleButton,
+                            viewMode === 'grid' && styles.viewToggleButtonActive
+                        ]}
+                        onPress={toggleViewMode}
+                    >
+                        <Icon
+                            name={viewMode === 'table' ? 'view-grid' : 'table'}
+                            size={20}
+                            color={viewMode === 'grid' ? '#ffffff' : '#3b82f6'}
+                        />
+                    </TouchableOpacity>
                 </View>
             </View>
 
             <View style={styles.content}>
-                {loading ? (
+                {isLoading ? (
                     <View style={styles.loaderContainer}>
                         <ActivityIndicator size="large" color="#3b82f6" />
                         <Text style={styles.loadingText}>Loading assets...</Text>
                     </View>
-                ) : filteredAsset.length === 0 ? (
-                    <EmptyComponent name="Asset" />
-                ) : (
+                ) : viewMode === 'table' ? (
                     <View style={styles.tableContainer}>
-                        <ScrollView
-                            horizontal
-                            showsHorizontalScrollIndicator={false}
-                        >
+                        {filteredAsset.length === 0 ? (
+                            <View style={styles.Emptycontainer}>
+                                <Text style={styles.Emptymessage}>Assets not found for status {selectedStatus.value} and type {selectedType.value}</Text>
+                            </View>
+                        ) : (
+                            <ScrollView
+                                horizontal
+                                showsHorizontalScrollIndicator={false}
+                                nestedScrollEnabled
+                            >
                                 <View style={styles.tableWrapper}>
-                                    {/* Fixed Header */}
                                     <View style={styles.tableHeader}>
                                         <View style={[styles.headerCell, styles.assetCell]}>
                                             <Text style={styles.headerText}>Asset</Text>
@@ -312,12 +437,11 @@ export default function AssetList() {
                                             <Text style={styles.headerText}>Remove Asset</Text>
                                         </View>
                                     </View>
-                                    
-                                    {/* Table Body */}
-                                    <ScrollView style={styles.tableBody}>
+
+                                    <View style={styles.tableBody}>
                                         {filteredAsset.map((item) => (
                                             <TouchableOpacity
-                                                key={item.$id}
+                                                key={item.$id || item.assetId}
                                                 style={styles.tableRow}
                                                 onPress={() => navigation.navigate('AssetDetails', { assetId: item.assetId })}
                                             >
@@ -334,14 +458,18 @@ export default function AssetList() {
                                                             />
                                                         </View>
                                                         <View style={styles.assetDetails}>
-                                                            <Text style={styles.assetName}>{item.assetName}</Text>
-                                                            <Text style={styles.assetId}>#{item.assetId}</Text>
+                                                            <Text style={styles.assetName} numberOfLines={2}>{item.assetName}</Text>
+                                                            <Text style={styles.assetId} numberOfLines={1}>#{item.assetId}</Text>
                                                         </View>
                                                     </View>
                                                 </View>
 
                                                 <View style={[styles.cell, styles.typeCell]}>
-                                                    <Text style={styles.typeText}>{item.assetType}</Text>
+                                                    <Text style={styles.typeText} numberOfLines={2}>
+                                                        {item.assetType === 'Laptop' && item.osType
+                                                            ? `${item.assetType} (${item.osType})`
+                                                            : item.assetType}
+                                                    </Text>
                                                 </View>
 
                                                 <View style={[styles.cell, styles.notesCell]}>
@@ -363,13 +491,13 @@ export default function AssetList() {
                                                             styles.statusText,
                                                             { color: getStatusColor(item.status) }
                                                         ]}>
-                                                            {item.status}
+                                                            {item.status === 'Maintainance' ? "Maintenance" : item.status}
                                                         </Text>
                                                     </View>
                                                 </View>
 
                                                 <View style={[styles.cell, styles.assignedCell]}>
-                                                    <Text style={styles.assignedText}>
+                                                    <Text style={styles.assignedText} numberOfLines={1}>
                                                         {item.assignedTo === "unassigned" ? "-" : item.assignedTo}
                                                     </Text>
                                                 </View>
@@ -391,344 +519,156 @@ export default function AssetList() {
                                                 </View>
                                             </TouchableOpacity>
                                         ))}
-                                    </ScrollView>
+                                    </View>
                                 </View>
-                        </ScrollView>
-
-                        <AwesomeAlert
+                            </ScrollView>
+                        )}
+                        <CustomModal
                             show={showAlert}
-                            showProgress={false}
                             title={alertTitle}
                             message={alertMessage}
-                            closeOnTouchOutside={true}
-                            closeOnHardwareBackPress={true}
-                            showConfirmButton={true}
+                            alertType={alertType}
                             confirmText="Got It"
-                            confirmButtonColor={alertType === 'success' ? '#10b981' : '#ef4444'}
-                            confirmButtonStyle={{ paddingHorizontal: 30, paddingVertical: 10, borderRadius: 8, }}
+                            showCancelButton={false}
                             onConfirmPressed={() => setShowAlert(false)}
+                            onCancelPressed={() => setShowAlert(false)}
+                            confirmButtonColor={alertType === 'success' ? '#10b981' :
+                                alertType === 'error' ? '#ef4444' :
+                                    alertType === 'warning' ? '#f59e0b' : '#3b82f6'}
                         />
                     </View>
+                ) : (
+                    <ScrollView
+                        style={styles.gridContainer}
+                        showsVerticalScrollIndicator={false}
+                        refreshControl={
+                            <RefreshControl
+                                refreshing={isRefetching}
+                                onRefresh={onRefresh}
+                                colors={[colors.primary]}
+                                tintColor={colors.primary}
+                                progressBackgroundColor={colors.background}
+                            />
+                        }
+                    >
+                        {
+                            filteredAsset.length === 0 && (
+                                <View style={styles.Emptycontainer}>
+                                    <Text style={styles.Emptymessage}>Assets not found for status {selectedStatus.value} and type {selectedType.value}</Text>
+                                </View>
+                            )
+                        }
+                        <View style={styles.grid}>
+                            {filteredAsset.map((item) => (
+                                <TouchableOpacity
+                                    key={item.$id || item.assetId}
+                                    style={styles.gridCard}
+                                    onPress={() => navigation.navigate('AssetDetails', { assetId: item.assetId })}
+                                    activeOpacity={0.9}
+                                >
+                                    <View style={styles.cardHeader}>
+                                        <View style={[
+                                            styles.cardIconContainer,
+                                            { backgroundColor: getAssetColor(item.assetType) + "15" }
+                                        ]}>
+                                            <Icon
+                                                name={getAssetIcon(item.assetType)}
+                                                size={24}
+                                                color={getAssetColor(item.assetType)}
+                                            />
+                                        </View>
+                                        <View style={styles.cardTitleContainer}>
+                                            <Text style={styles.cardAssetName} numberOfLines={1}>
+                                                {item.assetName}
+                                            </Text>
+                                            <Text style={styles.cardAssetId}>#{item.assetId}</Text>
+                                        </View>
+                                    </View>
+                                    <View style={styles.cardBody}>
+                                        <View style={styles.cardInfoRow}>
+                                            <View style={styles.infoContent}>
+                                                <Text style={styles.infoLabel}>Asset Type: </Text>
+                                                <Text style={styles.cardInfoText}>
+                                                    {item.assetType === 'Laptop' && item.osType
+                                                        ? `${item.assetType} (${item.osType})`
+                                                        : item.assetType}
+                                                </Text>
+                                            </View>
+                                        </View>
+
+                                        <View style={styles.cardInfoRow}>
+                                            <View style={styles.infoContent}>
+                                                <Text style={styles.infoLabel}>Assignment: </Text>
+                                                <Text style={styles.cardInfoText}>
+                                                    {item.assignedTo === "unassigned" ? "Not assigned" : item.assignedTo}
+                                                </Text>
+                                            </View>
+                                        </View>
+                                    </View>
+                                    <View style={styles.cardFooter}>
+                                        <View style={[
+                                            styles.cardStatusBadge,
+                                            { backgroundColor: getStatusColor(item.status) + "15" }
+                                        ]}>
+                                            <View style={[
+                                                styles.cardStatusDot,
+                                                { backgroundColor: getStatusColor(item.status) }
+                                            ]} />
+                                            <Text style={[
+                                                styles.cardStatusText,
+                                                { color: getStatusColor(item.status) }
+                                            ]}>
+                                                {item.status === 'Maintainance' ? "Maintenance" : item.status}
+                                            </Text>
+                                        </View>
+
+                                        <TouchableOpacity
+                                            style={styles.cardRemoveButton}
+                                            onPress={() => handleRemoveAsset(item.$id, item.assetName, item.status)}
+                                        >
+                                            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
+                                                <Icon name="link-off" size={16} color="#ef4444" />
+                                                <Text style={styles.unassignText}> remove</Text>
+                                            </View>
+                                        </TouchableOpacity>
+                                    </View>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    </ScrollView>
                 )}
             </View>
 
             <CustomModal
-                visible={modalVisible}
-                onClose={() => setModalVisible(false)}
+                show={modalVisible}
                 title={modalConfig.title}
                 message={modalConfig.message}
-                type={modalConfig.type}
-                onConfirm={modalConfig.onConfirm}
+                alertType={modalConfig.type}
                 confirmText={modalConfig.confirmText}
-                showCancel={modalConfig.showCancel}
+                showCancelButton={modalConfig.showCancel}
+                onConfirmPressed={() => {
+                    modalConfig.onConfirm?.();
+                    setModalVisible(false);
+                }}
+                onCancelPressed={() => setModalVisible(false)}
+                confirmButtonColor={modalConfig.type === 'success' ? '#10b981' :
+                    modalConfig.type === 'error' ? '#ef4444' :
+                        modalConfig.type === 'warning' ? '#f59e0b' : '#3b82f6'}
             />
 
+            <ManageAssetTypesModal
+                visible={manageTypesVisible}
+                assets={filteredAsset}
+                onClose={() => setManageTypesVisible(false)}
+            />
 
-        </ScrollView>
+            <TouchableOpacity
+                style={styles.fab}
+                onPress={() => setManageTypesVisible(true)}
+                activeOpacity={0.8}
+            >
+                <Icon name="cog" size={28} color="#fff" />
+            </TouchableOpacity>
+        </View>
     );
 }
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: "#f8fafc",
-    },
-    header: {
-        backgroundColor: "#ffffff",
-        paddingHorizontal: 20,
-        paddingTop: 20,
-        paddingBottom: 16,
-        borderBottomLeftRadius: 20,
-        borderBottomRightRadius: 20,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 8,
-        elevation: 4,
-    },
-    headerContent: {
-        marginBottom: 16,
-    },
-    titleContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 4,
-    },
-    headerTitle: {
-        fontSize: 24,
-        fontWeight: '700',
-        color: '#1f2937',
-        marginLeft: 10,
-    },
-    headerSubtitle: {
-        fontSize: 14,
-        color: '#6b7280',
-        marginLeft: 34,
-    },
-    searchContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#f8fafc',
-        borderRadius: 12,
-        paddingHorizontal: 16,
-        height: 48,
-        borderWidth: 1.5,
-        borderColor: '#e5e7eb',
-    },
-    searchIcon: {
-        marginRight: 12,
-    },
-    searchInput: {
-        flex: 1,
-        fontSize: 16,
-        color: '#1f2937',
-        fontWeight: '500',
-    },
-    content: {
-        flex: 1,
-        paddingHorizontal: 16,
-        paddingTop: 20,
-    },
-    tableContainer: {
-        flex: 1,
-        backgroundColor: '#ffffff',
-        borderRadius: 12,
-        overflow: 'hidden',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 6,
-        elevation: 3,
-        marginBottom: 20,
-        height: 450
-    },
-    horizontalScroll: {
-        flex: 1,
-    },
-    tableWrapper: {
-        minWidth: 1000,
-    },
-    tableHeader: {
-        flexDirection: 'row',
-        backgroundColor: '#f8fafc',
-        borderBottomWidth: 1,
-        borderBottomColor: '#e5e7eb',
-        minWidth: 1000,
-    },
-    headerCell: {
-        paddingVertical: 16,
-        paddingHorizontal: 12,
-        borderRightWidth: 1,
-        borderRightColor: '#e5e7eb',
-        justifyContent: 'center',
-        minHeight: 50,
-    },
-    tableBody: {
-        // No flex: 1 here, let content determine height
-    },
-    tableRow: {
-        flexDirection: 'row',
-        borderBottomWidth: 1,
-        borderBottomColor: '#f3f4f6',
-        minHeight: 70,
-        minWidth: 1000,
-    },
-    cell: {
-        paddingVertical: 16,
-        paddingHorizontal: 12,
-        borderRightWidth: 1,
-        borderRightColor: '#f3f4f6',
-        justifyContent: 'center',
-        minHeight: 70,
-    },
-    assetCell: { width: 200 },
-    typeCell: { width: 120 },
-    statusCell: { width: 140 },
-    assignedCell: { width: 180 },
-    dateCell: { width: 140 },
-    notesCell: { width: 200 },
-
-    assetInfo: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    iconContainer: {
-        width: 40,
-        height: 40,
-        borderRadius: 8,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 12,
-    },
-    assetDetails: {
-        flex: 1,
-    },
-    assetName: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#1f2937',
-        marginBottom: 2,
-    },
-    assetId: {
-        fontSize: 12,
-        color: '#6b7280',
-    },
-    typeText: {
-        fontSize: 14,
-        color: '#374151',
-        fontWeight: '500',
-    },
-    statusBadge: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 6,
-        alignSelf: 'flex-start',
-    },
-    statusDot: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
-        marginRight: 6,
-    },
-    statusText: {
-        fontSize: 12,
-        fontWeight: '600',
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-    },
-    assignedText: {
-        fontSize: 14,
-        color: '#374151',
-        fontWeight: '500',
-    },
-    assignedName: {
-        fontSize: 12,
-        color: '#6b7280',
-        marginTop: 2,
-    },
-    dateText: {
-        fontSize: 13,
-        color: '#6b7280',
-    },
-    notesText: {
-        fontSize: 13,
-        color: '#6b7280',
-        lineHeight: 18,
-    },
-    viewButton: {
-        padding: 8,
-        borderRadius: 6,
-        backgroundColor: '#f3f4f6',
-        alignSelf: 'center',
-    },
-    pagination: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingVertical: 16,
-        backgroundColor: '#ffffff',
-        borderTopWidth: 1,
-        borderTopColor: '#f1f5f9',
-    },
-    paginationButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 10,
-        borderRadius: 10,
-        backgroundColor: '#f8fafc',
-        borderWidth: 1.5,
-        borderColor: '#e5e7eb',
-        gap: 6,
-    },
-    paginationButtonDisabled: {
-        backgroundColor: '#f9fafb',
-        borderColor: '#f3f4f6',
-    },
-    paginationButtonText: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#3b82f6',
-    },
-    paginationButtonTextDisabled: {
-        color: '#9ca3af',
-    },
-    pageInfo: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-    },
-    pageText: {
-        fontSize: 14,
-        color: '#6b7280',
-        fontWeight: '500',
-    },
-    pageNumber: {
-        fontSize: 16,
-        fontWeight: '700',
-        color: '#3b82f6',
-        backgroundColor: '#eff6ff',
-        paddingHorizontal: 12,
-        paddingVertical: 4,
-        borderRadius: 6,
-    },
-    loaderContainer: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: 12,
-    },
-    loadingText: {
-        fontSize: 16,
-        color: '#6b7280',
-        fontWeight: '500',
-    },
-    headerText: {
-        fontSize: 12,
-        fontWeight: '700',
-        color: '#374151',
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-    },
-    dropcontainer: {
-        padding: 20,
-        backgroundColor: '#ffffff',
-        borderRadius: 16,
-        marginHorizontal: 16,
-        marginTop: 16,
-        marginBottom: 8,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 12,
-        elevation: 5,
-    },
-    dropdownsRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        gap: 12,
-    },
-    dropdown: {
-        flex: 1,
-    },
-    unassignButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#fef2f2',
-        paddingHorizontal: 6,
-        paddingVertical: 8,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: '#fecaca',
-        gap: 6,
-        alignSelf: 'flex-start',
-    },
-    unassignText: {
-        fontSize: 12,
-        color: '#ef4444',
-        fontWeight: '600',
-    },
-});

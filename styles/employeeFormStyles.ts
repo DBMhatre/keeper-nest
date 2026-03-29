@@ -2,22 +2,21 @@ import { StyleSheet, Dimensions } from "react-native";
 
 const { width, height } = Dimensions.get('window');
 
-export const styles = StyleSheet.create({
+export const createFormStyles = (colors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: colors.surface,
   },
   scrollContainer: {
     flexGrow: 1,
     paddingBottom: 30,
   },
 
-  // Header Styles
   header: {
-    backgroundColor: "#ffffff",
+    backgroundColor: colors.surface,
     paddingHorizontal: 20,
-    paddingTop: height * 0.05,
-    paddingBottom: 25,
+    paddingTop: 20,
+    paddingBottom: 20,
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
     shadowColor: "#000",
@@ -25,9 +24,11 @@ export const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.surface,
   },
   headerContent: {
-    marginBottom: 16,
+    alignItems: 'flex-start',
   },
   titleContainer: {
     flexDirection: 'row',
@@ -37,18 +38,18 @@ export const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#1f2937',
+    color: colors.text,
     marginLeft: 10,
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#6b7280',
-    marginLeft: 34,
+    color: colors.textSecondary,
+    marginLeft: 38,
   },
 
   // Form Card
   formCard: {
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface,
     borderRadius: 16,
     padding: 25,
     marginHorizontal: 20,
@@ -59,7 +60,7 @@ export const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
     borderWidth: 1,
-    borderColor: '#f1f5f9',
+    borderColor: colors.border,
   },
 
   // Input Wrapper
@@ -69,7 +70,7 @@ export const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#374151',
+    color: colors.text,
     marginBottom: 8,
     marginLeft: 4,
   },
@@ -81,16 +82,16 @@ export const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: '#e5e7eb',
+    borderColor: colors.border,
     paddingHorizontal: 16,
     height: 56,
   },
   inputContainerFocused: {
-    borderColor: '#3b82f6',
-    shadowColor: '#3b82f6',
+    borderColor: colors.primary,
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -102,7 +103,7 @@ export const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 16,
-    color: '#1f2937',
+    color: colors.text,
     fontWeight: '500',
   },
 
@@ -110,25 +111,25 @@ export const styles = StyleSheet.create({
   pickerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface,
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: '#e5e7eb',
+    borderColor: colors.border,
     paddingHorizontal: 16,
     height: 56,
   },
   picker: {
     flex: 1,
-    color: '#1f2937',
+    color: colors.text,
     fontSize: 16,
   },
 
   // Button
   button: {
-    backgroundColor: '#3b82f6',
+    backgroundColor: colors.primary,
     borderRadius: 12,
     marginTop: 10,
-    shadowColor: '#3b82f6',
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -158,4 +159,38 @@ export const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
   },
+
+  inputContainerError: {
+    borderColor: '#ef4444',
+    backgroundColor: colors.isDark ? '#7f1d1d20' : '#fef2f2',
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    marginLeft: 4,
+  },
+  errorText: {
+    color: '#ef4444',
+    fontSize: 12,
+    marginLeft: 4,
+    fontWeight: '500',
+  },
+  helperText: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    marginTop: 4,
+    marginLeft: 4,
+    fontStyle: 'italic',
+  },
+});
+
+export const formStyles = createFormStyles({
+  background: '#f8fafc',
+  surface: '#ffffff',
+  text: '#1f2937',
+  textSecondary: '#6b7280',
+  primary: '#3b82f6',
+  border: '#e5e7eb',
+  isDark: false,
 });

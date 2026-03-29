@@ -1,9 +1,11 @@
 export interface Asset {
-  assetName: string; 
+  assetName: string;
   assetType: string;
-  assetId: string; 
+  assetId: string;
   status: string;
-  purchaseDate: string; 
-  description?: string; 
+  purchaseDate: string;
+  description?: string;
   expiredAt: string;
+  osType?: string;
+  historyQueue?: string[];
 }

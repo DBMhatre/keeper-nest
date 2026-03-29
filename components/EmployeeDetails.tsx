@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,42 +7,47 @@ import {
   SafeAreaView,
   ActivityIndicator,
   Alert,
+  Modal,
+  RefreshControl,
+  Image,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { Picker } from '@react-native-picker/picker';
-import { styles } from '../styles/employeeDetailsStyles';
-import { APPWRITE_CONFIG, databases } from '../server/appwrite';
+import { createEmployeeDetailsStyles, styles } from '../styles/employeeDetailsStyles';
+import { account, databases, functions } from '../server/appwrite';
 import { ID, Query } from 'appwrite';
-import AwesomeAlert from 'react-native-awesome-alerts';
 import CustomModal from './CustomModal';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import CustomDropdown from './CustomDropdown';
+import MaleImage from '../assets/images/man.png';
+import FemaleImage from '../assets/images/woman.png';
+import { useTheme } from '../contexts/ThemeContext';
 
 export default function EmployeeDetails() {
   const route = useRoute();
-  const { employeeId } = route.params;
-
-  const [employee, setEmployee] = useState(null);
-  const [assets, setAssets] = useState([]);
-  const [assignedAssets, setAssignedAssets] = useState([]);
+  const { employeeId, name } = route.params;
+  const navigation = useNavigation();
+  const queryClient = useQueryClient();
   const [selectedAsset, setSelectedAsset] = useState('');
-  const [loading, setLoading] = useState(false);
   const [assigning, setAssigning] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
   const [alertTitle, setAlertTitle] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
-  const [alertType, setAlertType] = useState<'success' | 'error'>('success');
+  const [alertType, setAlertType] = useState<'success' | 'error' | 'warning' | 'info'>('success');
   const [modalVisible, setModalVisible] = useState(false);
+  const [removingEmployee, setRemovingEmployee] = useState(false);
   const [modalConfig, setModalConfig] = useState({
     title: '',
     message: '',
-    type: 'info',
-    onConfirm: null,
+    type: 'info' as 'success' | 'error' | 'warning' | 'info',
+    onConfirm: null as (() => void) | null,
     confirmText: 'OK',
     showCancel: false,
   });
-  const navigation = useNavigation();
 
-  const showModal = (title, message, type = 'info', onConfirm = null, confirmText = 'OK', showCancel = false) => {
+  const { colors, isDark } = useTheme();
+  const styles = createEmployeeDetailsStyles({ ...colors, isDark });
+  const showModal = (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info', onConfirm: (() => void) | null = null, confirmText: string = 'OK', showCancel: boolean = false) => {
     setModalConfig({
       title,
       message,
@@ -54,102 +59,119 @@ export default function EmployeeDetails() {
     setModalVisible(true);
   };
 
-  const showAlertBox = (title: string, message: string, type: 'success' | 'error') => {
+  const showAlertBox = (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info') => {
     setAlertTitle(title);
     setAlertMessage(message);
     setAlertType(type);
     setShowAlert(true);
   };
 
-  // Mock data for UI development
-  useEffect(() => {
-    fetchEmployeeData()
-  }, [employeeId]);
-
-  const fetchEmployeeData = async () => {
-    setLoading(true);
-    try {
-      const employeeResponse = await databases.listDocuments(
-    'user_info',
-    'user_info',
-    [
-        Query.equal('employeeId', employeeId),
-    ]
-);
-
-      if (employeeResponse.documents.length > 0) {
-        setEmployee(employeeResponse.documents[0]);
+  const { data: employee, isLoading: isLoadingEmployee } = useQuery({
+    queryKey: ['employee', employeeId],
+    queryFn: async () => {
+      try {
+        await account.get();
+      } catch (error) {
+        navigation.navigate('Login' as any);
+        throw error;
       }
 
-      const assetsResponse = await databases.listDocuments(
+      const response = await databases.listDocuments(
+        'user_info',
+        'user_info',
+        [Query.equal('employeeId', employeeId)]
+      );
+
+      if (response.documents.length === 0) {
+        throw new Error('Employee not found');
+      }
+
+      return response.documents[0];
+    },
+  });
+
+  const { data: assets = [], isLoading: isLoadingAssets } = useQuery({
+    queryKey: ['available-assets'],
+    queryFn: async () => {
+      try {
+        await account.get();
+      } catch (error) {
+        navigation.navigate('Login' as any);
+        throw error;
+      }
+
+      const response = await databases.listDocuments(
         'assetManagement',
         'assets',
         [Query.equal('status', 'Available')]
       );
-      setAssets(assetsResponse.documents);
+      return response.documents;
+    },
+  });
 
-      const assignedResponse = await databases.listDocuments(
+  const {
+    data: assignedAssets = [],
+    isLoading: isLoadingAssignedAssets,
+    refetch: refetchAssignedAssets,
+    isRefetching: isRefetchingAssignedAssets
+  } = useQuery({
+    queryKey: ['assigned-assets', employeeId],
+    queryFn: async () => {
+      try {
+        await account.get();
+      } catch (error) {
+        navigation.navigate('Login' as any);
+        throw error;
+      }
+
+      const response = await databases.listDocuments(
         'assetManagement',
         'assets',
-        [Query.equal('assignedTo', employeeId)]
+        [Query.equal('assignedTo', `${name} (${employeeId})`)]
       );
-      setAssignedAssets(assignedResponse.documents);
-    }
-    catch (error) {
-      console.error('Error fetching employee data:', error);
-    }
-    finally {
-      setLoading(false);
-    }
-  };
 
-  const getGenderColor = (gender) => {
-    switch (gender) {
-      case "Male": return "#3b82f6";
-      case "Female": return "#ec4899";
-      case "Other": return "#8b5cf6";
-      default: return "#6b7280";
-    }
-  };
+      return response.documents;
+    },
+  });
+  const isLoading = isLoadingEmployee || isLoadingAssets || isLoadingAssignedAssets;
 
   const handleAssignAsset = async () => {
     try {
       setAssigning(true);
 
-      // Find the asset document using assetId from selectedAsset
       const assetDoc = assets.find(asset => asset.assetId === selectedAsset);
-
       if (!assetDoc) {
         Alert.alert('Error', 'Selected asset not found');
         return;
       }
 
-      // Update asset using document ID ($id) but selectedAsset has assetId
+      const newHistoryEntry = JSON.stringify({
+        updation: `Assigned to ${name} (${employeeId})`,
+        date: new Date().toISOString(),
+      });
+
+      const currentHistory = assetDoc.historyQueue || [];
+      const updatedHistory = [newHistoryEntry, ...currentHistory];
+      if (updatedHistory.length > 15) {
+        updatedHistory.splice(15);
+      }
+
       await databases.updateDocument(
         'assetManagement',
         'assets',
-        assetDoc.$id, // Use document ID here
+        assetDoc.$id,
         {
           status: 'Assigned',
-          assignedTo: employeeId
+          assignedTo: `${name} (${employeeId})`,
+          historyQueue: updatedHistory
         }
       );
 
-      // Create history with assetId from selectedAsset
-      await databases.createDocument(
-        'assetManagement',
-        'history',
-        ID.unique(),
-        {
-          assetId: selectedAsset, // Store the assetId directly
-          employeeId: employeeId,
-          assignDate: new Date().toISOString()
-        }
-      );
+      queryClient.invalidateQueries({ queryKey: ['available-assets'] });
+      queryClient.invalidateQueries({ queryKey: ['assigned-assets', employeeId] });
 
       showAlertBox('Success', 'Asset assigned successfully', 'success');
       setSelectedAsset('');
-      fetchEmployeeData();
 
     } catch (error) {
       console.error('Error assigning asset:', error);
@@ -159,20 +181,37 @@ export default function EmployeeDetails() {
     }
   };
 
-  const handleUnassignAsset = async (assetId) => {
+  const handleUnassignAsset = async (assetId: string) => {
     try {
+      const assetDoc = assignedAssets.find(a => a.$id === assetId);
+      if (!assetDoc) return;
+
+      const newHistoryEntry = JSON.stringify({
+        updation: `Available to assign (Unassigned)`,
+        date: new Date().toISOString(),
+      });
+
+      const currentHistory = assetDoc.historyQueue || [];
+      const updatedHistory = [newHistoryEntry, ...currentHistory];
+      if (updatedHistory.length > 15) {
+        updatedHistory.splice(15);
+      }
+
       await databases.updateDocument(
         'assetManagement',
         'assets',
         assetId,
         {
           status: 'Available',
-          assignedTo: 'unassigned'
+          assignedTo: 'unassigned',
+          historyQueue: updatedHistory
         }
       );
 
+      queryClient.invalidateQueries({ queryKey: ['available-assets'] });
+      queryClient.invalidateQueries({ queryKey: ['assigned-assets', employeeId] });
+
       showAlertBox('Success', 'Asset unassigned successfully', 'success');
-      fetchEmployeeData();
     } catch (error) {
       console.error('Error unassigning asset:', error);
       showAlertBox('Error', 'Failed to unassign asset', 'error');
@@ -181,35 +220,50 @@ export default function EmployeeDetails() {
 
   const handleRemoveEmployee = async () => {
     if (assignedAssets.length > 0) {
-      showModal(
+      return showModal(
         'Cannot Remove Employee',
-        `This employee has ${assignedAssets.length} assigned asset(s). Please reassign or unassign these assets before removing the employee.`,
+        `This employee has ${assignedAssets.length} assigned assets. Reassign first.`,
         'warning'
       );
-      return;
     }
 
     showModal(
       "Remove Employee",
-      `Remove ${employee.name} from system?`,
+      `Are you sure you want to delete ${employee.name}?`,
       'error',
       async () => {
         try {
+          setRemovingEmployee(true);
 
-          await databases.updateDocument('user_info', 'user_info', employee.$id, { status: 'not active' });
-          showAlertBox('Success', `${employee.name} removed`, 'success');
+          const execution = await functions.createExecution(
+            "delete-user",
+            JSON.stringify({
+              userId: employee.$id,
+              documentId: employee.$id
+            })
+          );
+
+          await databases.deleteDocument('user_info', 'user_info', employee.$id);
+
+          queryClient.invalidateQueries({ queryKey: ['employees'] });
+
+          console.log("Execution →", execution);
+          showAlertBox("Success", `${employee.name} removed successfully`, "success");
           navigation.goBack();
+
         } catch (error) {
-          showModal('Error', 'Failed to remove employee', 'error');
+          console.log("Delete error:", error);
+          showModal("Error", "Failed to delete employee.", "error");
+        } finally {
+          setRemovingEmployee(false);
         }
       },
-      'Remove',
+      "Delete",
       true
     );
-
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <View style={styles.loaderContainer}>
         <ActivityIndicator size="large" color="#3b82f6" />
@@ -223,14 +277,31 @@ export default function EmployeeDetails() {
       <View style={styles.errorContainer}>
         <Icon name="alert-circle" size={48} color="#ef4444" />
         <Text style={styles.errorText}>Employee not found</Text>
+        <TouchableOpacity
+          style={styles.retryButton}
+          onPress={() => queryClient.invalidateQueries({ queryKey: ['employee', employeeId] })}
+        >
+          <Text style={styles.retryButtonText}>Try Again</Text>
+        </TouchableOpacity>
       </View>
     );
   }
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header Section */}
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+
+          <RefreshControl
+            refreshing={isRefetchingAssignedAssets}
+            onRefresh={refetchAssignedAssets}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+            progressBackgroundColor={colors.background}
+          />
+        }
+      >
         <View style={styles.header}>
           <View style={styles.headerContent}>
             <View style={styles.titleContainer}>
@@ -243,40 +314,109 @@ export default function EmployeeDetails() {
           </View>
         </View>
 
-        {/* Assign Asset Section */}
         <View style={styles.formCard}>
-          <Text style={styles.sectionTitle}>Assign New Asset</Text>
+          <View style={styles.employeeProfileContainer}>
+            <View style={styles.centeredImageContainer}>
+              <View style={styles.bigIconContainer}>
+                <Image
+                  source={employee.gender === 'Female' ? FemaleImage : MaleImage}
+                  style={styles.faceImage}
+                  resizeMode="cover"
+                />
+              </View>
+              <View style={styles.idBadge}>
+                <Text style={styles.idText}>
+                  {employee.employeeId}
+                </Text>
+              </View>
+            </View>
 
-          <View style={styles.assignSection}>
-            <View style={styles.pickerContainer}>
+            <View style={styles.employeeInfoBottom}>
+              <Text style={styles.employeeName} numberOfLines={2}>
+                {employee.name}
+              </Text>
+              <Text style={styles.employeeEmail} numberOfLines={1}>
+                {employee.email}
+              </Text>
+            </View>
+
+            <View style={styles.employeeDetailsGrid}>
+              <View style={styles.detailRow}>
+                <View style={styles.detailLabelContainer}>
+                  <Icon name="calendar-month-outline" size={16} color="#6b7280" />
+                  <Text style={styles.detailLabel}>Joined</Text>
+                </View>
+                <View style={styles.detailValueContainer}>
+                  <Text style={styles.detailValue}>
+                    {new Date(employee.$createdAt).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric'
+                    })}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.detailRow}>
+                <View style={styles.detailLabelContainer}>
+                  <Icon name="gender-male" size={16} color="#6b7280" />
+                  <Text style={styles.detailLabel}>Gender</Text>
+                </View>
+                <View style={styles.detailValueContainer}>
+                  <Text style={styles.detailValue} numberOfLines={1}>
+                    {employee.gender || 'Not specified'}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.detailRow}>
+                <View style={styles.detailLabelContainer}>
+                  <Icon name="account-plus-outline" size={16} color="#6b7280" />
+                  <Text style={styles.detailLabel}>Created By</Text>
+                </View>
+                <View style={styles.detailValueContainer}>
+                  <Text style={styles.detailValue} numberOfLines={1}>
+                    {employee.creatorMail || 'Not specified'}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        </View>
+        <View style={styles.formCard}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Assign New Asset</Text>
+          </View>
+
+          <View style={styles.compactAssignSection}>
+            <View style={styles.compactPickerContainer}>
               <Icon name="package-variant" size={20} color="#3b82f6" style={styles.icon} />
-              <Picker
+              <CustomDropdown
+                data={assets.map(asset => ({
+                  label: `${asset.assetName} (${asset.assetId})`,
+                  value: asset.assetId,
+                  ...asset
+                }))}
                 selectedValue={selectedAsset}
-                onValueChange={(value) => setSelectedAsset(value)}
-                style={styles.picker}
-                dropdownIconColor="#3b82f6"
-              >
-                <Picker.Item label="Select Asset to Assign" value="" color="#9ca3af" />
-                {assets.map((asset) => (
-                  <Picker.Item
-                    key={asset.$id}
-                    label={`${asset.assetName} (${asset.assetId})`}
-                    value={asset.assetId} // Store assetId instead of $id
-                    color="#1f2937"
-                  />
-                ))}
-              </Picker>
+                onValueChange={(value) => {
+                  setSelectedAsset(value);
+                }}
+                placeholder="Select Asset"
+                searchable={true}
+                onRefresh={() => queryClient.invalidateQueries({ queryKey: ['available-assets'] })}
+              />
             </View>
 
             <TouchableOpacity
-              style={[styles.assignButton, !selectedAsset && styles.buttonDisabled]}
-              disabled={!selectedAsset}
+              style={[styles.compactAssignButton, (!selectedAsset || assigning || assets.length === 0) && styles.buttonDisabled]}
+              disabled={!selectedAsset || assigning || assets.length === 0}
               onPress={handleAssignAsset}
             >
-              <View style={styles.buttonContent}>
-                <Text style={styles.assignButtonText}>Assign Asset</Text>
-                <Icon name="link" size={20} color="#fff" style={styles.buttonIcon} />
-              </View>
+              {assigning ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Icon name="link" size={20} color="#fff" />
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -289,20 +429,17 @@ export default function EmployeeDetails() {
 
           {assignedAssets.length === 0 ? (
             <View style={styles.emptyState}>
-              <Icon name="package-variant" size={48} color="#d1d5db" />
               <Text style={styles.emptyText}>No assets assigned</Text>
               <Text style={styles.emptySubtext}>Assign assets using the section above</Text>
             </View>
           ) : (
             <View style={styles.tableContainer}>
-              {/* Table Header */}
               <View style={styles.tableHeader}>
                 <Text style={[styles.tableHeaderText, styles.columnAsset]}>Asset Name</Text>
                 <Text style={[styles.tableHeaderText, styles.columnId]}>ID</Text>
                 <Text style={[styles.tableHeaderText, styles.columnAction]}>Action</Text>
               </View>
 
-              {/* Scrollable Table Body */}
               <ScrollView
                 style={styles.tableBody}
                 showsVerticalScrollIndicator={true}
@@ -314,7 +451,7 @@ export default function EmployeeDetails() {
                       <Text style={styles.assetName} numberOfLines={2}>{asset.assetName}</Text>
                     </View>
                     <View style={[styles.tableCell, styles.columnId]}>
-                      <Text style={styles.assetId}>{asset.assetId}</Text>
+                      <Text style={styles.assetId} numberOfLines={1}>{asset.assetId}</Text>
                     </View>
                     <View style={[styles.tableCell, styles.columnAction]}>
                       <TouchableOpacity
@@ -331,36 +468,75 @@ export default function EmployeeDetails() {
             </View>
           )}
         </View>
-        <TouchableOpacity style={styles.logoutButton} onPress={handleRemoveEmployee}>
-          <Icon name="link-off" size={20} color="#fff" />
-          <Text style={styles.logoutText}>Remove Employee</Text>
+
+        {/* Remove Employee Button */}
+        <TouchableOpacity
+          style={[
+            styles.removeButton,
+            removingEmployee && styles.buttonDisabled
+          ]}
+          onPress={handleRemoveEmployee}
+          disabled={removingEmployee}
+        >
+          {removingEmployee ? (
+            <>
+              <ActivityIndicator size="small" color="#ffffff" />
+              <Text style={styles.removeText}>Removing Employee...</Text>
+            </>
+          ) : (
+            <>
+              <Icon name="account-remove" size={20} color="#fff" />
+              <Text style={styles.removeText}>Remove Employee</Text>
+            </>
+          )}
         </TouchableOpacity>
       </ScrollView>
 
-      <AwesomeAlert
+      {/* Modals */}
+      <CustomModal
         show={showAlert}
-        showProgress={false}
         title={alertTitle}
         message={alertMessage}
-        closeOnTouchOutside={true}
-        closeOnHardwareBackPress={true}
-        showConfirmButton={true}
+        alertType={alertType}
         confirmText="Got It"
-        confirmButtonColor={alertType === 'success' ? '#10b981' : '#ef4444'}
-        confirmButtonStyle={{ paddingHorizontal: 30, paddingVertical: 10, borderRadius: 8, }}
+        showCancelButton={false}
         onConfirmPressed={() => setShowAlert(false)}
+        onCancelPressed={() => setShowAlert(false)}
+        confirmButtonColor={alertType === 'success' ? '#10b981' :
+          alertType === 'error' ? '#ef4444' :
+            alertType === 'warning' ? '#f59e0b' : '#3b82f6'}
       />
 
       <CustomModal
-        visible={modalVisible}
-        onClose={() => setModalVisible(false)}
+        show={modalVisible}
         title={modalConfig.title}
         message={modalConfig.message}
-        type={modalConfig.type}
-        onConfirm={modalConfig.onConfirm}
+        alertType={modalConfig.type}
         confirmText={modalConfig.confirmText}
-        showCancel={modalConfig.showCancel}
+        showCancelButton={modalConfig.showCancel}
+        onConfirmPressed={() => {
+          modalConfig.onConfirm?.();
+          setModalVisible(false);
+        }}
+        onCancelPressed={() => setModalVisible(false)}
+        confirmButtonColor={modalConfig.type === 'success' ? '#10b981' :
+          modalConfig.type === 'error' ? '#ef4444' :
+            modalConfig.type === 'warning' ? '#f59e0b' : '#3b82f6'}
       />
+
+      <Modal
+        visible={removingEmployee}
+        transparent={true}
+        animationType="fade"
+      >
+        <View style={styles.loadingOverlay}>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#3b82f6" />
+            <Text style={styles.loadingMessage}>Removing Employee...</Text>
+            <Text style={styles.loadingSubMessage}>Please wait while we remove {employee?.name}</Text>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

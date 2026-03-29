@@ -1,8 +1,16 @@
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import {
+  View,
+  Image,
+  StyleSheet,
+  Text,
+  Animated,
+  Easing
+} from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { account, databases } from '../server/appwrite';
+import sticker from '../assets/images/logo_app.png';
+import LottieView from 'lottie-react-native';
 
 import SignUp from '../screen/SignUp';
 import Login from '../screen/Login';
@@ -16,7 +24,9 @@ import AssetList from '../components/AssetList';
 import EmployeeList from '../components/EmployeeList';
 import EmployeeDetails from '../components/EmployeeDetails';
 import AssetDetails from '../components/AssetDetails';
-import AssetEmployeeDetails from '../components/AssetEmployeeDetails';
+import EmployeeAssetDetails from '../components/employee/AssetDetails';
+import { useTheme } from '../contexts/ThemeContext';
+import SystemNavigationBar from 'react-native-system-navigation-bar';
 
 const Stack = createNativeStackNavigator();
 
@@ -24,88 +34,91 @@ export default function StackNavigation() {
   const [initialRoute, setInitialRoute] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const { colors, isDark, toggleTheme } = useTheme();
+
+  useEffect(() => {
+    if (isDark) {
+      SystemNavigationBar.setNavigationColor(colors.background, 'dark');
+    } else {
+      SystemNavigationBar.setNavigationColor('#FFFFFF', 'light');
+    }
+  }, [isDark, colors.background]);
+
   useEffect(() => {
     const checkSession = async () => {
       try {
         try {
-          const allDocuments = await databases.listDocuments(
-            'AssetManagement',
-            'assets'
-          );
-          const currentDate = new Date();
-          const expiredDate = new Date(allDocuments.documents[0].expiredAt);
-          if (currentDate >= expiredDate) {
-          for (const doc of allDocuments.documents) {
-            const newExpiredAt = new Date(expiredDate.getFullYear() + 1, 11, 31);
-
-            await databases.updateDocument(
-              'AssetManagement',
-              'assets',
-              doc.$id,
-              {
-                expiredAt: newExpiredAt.toISOString(),
-                assignedTo: 'unassigned',
-                status: 'Available'
-              }
-            );
-            console.log(`Extended ${doc.$id} from ${expiredDate.getFullYear()} to ${newExpiredAt.getFullYear()}`);
-          }
-        }
-        } catch (error) {
-          console.log('No active session found');
-        }
-        const rememberData = await AsyncStorage.getItem('rememberMe');
-        if (rememberData === 'true') {
           const user = await account.get();
-          const dbId = "user_info";
-          const collectionId = "user_info";
+          console.log('User session found:', user.email);
 
           const response = await databases.listDocuments(
-            dbId,
-            collectionId,
-            [Query.equal("employeeId", user.$id)]
+            'user_info',
+            'user_info',
+            [Query.equal("email", user.email)]
           );
-          const employeeData = response.documents[0];
-          const role = employeeData.role;
-          console.log("User Role:", role);
 
-          if (user) {
-            if (role === 'admin') {
-              setInitialRoute('AdminTabs');
+          if (response.documents && response.documents.length > 0) {
+            const employeeData = response.documents[0];
+            const role = employeeData.role;
+            const status = employeeData.status;
+
+            if (status === 'active') {
+              console.log('User is active, navigating to:', role === 'admin' ? 'AdminTabs' : 'EmployeeTabs');
+              setInitialRoute(role === 'admin' ? 'AdminTabs' : 'EmployeeTabs');
+              setLoading(false);
+              return;
             } else {
-              setInitialRoute('EmployeeTabs');
+              console.log('User is not active, redirecting to Login');
+              try {
+                await account.deleteSession('current');
+              } catch (err) {
+                console.log('Error deleting session:', err.message);
+              }
             }
-            return;
+          } else {
+            console.log('User not found in database');
+            try {
+              await account.deleteSession('current');
+            } catch (err) {
+              console.log('Error deleting session:', err.message);
+            }
           }
+        } catch (err) {
+          console.log('No valid session found, redirecting to Login:', err.message);
         }
+
+        setInitialRoute('Login');
       } catch (error) {
-        console.log('Session check failed:', error);
+        console.log('Unexpected error in checkSession:', error);
+        setInitialRoute('Login');
+      } finally {
+        setTimeout(() => {
+          setLoading(false);
+        }, 2000);
       }
-
-
-
-      setInitialRoute('Login');
-      setLoading(false);
     };
 
-    checkSession().finally(() => setLoading(false));
+    checkSession();
   }, []);
 
-  if (loading || !initialRoute) {
-  return (
-    <View style={styles.loadingContainer}>
-      <Image 
-        source={{uri: "https://drive.google.com/uc?export=view&id=1hlW_8inXI5vgSmzF2O7BIUrl1hb1E4Zr"}}
-        style={styles.logo}
-      />
-      <Text style={styles.loadingText}>KeeperNest</Text>
-      <ActivityIndicator size="large" color="#007bff" style={styles.spinner} />
-    </View>
-  );
-}
+  if (loading) {
+    return (
+      <View style={[styles.loadingContainer, { backgroundColor: isDark ? '#1c232cff' : '#FFF' }]}>
+        <LottieView
+          source={isDark ? require('../assets/animations/loading_animation_dark.json') : require('../assets/animations/loading_animation.json')}
+          autoPlay
+          loop
+          style={styles.lottieAnimation}
+          speed={1.2}
+        />
+      </View>
+    );
+  }
+
+  const routeToUse = initialRoute || 'Login';
 
   return (
-    <Stack.Navigator initialRouteName={initialRoute}>
+    <Stack.Navigator initialRouteName={routeToUse}>
       <Stack.Screen name="Signup" component={SignUp} options={{ headerShown: false }} />
       <Stack.Screen name="Login" component={Login} options={{ headerShown: false }} />
       <Stack.Screen name="Profile" component={Profile} options={{ headerShown: false }} />
@@ -117,8 +130,7 @@ export default function StackNavigation() {
       <Stack.Screen name="EmployeeTabs" component={EmployeeTabs} options={{ headerShown: false }} />
       <Stack.Screen name="EmployeeDetails" component={EmployeeDetails} options={{ headerShown: false }} />
       <Stack.Screen name="AssetDetails" component={AssetDetails} options={{ headerShown: false }} />
-      <Stack.Screen name="AssetEmployeeDetails" component={AssetEmployeeDetails} options={{ headerShown: false }} />
-    
+      <Stack.Screen name="EmployeeAssetDetails" component={EmployeeAssetDetails} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }
@@ -128,26 +140,27 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
+  },
+  lottieAnimation: {
+    width: 300,
+    height: 300,
+    position: 'absolute',
+    backgroundColor: 'transparent',
+  },
+  logoContainer: {
+    alignItems: 'center',
+    marginTop: 30,
   },
   logo: {
-    width: 140,
-    height: 140,
-    marginBottom: 20,
+    width: 120,
+    height: 120,
     resizeMode: 'contain',
   },
   loadingText: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#007bff',
-    marginBottom: 30,
-  },
-  spinner: {
-    marginVertical: 20,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
+    color: '#3b82f6',
+    letterSpacing: 1,
     marginTop: 10,
   },
 });

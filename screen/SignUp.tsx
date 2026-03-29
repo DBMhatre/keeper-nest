@@ -8,14 +8,17 @@ import {
   ScrollView,
   SafeAreaView,
   ActivityIndicator,
+  processColor,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Picker } from '@react-native-picker/picker';
-import { styles } from '../styles/signupStyles';
+import { createSignupStyles } from '../styles/signupStyles';
 import { useNavigation } from '@react-navigation/native';
 import { account, databases } from '../server/appwrite';
-import { ID } from 'appwrite';
-import AwesomeAlert from 'react-native-awesome-alerts';
+import CustomModal from '../components/CustomModal'; 
+import CustomDropdown from '../components/CustomDropdown';
+import { useTheme } from '../contexts/ThemeContext';
+import { encrypt, decrypt } from '../server/encrypt_decrypt_password';
 
 const SignUp = () => {
   const [name, setName] = useState('');
@@ -30,88 +33,92 @@ const SignUp = () => {
   const [showAlert, setShowAlert] = useState(false);
   const [alertTitle, setAlertTitle] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
-  const [alertType, setAlertType] = useState('success');
+  const [alertType, setAlertType] = useState<'success' | 'warning' | 'error' | 'info'>('info');
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // EXACT SAME FUNCTIONALITY - NO CHANGES
+  const { colors, isDark } = useTheme();
+  const styles = createSignupStyles({ ...colors, isDark });
+
   const handleSignUp = async () => {
-      if (!name || !email || !employeeId) {
-        setAlertTitle('Missing Fields');
-        setAlertMessage('Please fill all fields before signing up.');
-        setAlertType('error');
-        setShowAlert(true);
-        return;
-      }
-  
-      if (!gender || gender === 'Select Gender') {
-        setAlertTitle('Invalid Gender');
-        setAlertMessage('Please select a valid gender.');
-        setAlertType('error');
-        setShowAlert(true);
-        return;
-      }
-  
-      if (!role || role === 'Select Role') {
-        setAlertTitle('Invalid Role');
-        setAlertMessage('Please select a valid role.');
-        setAlertType('error');
-        setShowAlert(true);
-        return;
-      }
-  
-      if (password.length < 8) {
-        setAlertTitle('Invalid Password');
-        setAlertMessage('Password must be at least 8 characters.');
-        setAlertType('error');
-        setShowAlert(true);
-        return;
-      }
-  
-      setLoading(true);
+    if (!name || !email || !employeeId) {
+      setAlertTitle('Missing Fields');
+      setAlertMessage('Please fill all fields before signing up.');
+      setAlertType('error');
+      setShowAlert(true);
+      return;
+    }
+
+    if (!gender || gender === 'Select Gender') {
+      setAlertTitle('Invalid Gender');
+      setAlertMessage('Please select a valid gender.');
+      setAlertType('error');
+      setShowAlert(true);
+      return;
+    }
+
+    if (!role || role === 'Select Role') {
+      setAlertTitle('Invalid Role');
+      setAlertMessage('Please select a valid role.');
+      setAlertType('error');
+      setShowAlert(true);
+      return;
+    }
+
+    if (password.length < 8) {
+      setAlertTitle('Invalid Password');
+      setAlertMessage('Password must be at least 8 characters.');
+      setAlertType('error');
+      setShowAlert(true);
+      return;
+    }
+
+    setLoading(true);
+    try {
       try {
-        try {
-          const currentUser = await account.get();
-          if (currentUser) {
-            await account.deleteSession('current');
-          }
-        } catch { }
-  
-        await account.create(employeeId, email, password, name);
-  
-        const dbId = "user_info";
-        const collectionId = "user_info";
-  
-        await databases.createDocument(
-          dbId,
-          collectionId,
-          employeeId,
-          {
-            employeeId,
-            name,
-            email,
-            gender,
-            role,
-            creatorMail: email
-          }
-        );
-  
-        navigation.navigate('Login' as never);
-  
-      } catch (error: any) {
-        if (error?.code === 409) {
-          setAlertTitle('Account Already Exists');
-          setAlertMessage('Please log in using your email and password.');
-          setAlertType('error');
-          setShowAlert(true);
-        } else {
-          setAlertTitle('Signup Failed');
-          setAlertMessage(error?.message || 'Please try again later.');
-          setAlertType('error');
-          setShowAlert(true);
+        const currentUser = await account.get();
+        if (currentUser) {
+          await account.deleteSession('current');
         }
-      } finally {
-        setLoading(false);
+      } catch { }
+
+      await account.create(employeeId, email, password, name);
+
+      const dbId = "user_info";
+      const collectionId = "user_info";
+
+      await databases.createDocument(
+        dbId,
+        collectionId,
+        employeeId,
+        {
+          employeeId,
+          password: encrypt(password),
+          name,
+          email,
+          gender,
+          role,
+          creatorMail: `${name} (${employeeId})`
+        }
+      );
+
+      navigation.navigate('Login' as any);
+
+    } catch (error: any) {
+      if (error?.code === 409) {
+        setAlertTitle('Account Already Exists');
+        setAlertMessage('Please log in using your email and password.');
+        setAlertType('error');
+        setShowAlert(true);
+      } else {
+        setAlertTitle('Signup Failed');
+        setAlertMessage(error?.message || 'Please try again later.');
+        setAlertType('error');
+        setShowAlert(true);
       }
-    };
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -147,7 +154,6 @@ const SignUp = () => {
             </View>
           </View>
 
-          {/* Email Input */}
           <View style={styles.inputWrapper}>
             <Text style={styles.inputLabel}>Email Address</Text>
             <View style={styles.inputContainer}>
@@ -191,12 +197,22 @@ const SignUp = () => {
                 placeholder="Password"
                 placeholderTextColor="#999"
                 style={styles.input}
-                secureTextEntry
+                secureTextEntry={!showConfirmPassword}
                 value={password}
                 onChangeText={setPassword}
                 selectionColor="#3b82f6"
                 cursorColor="#3b82f6"
               />
+              <TouchableOpacity
+                style={styles.eyeButton}
+                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+              >
+                <Icon
+                  name={showConfirmPassword ? "eye-off" : "eye"}
+                  size={22}
+                  color="#666"
+                />
+              </TouchableOpacity>
             </View>
             <Text style={styles.passwordHint}>Must be at least 8 characters</Text>
           </View>
@@ -206,42 +222,39 @@ const SignUp = () => {
             <Text style={styles.inputLabel}>Gender</Text>
             <View style={styles.pickerContainer}>
               <Icon name="gender-male-female" size={22} color="#3b82f6" style={styles.icon} />
-              <Picker
+              <CustomDropdown
+                data={[
+                  { label: "Male", value: "Male" },
+                  { label: "Female", value: "Female" },
+                ]}
                 selectedValue={gender}
                 onValueChange={(value) => setGender(value)}
-                style={styles.picker}
-                dropdownIconColor="#3b82f6"
-              >
-                <Picker.Item label="Select Gender" value="Select Gender" color="#999" />
-                <Picker.Item label="Male" value="Male" />
-                <Picker.Item label="Female" value="Female" />
-                <Picker.Item label="Other" value="Other" />
-              </Picker>
+                placeholder="Select Gender"
+                searchable={false}
+              />
             </View>
           </View>
 
-          {/* Role Picker */}
           <View style={styles.inputWrapper}>
             <Text style={styles.inputLabel}>Role</Text>
             <View style={styles.pickerContainer}>
               <Icon name="account-cog" size={22} color="#3b82f6" style={styles.icon} />
-              <Picker
+              <CustomDropdown
+                data={[
+                  { label: "Admin", value: "admin" },
+                  { label: "Employee", value: "employee" },
+                ]}
                 selectedValue={role}
                 onValueChange={(value) => setRole(value)}
-                style={styles.picker}
-                dropdownIconColor="#3b82f6"
-              >
-                <Picker.Item label="Select Role" value="Select Role" color="#999" />
-                <Picker.Item label="Admin" value="admin" />
-                <Picker.Item label="Employee" value="employee" />
-              </Picker>
+                placeholder="Select Role"
+                searchable={false}
+              />
             </View>
           </View>
 
-          {/* Sign Up Button - Same functionality */}
-          <TouchableOpacity 
-            style={[styles.button, loading && styles.buttonDisabled]} 
-            disabled={loading} 
+          <TouchableOpacity
+            style={[styles.button, loading && styles.buttonDisabled]}
+            disabled={loading}
             onPress={handleSignUp}
           >
             {loading ? (
@@ -259,24 +272,26 @@ const SignUp = () => {
         <View style={styles.loginContainer}>
           <Text style={styles.loginText}>
             Already have an account?{' '}
-            <Text style={styles.link} onPress={() => navigation.navigate('Login' as never)}>
+            <Text style={styles.link} onPress={() => navigation.navigate('Login' as any)}>
               Login
             </Text>
           </Text>
         </View>
 
       </ScrollView>
-      <AwesomeAlert
+
+      <CustomModal
         show={showAlert}
-        showProgress={false}
         title={alertTitle}
         message={alertMessage}
-        closeOnTouchOutside={true}
-        closeOnHardwareBackPress={true}
-        showConfirmButton={true}
+        alertType={alertType}
         confirmText="Okay"
-        confirmButtonColor={alertType === 'success' ? '#4CAF50' : '#FF3B30'}
+        showCancelButton={false}
         onConfirmPressed={() => setShowAlert(false)}
+        onCancelPressed={() => setShowAlert(false)}
+        confirmButtonColor={alertType === 'success' ? '#10b981' :
+          alertType === 'error' ? '#ef4444' :
+            '#3b82f6'}
       />
     </SafeAreaView>
   );

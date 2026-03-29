@@ -7,15 +7,19 @@ import {
   ActivityIndicator,
   ScrollView,
   SafeAreaView,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { Picker } from '@react-native-picker/picker';
 import { useNavigation } from '@react-navigation/native';
-import AwesomeAlert from 'react-native-awesome-alerts';
 import { account, databases } from '../server/appwrite';
-import { styles } from '../styles/employeeFormStyles';
-import { ID } from 'appwrite';
+import { createFormStyles } from '../styles/employeeFormStyles';
+import { Query } from 'appwrite';
 import { sendMail } from '../server/emailSender';
+import CustomModal from './CustomModal';
+import CustomDropdown from './CustomDropdown';
+import { useTheme } from '../contexts/ThemeContext';
+import { encrypt } from '../server/encrypt_decrypt_password';
 
 const EmployeeCreate = () => {
   const [name, setName] = useState('');
@@ -26,50 +30,165 @@ const EmployeeCreate = () => {
   const [showAlert, setShowAlert] = useState(false);
   const [alertTitle, setAlertTitle] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
-  const [alertType, setAlertType] = useState<'success' | 'error'>('success');
-
+  const [alertType, setAlertType] = useState<'success' | 'error' | 'warning' | 'info'>('success');
+  const [success, setSuccess] = useState(false);
   const navigation = useNavigation();
+  const [confirm, setConfirm] = useState(false);
 
-  const showAlertBox = (title: string, message: string, type: 'success' | 'error') => {
+  const { colors, isDark } = useTheme();
+  const styles = createFormStyles({ ...colors, isDark });
+
+  const showAlertBox = (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info') => {
     setAlertTitle(title);
     setAlertMessage(message);
     setAlertType(type);
     setShowAlert(true);
   };
 
-  const handleCreateEmployee = async () => {
-    if (!name || !email || !employeeId) {
-      return showAlertBox('Missing Fields', 'Please fill all required fields.', 'error');
+  const validateForm = (): boolean => {
+    if (!name || name.trim().length === 0) {
+      showAlertBox('Validation Error', 'Please enter employee name.', 'error');
+      return false;
+    }
+    
+    if (name.trim().length < 2) {
+      showAlertBox('Validation Error', 'Name must be at least 2 characters.', 'error');
+      return false;
+    }
+    
+    if (name.trim().length > 100) {
+      showAlertBox('Validation Error', 'Name cannot exceed 100 characters.', 'error');
+      return false;
+    }
+
+    if (!email || email.trim().length === 0) {
+      showAlertBox('Validation Error', 'Please enter email address.', 'error');
+      return false;
+    }
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      showAlertBox('Validation Error', 'Please enter a valid email address.', 'error');
+      return false;
+    }
+
+    if (!employeeId || employeeId.trim().length === 0) {
+      showAlertBox('Validation Error', 'Please enter employee ID.', 'error');
+      return false;
+    }
+    
+    if (employeeId.trim().length < 3) {
+      showAlertBox('Validation Error', 'Employee ID must be at least 3 characters.', 'error');
+      return false;
+    }
+    
+    if (employeeId.trim().length > 50) {
+      showAlertBox('Validation Error', 'Employee ID cannot exceed 50 characters.', 'error');
+      return false;
+    }
+    
+    const idRegex = /^[A-Za-z0-9_-]+$/;
+    if (!idRegex.test(employeeId)) {
+      showAlertBox('Validation Error', 'Employee ID can only contain letters, numbers, hyphens, and underscores.', 'error');
+      return false;
     }
 
     if (gender === 'No') {
-      return showAlertBox('Invalid Gender', 'Please select a valid gender.', 'error');
+      showAlertBox('Validation Error', 'Please select gender.', 'error');
+      return false;
+    }
+    
+    if (gender !== 'Male' && gender !== 'Female') {
+      showAlertBox('Validation Error', 'Please select a valid gender (Male or Female).', 'error');
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleCreateEmployee = async () => {
+    if (!validateForm()) {
+      return;
+    }
+
+    const dbId = "user_info";
+    const collectionId = "user_info";
+
+    try {
+      const existingEmp = await databases.listDocuments(
+        dbId,
+        collectionId,
+        [Query.equal('employeeId', employeeId)]
+      );
+
+      if (existingEmp.total > 0) {
+        showAlertBox(
+          'Duplicate Employee ID',
+          `Employee ID "${employeeId}" already exists. Please use a different ID.`,
+          'error'
+        );
+        return; 
+      }
+    } catch (error) {
+      console.error("Error checking duplicate ID:", error);
+      showAlertBox('Error', 'Failed to check employee ID. Please try again.', 'error');
+      return;
+    }
+
+    try {
+      const existingEmail = await databases.listDocuments(
+        dbId,
+        collectionId,
+        [Query.equal('email', email)]
+      );
+
+      if (existingEmail.total > 0) {
+        showAlertBox(
+          'Duplicate Email',
+          `Email "${email}" is already registered. Please use a different email.`,
+          'error'
+        );
+        return;
+      }
+    } catch (error) {
+      console.error("Error checking duplicate email:", error);
+      showAlertBox('Error', 'Failed to check email. Please try again.', 'error');
+      return;
     }
 
     setLoading(true);
 
     try {
       const password = `EMPLOYEE_${employeeId}`;
-      const user = await account.get();
-      const adminEmail = user.email;
+      let user = null;
+      try {
+        user = await account.get();
+      } catch (error) {
+        console.log("Error: ", error);
+        navigation.navigate('Login' as any);
+        return;
+      }
+      const adminId = user.$id;
+      const adminName = user?.name;
       const newUser = await account.create(employeeId, email, password, name);
       console.log("Created employee auth user:", newUser);
 
-      const dbId = "user_info";
-      const collectionId = "user_info";
       const employeeDoc = await databases.createDocument(
         dbId,
         collectionId,
         employeeId,
         {
           employeeId,
-          name,
-          email,
+          name: name.trim(),
+          email: email.trim(),
+          password: encrypt(password),
           gender,
           role: "employee",
-          creatorMail: adminEmail
+          creatorMail: `${adminName} (${adminId})`
         }
       );
+      setConfirm(true);
+      setSuccess(true);
 
       await sendMail({
         to: email,
@@ -79,7 +198,7 @@ const EmployeeCreate = () => {
     <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 8px 20px rgba(79,70,229,0.15);">
       
       <!-- Header -->
-      <div style="background: linear-gradient(135deg, #4f46e5, #6366f1); color: #fff; padding: 30px 20px;">
+      <div style="background: linear-gradient(135deg, #3b82f6, #60a5fa); color: #fff; padding: 30px 20px;">
         <h1 style="margin: 0; font-size: 26px; letter-spacing: 0.5px;">Welcome to KeeperNest</h1>
       </div>
 
@@ -131,163 +250,186 @@ const EmployeeCreate = () => {
       });
 
       console.log("Employee details stored in DB:", employeeDoc);
-
       showAlertBox(
         'Success',
         `Employee ${name} created successfully!`,
         'success'
       );
-
+      
+    } catch (error: any) {
+      console.log("Error: ", error);
+      
+      if (error.code === 409) {
+        showAlertBox(
+          'Account Already Exists',
+          'An account with this email or username already exists.',
+          'error'
+        );
+      } else if (error.code === 401) {
+        navigation.navigate('Login' as any);
+        return;
+      } else {
+        showAlertBox(
+          'Error',
+          error?.message || 'Failed to create employee. Please try again.',
+          'error'
+        );
+      }
+      
+      setSuccess(false);
+    } finally {
+      // setConfirm(false);
+      setLoading(false);
+    }
+  };
+  const handleConfirmClose = () => {
+      setShowAlert(false);
       setName('');
       setEmail('');
       setEmployeeId('');
       setGender('No');
-    } catch (error: any) {
-      console.error('Create Employee Error:', error);
-      showAlertBox(
-        'Error',
-        error?.message || 'Failed to create employee. Please try again.',
-        'error'
-      );
-    } finally {
-      setLoading(false);
-    }
+      setSuccess(false);
+      navigation.navigate('EmployeeList' as any);
+  }
+
+  const handleModalClose = () => {
+    setShowAlert(false);
+    setSuccess(false);
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContainer}
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
       >
-        {/* Header Section */}
-        <View style={styles.header}>
-          <View style={styles.headerContent}>
-            <View style={styles.titleContainer}>
-              <Icon name="account-plus" size={28} color="#3b82f6" />
-              <Text style={styles.headerTitle}>Create Employee</Text>
-            </View>
-            <Text style={styles.headerSubtitle}>
-              Please fill in the details of the new employee
-            </Text>
-          </View>
-        </View>
-
-        {/* Form Card */}
-        <View style={styles.formCard}>
-          {/* Full Name */}
-          <View style={styles.inputWrapper}>
-            <Text style={styles.inputLabel}>
-              Full Name <Text style={styles.required}>*</Text>
-            </Text>
-            <View style={styles.inputContainer}>
-              <Icon name="account-outline" size={20} color="#3b82f6" style={styles.icon} />
-              <TextInput
-                placeholder="Enter employee's full name"
-                placeholderTextColor="#9ca3af"
-                style={styles.input}
-                value={name}
-                onChangeText={setName}
-                selectionColor="#3b82f6"
-                cursorColor="#3b82f6"
-              />
-            </View>
-          </View>
-
-          {/* Email Address */}
-          <View style={styles.inputWrapper}>
-            <Text style={styles.inputLabel}>
-              Email Address <Text style={styles.required}>*</Text>
-            </Text>
-            <View style={styles.inputContainer}>
-              <Icon name="email-outline" size={20} color="#3b82f6" style={styles.icon} />
-              <TextInput
-                placeholder="Enter employee's email address"
-                placeholderTextColor="#9ca3af"
-                style={styles.input}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                value={email}
-                onChangeText={setEmail}
-                selectionColor="#3b82f6"
-                cursorColor="#3b82f6"
-              />
-            </View>
-          </View>
-
-          {/* Employee ID */}
-          <View style={styles.inputWrapper}>
-            <Text style={styles.inputLabel}>
-              Employee ID <Text style={styles.required}>*</Text>
-            </Text>
-            <View style={styles.inputContainer}>
-              <Icon name="card-account-details-outline" size={20} color="#3b82f6" style={styles.icon} />
-              <TextInput
-                placeholder="Enter unique employee ID"
-                placeholderTextColor="#9ca3af"
-                style={styles.input}
-                value={employeeId}
-                onChangeText={setEmployeeId}
-                selectionColor="#3b82f6"
-                cursorColor="#3b82f6"
-              />
-            </View>
-          </View>
-
-          {/* Gender */}
-          <View style={styles.inputWrapper}>
-            <Text style={styles.inputLabel}>
-              Gender <Text style={styles.required}>*</Text>
-            </Text>
-            <View style={styles.pickerContainer}>
-              <Icon name="gender-male-female" size={20} color="#3b82f6" style={styles.icon} />
-              <Picker
-                selectedValue={gender}
-                onValueChange={(value) => setGender(value)}
-                style={styles.picker}
-                dropdownIconColor="#3b82f6"
-              >
-                <Picker.Item label="Select Gender" value="No" color="#9ca3af" />
-                <Picker.Item label="Male" value="Male" color="#1f2937" />
-                <Picker.Item label="Female" value="Female" color="#1f2937" />
-                <Picker.Item label="Other" value="Other" color="#1f2937" />
-              </Picker>
-            </View>
-          </View>
-
-          {/* Create Button */}
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            disabled={loading}
-            onPress={handleCreateEmployee}
-          >
-            {loading ? (
-              <View style={styles.buttonContent}>
-                <ActivityIndicator size="small" color="#fff" />
-                <Text style={[styles.buttonText, { marginLeft: 10 }]}>Creating Employee...</Text>
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Header Section */}
+          <View style={styles.header}>
+            <View style={styles.headerContent}>
+              <View style={styles.titleContainer}>
+                <Icon name="account-plus" size={26} color="#3b82f6" />
+                <Text style={styles.headerTitle}>Create Employee</Text>
               </View>
-            ) : (
-              <View style={styles.buttonContent}>
-                <Text style={styles.buttonText}>Create Employee</Text>
-                <Icon name="account-check" size={20} color="#fff" style={styles.buttonIcon} />
-              </View>
-            )}
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+              <Text style={styles.headerSubtitle}>
+                Please fill in the details of the new employee
+              </Text>
+            </View>
+          </View>
 
-      <AwesomeAlert
+          <View style={styles.formCard}>
+            <View style={styles.inputWrapper}>
+              <Text style={styles.inputLabel}>
+                Full Name <Text style={styles.required}>*</Text>
+              </Text>
+              <View style={styles.inputContainer}>
+                <Icon name="account-outline" size={20} color="#3b82f6" style={styles.icon} />
+                <TextInput
+                  placeholder="Enter employee's full name"
+                  placeholderTextColor="#9ca3af"
+                  style={styles.input}
+                  value={name}
+                  onChangeText={setName}
+                  selectionColor="#3b82f6"
+                  cursorColor="#3b82f6"
+                />
+              </View>
+            </View>
+
+            <View style={styles.inputWrapper}>
+              <Text style={styles.inputLabel}>
+                Email Address <Text style={styles.required}>*</Text>
+              </Text>
+              <View style={styles.inputContainer}>
+                <Icon name="email-outline" size={20} color="#3b82f6" style={styles.icon} />
+                <TextInput
+                  placeholder="Enter employee's email address"
+                  placeholderTextColor="#9ca3af"
+                  style={styles.input}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  value={email}
+                  onChangeText={setEmail}
+                  selectionColor="#3b82f6"
+                  cursorColor="#3b82f6"
+                />
+              </View>
+            </View>
+            <View style={styles.inputWrapper}>
+              <Text style={styles.inputLabel}>
+                Employee ID <Text style={styles.required}>*</Text>
+              </Text>
+              <View style={styles.inputContainer}>
+                <Icon name="card-account-details-outline" size={20} color="#3b82f6" style={styles.icon} />
+                <TextInput
+                  placeholder="Enter unique employee ID"
+                  placeholderTextColor="#9ca3af"
+                  style={styles.input}
+                  value={employeeId}
+                  onChangeText={setEmployeeId}
+                  selectionColor="#3b82f6"
+                  cursorColor="#3b82f6"
+                />
+              </View>
+            </View>
+
+            {/* Gender */}
+            <View style={styles.inputWrapper}>
+              <Text style={styles.inputLabel}>
+                Gender <Text style={styles.required}>*</Text>
+              </Text>
+              <View style={styles.pickerContainer}>
+                <Icon name="gender-male-female" size={20} color="#3b82f6" style={styles.icon} />
+                <CustomDropdown
+                  data={[
+                    { label: "Male", value: "Male" },
+                    { label: "Female", value: "Female" },
+                  ]}
+                  selectedValue={gender}
+                  onValueChange={(value) => setGender(value)}
+                  placeholder="Select Gender"
+                  searchable={false}
+                />
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.button, loading && styles.buttonDisabled]}
+              disabled={loading}
+              onPress={handleCreateEmployee}
+            >
+              {loading ? (
+                <View style={styles.buttonContent}>
+                  <ActivityIndicator size="small" color="#fff" />
+                  <Text style={[styles.buttonText, { marginLeft: 10 }]}>Creating Employee...</Text>
+                </View>
+              ) : (
+                <View style={styles.buttonContent}>
+                  <Text style={styles.buttonText}>Create Employee</Text>
+                  <Icon name="account-check" size={20} color="#fff" style={styles.buttonIcon} />
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+
+      <CustomModal
         show={showAlert}
-        showProgress={false}
         title={alertTitle}
         message={alertMessage}
-        closeOnTouchOutside={true}
-        closeOnHardwareBackPress={true}
-        showConfirmButton={true}
+        alertType={alertType}
         confirmText="Got It"
-        confirmButtonColor={alertType === 'success' ? '#10b981' : '#ef4444'}
-        confirmButtonStyle={styles.alertButton}
-        onConfirmPressed={() => setShowAlert(false)}
+        showCancelButton={false}
+        onConfirmPressed={confirm ? handleConfirmClose : handleModalClose}
+        onCancelPressed={handleModalClose}
+        confirmButtonColor={alertType === 'success' ? '#10b981' :
+          alertType === 'error' ? '#ef4444' :
+            alertType === 'warning' ? '#f59e0b' : '#3b82f6'}
+        showSuccessTick={success && alertType === 'success'}
       />
     </SafeAreaView>
   );

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -8,15 +8,18 @@ import {
   ActivityIndicator,
   RefreshControl,
   Image,
+  StatusBar,
 } from 'react-native';
 import { account, databases } from '../server/appwrite';
-import { useNavigation } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { styles } from '../styles/adminDashboardStyles';
+import { createStyles } from '../styles/adminDashboardStyles';
 import { Query } from 'appwrite';
+import sticker from '../assets/images/logo_app.png';
+import { useTheme } from '../contexts/ThemeContext';
 
 export default function AdminDashboard() {
+  const { colors, isDark, toggleTheme } = useTheme();
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(true);
@@ -29,6 +32,7 @@ export default function AdminDashboard() {
     maintainanceAssets: 0,
   });
   const navigation = useNavigation();
+  const route = useRoute();
 
   const fetchUserAndStats = async () => {
     try {
@@ -48,9 +52,9 @@ export default function AdminDashboard() {
       );
 
       const assets = assetsResponse.documents;
-      const availableAssets = assets.filter(asset => asset.status === 'Available').length;
-      const assignedAssets = assets.filter(asset => asset.status === 'Assigned').length;
-      const maintainanceAssets = assets.filter(asset => asset.status === 'Maintainance').length;
+      const availableAssets = assets.filter(asset => asset.status === 'Available' || asset.status === 'Available-O').length;
+      const assignedAssets = assets.filter(asset => asset.status === 'Assigned' || asset.status === 'Assigned-O').length;
+      const maintainanceAssets = assets.filter(asset => asset.status === 'Maintainance' || asset.status === 'Damaged').length;
 
       setStats({
         totalEmployees: employeesResponse.total,
@@ -61,7 +65,7 @@ export default function AdminDashboard() {
       });
 
     } catch (error) {
-      console.log('No active session found');
+      console.log("Error: ", error);
       navigation.navigate('Login' as never);
     } finally {
       setLoading(false);
@@ -74,7 +78,6 @@ export default function AdminDashboard() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-
     try {
       await fetchUserAndStats();
     } catch (error) {
@@ -84,20 +87,15 @@ export default function AdminDashboard() {
     }
   };
 
-  const StatCard = ({ title, value, icon, color }) => (
-    <View style={styles.statCard}>
-      <View style={[styles.statIconContainer, { backgroundColor: color }]}>
-        <Icon name={icon} size={15} color="#fff" />
-      </View>
-      <View style={styles.statContent}>
-        <Text style={styles.statValue}>{value}</Text>
-        <Text style={styles.statTitle}>{title}</Text>
-      </View>
-    </View>
+  useFocusEffect(
+    useCallback(() => {
+      onRefresh();
+    }, [])
   );
+  const styles = createStyles(colors);
 
   const QuickAction = ({ title, icon, color, onPress, description }) => (
-    <TouchableOpacity style={styles.quickActionCard} onPress={onPress}>
+    <TouchableOpacity style={styles.quickActionCard} onPress={onPress} activeOpacity={0.8}>
       <View style={[styles.actionIconContainer, { backgroundColor: color }]}>
         <Icon name={icon} size={28} color="#fff" />
       </View>
@@ -117,91 +115,128 @@ export default function AdminDashboard() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.topHeader}>
-        <View style={styles.headerLeft}>
-          <Image 
-            source={{uri: "https://drive.google.com/uc?export=view&id=1o1W4NVpNeMEGNnFmxg20799q6e0NI3pG"}}
-            style={{width: 50, height: 50, borderRadius: 8}}
-          />
-          <Text style={styles.appTitle}>KeeperNest</Text>
-        </View>
-      </View>
+      <StatusBar
+        barStyle={isDark ? "light-content" : "dark-content"}
+        backgroundColor='#3b82f6'
+      />
 
       <ScrollView
         refreshControl={
           <RefreshControl
-            refreshing={refreshing}
+            refreshing={false}
             onRefresh={onRefresh}
-            colors={['#3b82f6']}
-            tintColor="#3b82f6"
-            progressBackgroundColor="#ffffff"
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+            progressBackgroundColor={colors.surface}
             title={refreshing ? "Refreshing..." : "Pull to refresh"}
-            titleColor="#6b7280"
+            titleColor={colors.textSecondary}
           />
         }
         showsVerticalScrollIndicator={false}
         style={styles.scrollView}
       >
-        {/* Welcome Section */}
+
+        <View style={styles.topHeader}>
+          <View style={styles.headerLeft}>
+            <View style={styles.imageCircleContainer}>
+              <Image
+                source={sticker}
+                style={styles.circleImage}
+              />
+            </View>
+            <Text style={styles.appTitle}>KeeperNest</Text>
+          </View>
+          {/* <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center' }}>
+            <TouchableOpacity onPress={toggleTheme}>
+              <Icon
+                name={isDark ? 'white-balance-sunny' : 'weather-night'}
+                size={24}
+                color={colors.primary}
+              />
+            </TouchableOpacity>
+          </View> */}
+        </View>
+
         <View style={styles.welcomeSection}>
           <View style={styles.welcomeContent}>
             <Text style={styles.welcomeText}>Welcome back,</Text>
-            <Text style={styles.userName}>{name}</Text>
-            <Text style={styles.userEmail}>{email}</Text>
+            <Text style={styles.userName} numberOfLines={2}>{name}</Text>
+            <Text style={styles.userEmail} numberOfLines={1}>{email}</Text>
           </View>
           <TouchableOpacity
             style={styles.welcomeIllustration}
             onPress={() => navigation.navigate('Profile' as never)}
           >
-            <Icon name="account-circle" size={70} color="#3b82f6" />
+            <Icon name="account-circle" size={65} color={colors.primary} />
           </TouchableOpacity>
         </View>
 
-        {/* Stats Overview Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Overview</Text>
-          <View style={styles.statsGrid}>
+        <View style={styles.overviewContainer}>
+          <Text style={[styles.sectionTitle, { paddingBottom: 10 }]}>Overview</Text>
 
-            <StatCard
-              title="Total Assets"
-              value={stats.totalAssets}
-              icon="package-variant"
-              color="#3b82f6"
-            />
-            <StatCard
-              title="Available Assets"
-              value={stats.availableAssets || 0}
-              icon="check-circle"
-              color="#10b981"
-            />
-            <StatCard
-              title="Assigned Assets"
-              value={stats.assignedAssets || 0}
-              icon="package-variant-closed"
-              color="#f59e0b"
-            />
-            <StatCard
-              title="Maintenance"
-              value={stats.maintainanceAssets || 0}
-              icon="wrench"
-              color="#8b5cf6"
-            />
-          </View>
-          <View style={styles.mainStatCard}>
-            <View style={styles.mainStatContent}>
-              <View style={[styles.mainStatIconContainer, { backgroundColor: '#3b82f6' + '20' }]}>
-                <Icon name="account-group" size={32} color="#3b82f6" />
+          <View style={styles.statsGrid}>
+            <View style={styles.mainRow}>
+              <View style={styles.leftStats}>
+                <View style={styles.statsRow}>
+                  <TouchableOpacity style={styles.statItem} onPress={() => navigation.navigate('AssetList' as never, { filter: 'all' } as never)} activeOpacity={0.8}>
+                    <View style={[styles.statIconWrapper, { backgroundColor: '#3b82f6' }]}>
+                      <Icon name="package-variant" size={15} color="#fff" />
+                    </View>
+                    <View style={styles.statContent}>
+                      <Text style={styles.statNumber}>{stats.totalAssets}</Text>
+                      <Text style={styles.statLabel}>Total</Text>
+                    </View>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity style={styles.statItem} activeOpacity={0.8} onPress={() => navigation.navigate('AssetList' as never, { filter: 'assigned', label: 'Assigned' } as never)}>
+                    <View style={[styles.statIconWrapper, isDark ? { backgroundColor: '#d97706' } : { backgroundColor: '#f59e0b' }]}>
+                      <Icon name="package-variant-closed" size={15} color="#fff" />
+                    </View>
+                    <View style={styles.statContent}>
+                      <Text style={styles.statNumber}>{stats.assignedAssets || 0}</Text>
+                      <Text style={styles.statLabel}>Assigned</Text>
+                    </View>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.statsRow}>
+                  <TouchableOpacity style={styles.statItem} onPress={() => navigation.navigate('AssetList' as never, { filter: 'available' } as never)} activeOpacity={0.8}>
+                    <View style={[styles.statIconWrapper, { backgroundColor: '#10b981' }]}>
+                      <Icon name="check-circle" size={15} color="#fff" />
+                    </View>
+                    <View style={styles.statContent}>
+                      <Text style={styles.statNumber}>{stats.availableAssets || 0}</Text>
+                      <Text style={styles.statLabel}>Available</Text>
+                    </View>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity style={styles.statItem} onPress={() => navigation.navigate('AssetList' as never, { filter: 'maintainance' } as never)} activeOpacity={0.8}>
+                    <View style={[styles.statIconWrapper, { backgroundColor: '#8b5cf6' }]}>
+                      <Icon name="wrench" size={15} color="#fff" />
+                    </View>
+                    <View style={styles.statContent}>
+                      <Text style={styles.statNumber}>{stats.maintainanceAssets || 0}</Text>
+                      <Text style={styles.statLabel}>Maintenance</Text>
+                    </View>
+                  </TouchableOpacity>
+                </View>
               </View>
-              <View style={styles.mainStatText}>
-                <Text style={styles.mainStatValue}>{stats.totalEmployees}</Text>
-                <Text style={styles.mainStatTitle}>Total Employees</Text>
+
+              <View style={styles.employeeSection}>
+                <TouchableOpacity style={styles.employeeItem} onPress={() => navigation.navigate('EmployeeList' as never)} activeOpacity={0.8}>
+                  <View style={[styles.employeeIconWrapper, { backgroundColor: '#ec4899' }]}>
+                    <Icon name="account-group" size={22} color="#fff" />
+                  </View>
+                  <View style={styles.employeeContent}>
+                    <Text style={styles.employeeNumber}>{stats.totalEmployees}</Text>
+                    <Text style={styles.employeeLabel}>Employees</Text>
+                  </View>
+                </TouchableOpacity>
               </View>
             </View>
           </View>
         </View>
 
-
-        {/* Quick Actions Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
           <View style={styles.quickActionsGrid}>
@@ -222,7 +257,7 @@ export default function AdminDashboard() {
             <QuickAction
               title="View Assets"
               icon="format-list-bulleted"
-              color="#f59e0b"
+              color={isDark ? '#d97706' : '#f59e0b'}
               description="Browse all assets"
               onPress={() => navigation.navigate('AssetList' as never)}
             />
@@ -235,13 +270,6 @@ export default function AdminDashboard() {
             />
           </View>
         </View>
-
-        {refreshing && (
-          <View style={styles.refreshIndicator}>
-            <ActivityIndicator size="small" color="#3b82f6" />
-            <Text style={styles.refreshText}>Updating dashboard...</Text>
-          </View>
-        )}
       </ScrollView>
     </SafeAreaView>
   );

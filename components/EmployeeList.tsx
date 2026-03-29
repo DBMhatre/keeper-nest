@@ -7,139 +7,254 @@ import {
   View,
   TextInput,
   RefreshControl,
+  Image,
 } from 'react-native';
-import React, { useEffect, useState } from 'react';
-import { databases } from '../server/appwrite';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
+import { account, databases } from '../server/appwrite';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Query } from 'appwrite';
 import EmptyComponent from './EmptyComponent';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useQuery } from '@tanstack/react-query';
+import debounce from 'lodash/debounce';
+import MaleImage from '../assets/images/man.png';
+import FemaleImage from '../assets/images/woman.png';
+import { createEmployeeListStyles } from '../styles/employeeListStyles';
+import { useTheme } from '../contexts/ThemeContext';
 
 export default function EmployeeList() {
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [employees, setEmployees] = useState([]);
-  const [filteredEmployees, setFilteredEmployees] = useState([]);
-  const [name, setName] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalEmployees, setTotalEmployees] = useState(0);
   const navigation = useNavigation();
+  const [fetchCount, setFetchCount] = useState(0);
+  const pageSize = 5;
+  const [inputValue, setInputValue] = useState('');
 
-  const fetchEmployees = async () => {
+  const {colors, isDark} = useTheme();
+  const styles = createEmployeeListStyles({ ...colors, isDark });
+
+  const debouncedSearch = useMemo(
+    () => debounce((query: string) => {
+      setSearchQuery(query);
+      setPage(1);
+    }, 500),
+    []
+  );
+
+  const fetchEmployees = useCallback(async () => {
+
     try {
+      await account.get();
+
+      const queries = [
+        Query.equal('role', 'employee'),
+        Query.equal('status', 'active')
+      ];
+
+      if (searchQuery.trim()) {
+        queries.push(Query.or([
+          Query.search('name', searchQuery),
+          Query.search('employeeId', searchQuery),
+          Query.search('email', searchQuery)
+        ]));
+        queries.push(Query.limit(100));
+      } else {
+        queries.push(Query.limit(pageSize));
+        queries.push(Query.offset((page - 1) * pageSize));
+      }
+
       const res = await databases.listDocuments(
         'user_info',
         'user_info',
-        [Query.equal('role', 'employee'), Query.equal('status', 'active')]
+        queries
       );
-      setEmployees(res.documents as never);
-      setFilteredEmployees(res.documents as never); 
-    } catch (err) {
-      console.error('Error in fetching employees: ', err);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+
+      const countQueries = [
+        Query.equal('role', 'employee'),
+        Query.equal('status', 'active')
+      ];
+
+      if (searchQuery.trim()) {
+        countQueries.push(Query.search('name', searchQuery));
+      }
+
+      const countRes = await databases.listDocuments(
+        'user_info',
+        'user_info',
+        countQueries
+      );
+
+      setFetchCount(prev => prev + 1);
+      console.log(`Fetch count: ${fetchCount + 1} `);
+      setTotalEmployees(countRes.total);
+      return res.documents;
+    } catch (error) {
+      console.log("Error: ", error);
+
+      if (error.message?.includes('Search') || error.message?.includes('index')) {
+        console.log("Search index not available, using client-side filtering");
+
+        const fallbackQueries = [
+          Query.equal('role', 'employee'),
+          Query.equal('status', 'active'),
+          Query.limit(100)
+        ];
+
+        const res = await databases.listDocuments(
+          'user_info',
+          'user_info',
+          fallbackQueries
+        );
+
+        setTotalEmployees(res.total);
+        return res.documents;
+      }
+
+      navigation.navigate('Login' as never);
+      throw error;
+    }
+  }, [navigation, page, searchQuery, pageSize]);
+
+  const {
+    data: employees = [],
+    isLoading,
+    refetch,
+    isRefetching
+  } = useQuery({
+    queryKey: ['employees', page, searchQuery],
+    queryFn: fetchEmployees,
+  });
+
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch])
+  );
+
+  const handleNextPage = () => {
+    if (page < totalPages) {
+      setPage(page + 1);
     }
   };
 
-  useEffect(() => {
-    fetchEmployees();
-  }, []);
-  
-  useEffect(() => {
-    const text = name.toLowerCase();
+  const handlePrevPage = () => {
+    if (page > 1) {
+      setPage(page - 1);
+    }
+  };
 
-    const result = employees.filter((item) => {
+  const filteredEmployees = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return employees;
+    }
+
+    const query = searchQuery.toLowerCase();
+    return employees.filter((item) => {
       return (
-        item.name.toLowerCase().includes(text) ||
-        item.email.toLowerCase().includes(text) ||
-        item.employeeId.toLowerCase().includes(text)
+        item.name?.toLowerCase().includes(query) ||
+        item.email?.toLowerCase().includes(query) ||
+        item.employeeId?.toLowerCase().includes(query)
       );
     });
+  }, [employees, searchQuery]);
 
-    setFilteredEmployees(result);
-  }, [name, employees]);
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchEmployees();
-  };
-
-  const getGenderColor = (gender: string) => {
-    switch (gender) {
-      case "Male": return "#3b82f6";
-      case "Female": return "#ec4899";
-      case "Other": return "#8b5cf6";
-      default: return "#6b7280";
+  const totalPages = useMemo(() => {
+    if (searchQuery.trim()) {
+      const filteredCount = filteredEmployees.length;
+      return Math.ceil(filteredCount / pageSize);
+    } else {
+      return Math.ceil(totalEmployees / pageSize);
     }
+  }, [searchQuery, filteredEmployees.length, totalEmployees, pageSize]);
+
+  const onRefresh = async () => {
+    refetch();
   };
+
+  const handleSearchChange = (text: string) => {
+    setInputValue(text);
+    debouncedSearch(text);
+  };
+
+  // React.useEffect(() => {
+  //   return () => {
+  //     debouncedSearch.cancel();
+  //   };
+  // }, [debouncedSearch]);
+
+  const paginatedData = useMemo(() => {
+    if (searchQuery.trim()) {
+      const start = (page - 1) * pageSize;
+      const end = start + pageSize;
+      return filteredEmployees.slice(start, end);
+    } else {
+      return employees;
+    }
+  }, [searchQuery, page, pageSize, filteredEmployees, employees]);
 
   const renderItem = ({ item }) => (
-    <TouchableOpacity style={styles.card} onPress={() => navigation.navigate('EmployeeDetails' as never, { employeeId: item.employeeId } as never)}>
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() => navigation.navigate('EmployeeDetails' as never, { employeeId: item.employeeId, name: item.name } as never)}
+      activeOpacity={0.9}
+    >
       <View style={styles.cardHeader}>
-        <View style={styles.employeeInfo}>
+        <View style={styles.iconWithBadgeContainer}>
           <View style={[
-            styles.iconContainer,
-            { backgroundColor: getGenderColor(item.gender) + "15" }
+            styles.bigIconContainer,
+            {
+              backgroundColor: colors.surface,
+              borderColor: "#3b82f6" + "40"
+            }
           ]}>
-            <Icon
-              name={item.gender.toLowerCase() == 'male' ? "face-man" : "face-woman"}
-              size={34}
-              color={getGenderColor(item.gender)}
+            <Image
+              source={item.gender === 'Female' ? FemaleImage : MaleImage}
+              style={styles.faceImage}
+              resizeMode="cover"
             />
           </View>
-          <View style={styles.employeeDetails}>
-            <Text style={styles.employeeName}>{item.name}</Text>
-            <Text style={styles.employeeId}>{item.email}</Text>
+
+          <View style={styles.idBadge}>
+            <Text style={styles.idText}>
+              {item.employeeId}
+            </Text>
           </View>
         </View>
-        
+
+        <View style={styles.headerText}>
+          <Text style={styles.employeeName} numberOfLines={2}>{item.name}</Text>
+          <Text style={styles.employeeEmail} numberOfLines={2}>{item.email}</Text>
+        </View>
       </View>
 
-      <View style={styles.divider} />
-
-      <View style={styles.detailsContainer}>
+      <View style={styles.cardBody}>
         <View style={styles.detailsGrid}>
-          {/* Employee ID */}
-          <View style={styles.detailItem}>
-            <View style={styles.detailIcon}>
-              <Icon name="identifier" size={16} color="#6b7280" />
+          <View style={styles.detailRow}>
+            <View style={styles.detailLabelContainer}>
+              <Icon name="calendar-month-outline" size={14} color="#6b7280" />
+              <Text style={styles.detailLabel}>Joined</Text>
             </View>
-            <View style={styles.detailContent}>
-              <Text style={styles.detailLabel}>EMPLOYEE ID</Text>
-              <Text style={styles.detailValue}>{item.employeeId}</Text>
-            </View>
-          </View>
-
-          <View style={styles.detailItem}>
-            <View style={styles.detailIcon}>
-              <Icon name="gender-male-female" size={16} color="#6b7280" />
-            </View>
-            <View style={styles.detailContent}>
-              <Text style={styles.detailLabel}>GENDER</Text>
-              <Text style={styles.detailValue}>{item.gender}</Text>
-            </View>
-          </View>
-
-          {/* Joined Date */}
-          <View style={styles.detailItem}>
-            <View style={styles.detailIcon}>
-              <Icon name="calendar-outline" size={16} color="#6b7280" />
-            </View>
-            <View style={styles.detailContent}>
-              <Text style={styles.detailLabel}>JOINED DATE</Text>
+            <View style={styles.detailValueContainer}>
               <Text style={styles.detailValue}>
-                {new Date(item.$createdAt).toLocaleDateString()}
+                {new Date(item.$createdAt).toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric'
+                })}
               </Text>
             </View>
           </View>
 
-          {/* Created By */}
-          <View style={styles.detailItem}>
-            <View style={styles.detailIcon}>
-              <Icon name="account-check-outline" size={16} color="#6b7280" />
+          <View style={styles.detailRow}>
+            <View style={styles.detailLabelContainer}>
+              <Icon name="account-plus-outline" size={14} color="#6b7280" />
+              <Text style={styles.detailLabel}>Created By</Text>
             </View>
-            <View style={styles.detailContent}>
-              <Text style={styles.detailLabel}>CREATED BY</Text>
-              <Text style={styles.detailValue}>{item.creatorMail}</Text>
+            <View style={styles.detailValueContainer}>
+              <Text style={styles.detailValue} numberOfLines={1}>
+                {item.creatorMail || 'BBL-1234'}
+              </Text>
             </View>
           </View>
         </View>
@@ -149,11 +264,10 @@ export default function EmployeeList() {
 
   return (
     <View style={styles.container}>
-      {/* Header Section */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <View style={styles.titleContainer}>
-            <Icon name="account-group" size={28} color="#3b82f6" />
+            <Icon name="account-group" size={30} color="#3b82f6" />
             <Text style={styles.headerTitle}>Employee Directory</Text>
           </View>
           <Text style={styles.headerSubtitle}>
@@ -161,236 +275,87 @@ export default function EmployeeList() {
           </Text>
         </View>
 
-        {/* Search Bar */}
         <View style={styles.searchContainer}>
           <Icon name="magnify" size={20} color="#6b7280" style={styles.searchIcon} />
           <TextInput
-            value={name}
-            onChangeText={setName}
+            value={inputValue}
+            onChangeText={handleSearchChange}
             placeholder="Search employees..."
             placeholderTextColor="#9ca3af"
             style={styles.searchInput}
+            cursorColor="#3b82f6"
           />
         </View>
       </View>
 
-      {/* Content Section */}
       <View style={styles.content}>
-        {loading ? (
+        {isLoading ? (
           <View style={styles.loaderContainer}>
             <ActivityIndicator size="large" color="#3b82f6" />
             <Text style={styles.loadingText}>Loading employees...</Text>
           </View>
         ) : (
           <FlatList
-            data={filteredEmployees}
+            data={paginatedData}
             keyExtractor={(item) => item.$id}
             renderItem={renderItem}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.listContent}
             refreshControl={
               <RefreshControl
-                refreshing={refreshing}
+                refreshing={false}
                 onRefresh={onRefresh}
-                colors={['#3b82f6']}
-                tintColor="#3b82f6"
+                colors={[colors.primary]}
+                tintColor={colors.primary}
+                progressBackgroundColor={colors.background}
               />
             }
-            ListEmptyComponent={<EmptyComponent name='Employee' />}
+            ListEmptyComponent={
+              <EmptyComponent
+                name='Employee'
+                message={
+                  searchQuery.trim()
+                    ? `No employees found for "${searchQuery}"`
+                    : 'No employees found'
+                }
+              />
+            }
           />
+        )}
+
+        {totalPages > 0 && (
+          <View style={styles.paginationContainer}>
+            <TouchableOpacity
+              style={[styles.paginationButton, page === 1 && styles.paginationButtonDisabled]}
+              onPress={handlePrevPage}
+              disabled={page === 1}
+            >
+              <Icon name="chevron-left" size={20} color={page === 1 ? "#9ca3af" : "#3b82f6"} />
+              <Text style={[styles.paginationButtonText, page === 1 && styles.paginationButtonTextDisabled]}>
+                Previous
+              </Text>
+            </TouchableOpacity>
+
+            <View style={styles.pageInfo}>
+              <Text style={styles.pageText}>Page</Text>
+              <Text style={styles.pageNumber}>{page}</Text>
+              <Text style={styles.pageText}>of {totalPages}</Text>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.paginationButton, page === totalPages && styles.paginationButtonDisabled]}
+              onPress={handleNextPage}
+              disabled={page === totalPages}
+            >
+              <Text style={[styles.paginationButtonText, page === totalPages && styles.paginationButtonTextDisabled]}>
+                Next
+              </Text>
+              <Icon name="chevron-right" size={20} color={page === totalPages ? "#9ca3af" : "#3b82f6"} />
+            </TouchableOpacity>
+          </View>
         )}
       </View>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f8fafc",
-  },
-  header: {
-    backgroundColor: "#ffffff",
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  headerContent: {
-    marginBottom: 16,
-  },
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1f2937',
-    marginLeft: 10,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginLeft: 34,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    paddingTop: 4.5,
-    alignItems: 'center',
-    backgroundColor: '#f8fafc',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    height: 48,
-    borderWidth: 1.5,
-    borderColor: '#e5e7eb',
-  },
-  searchIcon: {
-    marginRight: 12,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: '#1f2937',
-    fontWeight: '500',
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 20,
-  },
-  listContent: {
-    paddingBottom: 20,
-  },
-  card: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: '#f1f5f9',
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  employeeInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  iconContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  employeeDetails: {
-    flex: 1,
-  },
-  employeeName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 2,
-  },
-  employeeId: {
-    fontSize: 12,
-    color: '#6b7280',
-    fontWeight: '500',
-  },
-  roleBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  roleDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginRight: 6,
-  },
-  roleText: {
-    fontSize: 12,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#f3f4f6',
-    marginBottom: 16,
-  },
-  detailsContainer: {
-    gap: 16,
-  },
-  detailsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  detailItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    width: '48%',
-    gap: 8,
-  },
-  detailIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: '#f8fafc',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 2,
-  },
-  detailContent: {
-    flex: 1,
-  },
-  detailLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#6b7280',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 2,
-  },
-  detailValue: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#1f2937',
-    lineHeight: 18,
-  },
-  loaderContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 12,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: '#6b7280',
-    fontWeight: '500',
-  },
-});
